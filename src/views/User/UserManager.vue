@@ -37,34 +37,19 @@
                     </div>
                 </template>
                 <template #bodyCell="{ column, text, record }">
-                    <template v-if="['uid', 'name', 'className', 'department'].includes(column.dataIndex)">
+                    <template v-if="['uid', 'name', 'classname', 'department'].includes(column.dataIndex)">
                         <div>
-                            <a-input
-                                    v-if="editableData[record.key]"
-                                    v-model:value="editableData[record.key][column.dataIndex]"
-                                    style="margin: -5px 0"
-                            />
-                            <template v-else>
-                                {{ text }}
-                            </template>
+                            {{ text }}
                         </div>
                     </template>
+
                     <template v-else-if="column.dataIndex === 'operation'">
                         <div class="editable-row-operations">
-                      <span v-if="editableData[record.key]">
-                        <a-popconfirm title="确定保存?" @click="save(record.key)">
-                            <a>保存</a>
-                        </a-popconfirm>
-                        <a-typography-link @click="cancel(record.key)">取消</a-typography-link>
-                      </span>
-                      <span v-else>
-                         <a @click="edit(record.key)">编辑</a>
+                      <span>
+                          <a @click="showModal(record.id)">编辑</a>
                       </span>
                       <span>
-                          <a :disabled="editableData[record.key]" @click="showModal(record.id)">修改角色</a>
-                      </span>
-                      <span>
-                          <a :disabled="editableData[record.key]" @click="showConfirm(record.id)">重置密码</a>
+                          <a @click="showConfirm(record.id)">重置密码</a>
                       </span>
                       <span>
                         <a-popconfirm title="Sure to delete?" @confirm="deleteUser(record.key)"><a
@@ -78,49 +63,55 @@
         <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false" >
             管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
         </div>
-        <a-modal v-model:visible="visible" title="修改用户角色">
-          <a-card>
-              <p>用户id：<span>1</span></p>
-              <p>学籍号：<span>22100000</span></p>
-              <p>姓名：<span>Demo</span></p>
-              <p>班级：<span>215T01</span></p>
-              <p>系部：<span>信息技术系</span></p>
-          </a-card>
+        <a-modal v-model:visible="visible" title="修改用户信息">
             <a-form
                     :model="formState"
                     name="validate_other"
                     v-bind="formItemLayout"
-                    @finishFailed="onFinishFailed"
-                    @finish="onFinish"
             >
+                <a-form-item name="uid" label="学籍号" :rules="[{ required: true }]">
+                    <a-input v-model:value="formState.uid"/>
+                </a-form-item>
+                <a-form-item name="name" label="姓名" :rules="[{ required: true }]">
+                    <a-input v-model:value="formState.name"/>
+                </a-form-item>
+                <a-form-item name="department" label="系部" :rules="[{ required: true }]">
+                    <a-input v-model:value="formState.department"/>
+                </a-form-item>
+                <a-form-item name="classname" label="班级" :rules="[{ required: true }]">
+                    <a-input v-model:value="formState.classname"/>
+                </a-form-item>
                 <a-form-item
-                        name="select"
+                        name="is_admin"
                         label="角色"
                         has-feedback
-                        :rules="[{ required: true, message: 'Please select your country!' }]"
+                        :rules="[{ required: true, message: '请选择角色' }]"
                         style="padding-top: 8px;"
                 >
-                    <a-select v-model:value="formState.select" placeholder="选择角色">
-                        <a-select-option value="User">普通用户</a-select-option>
-                        <a-select-option value="Admin">管理员</a-select-option>
+                    <a-select v-model:value="formState.is_admin" placeholder="选择角色">
+                        <a-select-option value="0">普通用户</a-select-option>
+                        <a-select-option value="1">管理员</a-select-option>
                     </a-select>
+                </a-form-item>
+                <a-form-item name="note" label="备注">
+                    <a-textarea v-model:value="formState.note"/>
                 </a-form-item>
             </a-form>
             <template #footer>
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
-                <a-button type="primary" @click="changeNote" danger>变更</a-button>
+                <a-button type="primary" danger @click="changeUser">变更</a-button>
             </template>
         </a-modal>
         <a-modal v-model:visible="visiblePassword" title="重置密码">
             <a-card>
-                <p>用户id：<span>1</span></p>
-                <p>学籍号：<span>22100000</span></p>
-                <p>姓名：<span>Demo</span></p>
-                <p>班级：<span>215T01</span></p>
-                <p>系部：<span>信息技术系</span></p>
+                <p>用户id：<span>{{  current_user.id  }}</span></p>
+                <p>学籍号：<span>{{  current_user.uid  }}</span></p>
+                <p>姓名：<span>{{  current_user.name  }}</span></p>
+                <p>班级：<span>{{  current_user.classname  }}</span></p>
+                <p>系部：<span>{{  current_user.department  }}</span></p>
             </a-card>
             <a-card>
-                <p>密码已重置，密码为: a0PPomsa</p>
+                <p>密码已重置，密码为: {{ new_password }}</p>
             </a-card>
             <template #footer>
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
@@ -131,10 +122,9 @@
 </template>
 <script setup>
 import {reactive, ref, onMounted, createVNode} from 'vue';
-import {cloneDeep} from 'lodash-es';
 import {ExclamationCircleOutlined, SearchOutlined} from '@ant-design/icons-vue';
-import {Modal} from "ant-design-vue";
-
+import {message, Modal} from "ant-design-vue";
+import api from "@/api";
 const isShow = ref(true);
 function handleResize (event) {
     // 页面宽度小于525px时，不显示表格
@@ -147,34 +137,53 @@ function handleResize (event) {
 
 onMounted(() => {
     handleResize();
+    listUsers();
 });
 
 window.addEventListener('resize', handleResize);
 
 
-const data = [];
-for (let i = 0; i < 100; i++) {
-    data.push({
-        key: i.toString(),
-        name: `Edrward ${i}`,
-        uid: 22100000 + i,
-        role: "User",
-        department: "信息技术系",
-        className: "215T01",
+const myData = ref([]);
+const listUsers = () => {
+    api.get("/user").then((res) => {
+        let {data} = res.data;
+        data = data.map(item => {
+            if (item.is_admin === '1') {
+                item.is_admin = '管理员';
+            } else {
+                item.is_admin ='用户';
+            }
+            return item;
+        })
+        myData.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
     });
 }
 
-const dataSource = ref(data);
-const editableData = reactive({});
+const changeUser = () => {
+    api.patch("/user/" + current_id.value, formState).then((res) => {
+        let {msg} = res.data;
+        let current_user = myData.value.find(item => item.id === current_id.value)
+        Object.assign(current_user, formState);
+        visible.value = false;
+        message.success(msg);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+
+
+const dataSource = ref(myData);
 const state = reactive({
     searchText: '',
     searchedColumn: '',
 });
 
 const searchInput = ref();
-const edit = key => {
-    editableData[key] = cloneDeep(dataSource.value.filter(item => key === item.key)[0]);
-};
 
 const columns = [
     {
@@ -195,21 +204,27 @@ const columns = [
     },
     {
         title: '班级',
-        dataIndex: 'className',
+        dataIndex: 'classname',
         width: '10%',
+        customFilterDropdown: true,
+        onFilter: (value, record) =>
+            record.classname.toString().toLowerCase().includes(value.toLowerCase())
     },
     {
         title: '系部',
         dataIndex: 'department',
         width: '10%',
+        customFilterDropdown: true,
+        onFilter: (value, record) =>
+            record.department.toString().toLowerCase().includes(value.toLowerCase())
     },
     {
         title: '角色',
-        dataIndex: 'role',
+        dataIndex: 'is_admin',
         width: '20%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
-            record.role.toString().toLowerCase().includes(value.toLowerCase()),
+            record.is_admin.toString().toLowerCase().includes(value.toLowerCase())
     },
     {
         title: '操作',
@@ -230,22 +245,45 @@ const handleReset = clearFilters => {
 const deleteUser = key => {
     alert(key);
 };
-const save = key => {
-    Object.assign(dataSource.value.filter(item => key === item.key)[0], editableData[key]);
-    delete editableData[key];
-};
-const cancel = key => {
-    delete editableData[key];
-};
 
 const visible = ref(false);
 const visiblePassword = ref(false);
 
+const current_id = ref();
+
 const showModal = id => {
+    let user = myData.value.find(i => i.id === id);
+    current_id.value = id;
+    if (user) {
+        if (user.is_admin === "管理员") {
+            formState.is_admin = '1';
+        } else {
+            formState.is_admin = '0';
+        }
+        formState.uid = user.uid;
+        formState.name = user.name;
+        formState.department = user.department;
+        formState.classname = user.classname;
+        formState.note = user.note;
+    }
     visible.value = true;
 }
 
+const new_password = ref();
+const resetPwd = id => {
+    api.get("/user/pwd/reset/" + id).then((res) => {
+        let {msg, data} = res.data;
+        new_password.value = data.password;
+        showPassword(id);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+const current_user = ref();
 const showPassword = id => {
+    let user = myData.value.find(i => i.id === id);
+    current_user.value = user;
     visiblePassword.value = true;
 }
 
@@ -257,7 +295,7 @@ const showConfirm = (id) => {
         okText: '确认',
         cancelText: '取消',
         onOk() {
-            showPassword(id)
+            resetPwd(id)
         }
     });
 }
@@ -270,14 +308,13 @@ const formItemLayout = {
     },
 };
 const formState = reactive({
-    select: "User"
+    uid: "",
+    name: "",
+    classname: "",
+    department: "",
+    note: "",
+    is_admin: "0"
 });
-const onFinish = values => {
-    console.log('Success:', values);
-};
-const onFinishFailed = errorInfo => {
-    console.log('Failed:', errorInfo);
-};
 
 const handleCancel = () => {
     visible.value = false;

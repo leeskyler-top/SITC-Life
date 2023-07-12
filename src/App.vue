@@ -1,7 +1,7 @@
 <script setup>
 import {CalendarOutlined ,DashboardOutlined, ToolOutlined, UserOutlined, LockOutlined, CarryOutOutlined, FileOutlined} from '@ant-design/icons-vue';
 import { message } from "ant-design-vue";
-import {ref, computed, reactive} from 'vue';
+import {ref, computed, reactive, watch} from 'vue';
 import api from './api.js';
 
 const formState = reactive({
@@ -16,6 +16,18 @@ const disabled = computed(() => {
 const collapsed = ref(true);
 const selectedKeys = ref(['1']);
 const token = ref(localStorage.token);
+let latestToken = token.value; // 中间变量存储最新的token值
+
+watch(token, (newToken) => {
+    latestToken = newToken; // 更新最新的token值
+});
+
+// 在发送请求前应用最新的token值
+api.interceptors.request.use((config) => {
+    config.headers.Authorization = `Bearer ${latestToken}`;
+    return config;
+});
+
 const name = ref(localStorage.name);
 
 const login = () => {
