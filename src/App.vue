@@ -1,36 +1,64 @@
 <script setup>
 import {CalendarOutlined ,DashboardOutlined, ToolOutlined, UserOutlined, LockOutlined, CarryOutOutlined, FileOutlined} from '@ant-design/icons-vue';
+import { message } from "ant-design-vue";
 import {ref, computed, reactive} from 'vue';
+import api from './api.js';
+
 const formState = reactive({
-    username: '',
+    email: '',
     password: '',
 });
-const onFinish = values => {
-    console.log('Success:', values);
-};
-const onFinishFailed = errorInfo => {
-    console.log('Failed:', errorInfo);
-};
+
 const disabled = computed(() => {
-    return !(formState.username && formState.password);
+    return !(formState.email && formState.password);
 });
 
 const collapsed = ref(true);
 const selectedKeys = ref(['1']);
+const token = ref(localStorage.token);
+const name = ref(localStorage.name);
+
+const login = () => {
+    api.post("/auth/login", formState).then((res) => {
+        let {data, msg} = res.data;
+        console.log(data);
+        token.value = data.token;
+        name.value = data.name;
+        name.is_admin = data.is_admin;
+        localStorage.token = data.token;
+        localStorage.name = data.name;
+        localStorage.is_admin = data.is_admin;
+        message.success(msg);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+const logout = () => {
+    token.value = null;
+    name.value = null;
+    api.delete("/auth/logout").then((res) => {
+        let {msg} = res.data;
+        localStorage.clear();
+        message.success(msg);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.warn("登出可能失败:" + msg);
+    });
+}
 
 </script>
 <template>
-    <div v-if="false" class="login">
+    <div v-if="!token" class="login">
         <a-form
             :model="formState"
             name="basic"
             :label-col="{ span: 8 }"
             :wrapper-col="{ span: 16 }"
             autocomplete="off"
-            @finish="onFinish"
-            @finishFailed="onFinishFailed"
+            @submit="login"
             style="background-color: #FFFFFF;     z-index: 1;
-
              padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; border-radius: 3px; box-shadow: #FFFFFF 0 0 1px 1px;
 "
 
@@ -39,11 +67,11 @@ const selectedKeys = ref(['1']);
             <p align="center">SITC 团委学生会 宣传部</p>
             <a-form-item
                 label="账户"
-                name="username"
+                name="email"
                 :rules="[{ required: true, message: '请输入账户!' }]"
                 style="margin-top: 16px;"
             >
-                <a-input v-model:value="formState.username" />
+                <a-input v-model:value="formState.email" />
             </a-form-item>
 
             <a-form-item
@@ -62,7 +90,7 @@ const selectedKeys = ref(['1']);
 
         </a-form>
     </div>
-    <div v-if="true" style="height: 100%">
+    <div v-if="token" style="height: 100%">
         <a-layout style="min-height: 100vh">
             <a-layout-sider v-model:collapsed="collapsed" collapsible>
                 <div class="logo" :style="{height: '64px',display: 'flex', alignItems: 'center', justifyContent: 'center'}">
@@ -170,8 +198,8 @@ const selectedKeys = ref(['1']);
                             <span>SITC 团委学生会宣传部-管理系统</span>
                         </div>
                         <div  style="margin-left: 24px; margin-right: 28px;">
-                            <span style="margin-right: 8px;">你好！demo</span>
-                            <span><a>登出</a></span>
+                            <span style="margin-right: 8px;">你好！{{ name }}</span>
+                            <span @click="logout"><a>登出</a></span>
                         </div>
                     </div>
                 </a-layout-header>

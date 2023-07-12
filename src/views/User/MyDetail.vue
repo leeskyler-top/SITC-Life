@@ -1,16 +1,17 @@
 <script setup>
-import {reactive, ref} from 'vue';
+import {onMounted, reactive, ref} from 'vue';
 import {
     InfoCircleOutlined,
     LockOutlined
 } from '@ant-design/icons-vue';
+import api from "@/api";
+import {message} from "ant-design-vue";
 
 
 const formRef = ref();
 const formState = reactive({
     pass: '',
     checkPass: '',
-    age: undefined,
 });
 let checkAge = async (_rule, value) => {
     if (!value) {
@@ -86,6 +87,26 @@ function changeMenu(op) {
     menu.value = op;
 }
 
+const myData = ref({});
+
+const listMyInfo = () => {
+    api.get("/user/my").then((res) => {
+        let {data, msg} = res.data;
+        if (data.is_admin === '1') {
+            data.is_admin = '管理员';
+        } else {
+            data.is_admin = '用户';
+        }
+        myData.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+onMounted(() => {
+    listMyInfo();
+});
 
 
 </script>
@@ -122,13 +143,13 @@ function changeMenu(op) {
             <a-col v-if="menu === 'myInfo'" :lg="{span: 16}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}"
                    style=" padding: 0 16px;">
                 <a-descriptions title="用户详情" bordered>
-                    <a-descriptions-item label="姓名">Demo</a-descriptions-item>
-                    <a-descriptions-item label="工号/学籍号">22100000</a-descriptions-item>
-                    <a-descriptions-item label="系部">信息技术系</a-descriptions-item>
-                    <a-descriptions-item label="班级">215T01</a-descriptions-item>
-                    <a-descriptions-item label="账户类型">User</a-descriptions-item>
-                    <a-descriptions-item label="创建时间">2023-05-20 00:00:00</a-descriptions-item>
-                    <a-descriptions-item label="备注" :span="2">暂无</a-descriptions-item>
+                    <a-descriptions-item label="姓名">{{  myData.name  }}</a-descriptions-item>
+                    <a-descriptions-item label="工号/学籍号">{{  myData.uid  }}</a-descriptions-item>
+                    <a-descriptions-item label="系部">{{  myData.department  }}</a-descriptions-item>
+                    <a-descriptions-item label="班级">{{  myData.classname  }}</a-descriptions-item>
+                    <a-descriptions-item label="账户类型">{{  myData.is_admin  }}</a-descriptions-item>
+                    <a-descriptions-item label="创建时间">{{  myData.created_at  }}</a-descriptions-item>
+                    <a-descriptions-item label="备注" :span="2">{{  myData.note  }}</a-descriptions-item>
                 </a-descriptions>
             </a-col>
             <a-col v-if="menu === 'changePwd'" :lg="{span: 16}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}"
@@ -140,9 +161,6 @@ function changeMenu(op) {
                     :model="formState"
                     :rules="rules"
                     v-bind="layout"
-                    @finish="handleFinish"
-                    @validate="handleValidate"
-                    @finishFailed="handleFinishFailed"
                     layout="vertical"
                 >
                     <a-form-item has-feedback label="旧密码" name="original_password" style="padding-top: 4px;">
