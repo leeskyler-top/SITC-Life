@@ -30,10 +30,12 @@ api.interceptors.request.use((config) => {
 
 const name = ref(localStorage.name);
 
+const signin = ref(false);
 const login = () => {
+    signin.value = true;
     api.post("/auth/login", formState).then((res) => {
+        signin.value = false;
         let {data, msg} = res.data;
-        console.log(data);
         token.value = data.token;
         name.value = data.name;
         name.is_admin = data.is_admin;
@@ -43,20 +45,25 @@ const login = () => {
         message.success(msg);
     }).catch((err) => {
         let {msg} = err.response.data;
+        signin.value = false;
         message.error(msg);
     });
 }
 
 const logout = () => {
-    token.value = null;
-    name.value = null;
     api.delete("/auth/logout").then((res) => {
         let {msg} = res.data;
         localStorage.clear();
+        token.value = null;
+        name.value = null;
         message.success(msg);
     }).catch((err) => {
         let {msg} = err.response.data;
-        message.warn("登出可能失败:" + msg);
+        localStorage.clear();
+        token.value = null;
+        name.value = null;
+        localStorage.clear();
+        message.warn("会话注销可能失败:" + msg);
     });
 }
 
@@ -96,7 +103,7 @@ const logout = () => {
 
             <div style="display: flex; align-items: center; justify-content: center; margin-top: 16px;">
                 <a-form-item>
-                    <a-button type="primary" html-type="submit">Submit</a-button>
+                    <a-button type="primary" html-type="submit" :loading="signin">登录</a-button>
                 </a-form-item>
             </div>
 
