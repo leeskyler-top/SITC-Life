@@ -3,64 +3,69 @@
             :style="{margin: '16px'}"
     >
         <h2>用户管理</h2>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow" >
-            <a-row justify="end">
-                <router-link to="/user/add">
-                    <a-button type="primary" style="margin: 8px; " ghost>添加用户</a-button>
-                </router-link>
-            </a-row>
-            <a-table :columns="columns" :data-source="dataSource" bordered>
-                <template
-                        #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
-                >
-                    <div style="padding: 8px">
-                        <a-input
-                                ref="searchInput"
-                                :placeholder="`Search ${column.dataIndex}`"
-                                :value="selectedKeys[0]"
-                                style="width: 188px; margin-bottom: 8px; display: block"
-                                @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
-                                @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
-                        />
-                        <a-button
-                                type="primary"
-                                size="small"
-                                style="width: 90px; margin-right: 8px"
-                                @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
-                        >
-                            <template #icon><search-outlined /></template>
-                            Search
-                        </a-button>
-                        <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
-                            Reset
-                        </a-button>
-                    </div>
-                </template>
-                <template #bodyCell="{ column, text, record }">
-                    <template v-if="['uid', 'name', 'classname', 'department'].includes(column.dataIndex)">
-                        <div>
-                            {{ text }}
+        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow">
+            <a-spin :spinning="spinning" tip="Loading...">
+                <a-row justify="end">
+                    <router-link to="/user/add">
+                        <a-button type="primary" style="margin: 8px; " ghost>添加用户</a-button>
+                    </router-link>
+                </a-row>
+
+                <a-table :columns="columns" :data-source="dataSource" bordered>
+                    <template
+                            #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
+                    >
+                        <div style="padding: 8px">
+                            <a-input
+                                    ref="searchInput"
+                                    :placeholder="`Search ${column.dataIndex}`"
+                                    :value="selectedKeys[0]"
+                                    style="width: 188px; margin-bottom: 8px; display: block"
+                                    @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
+                                    @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
+                            />
+                            <a-button
+                                    type="primary"
+                                    size="small"
+                                    style="width: 90px; margin-right: 8px"
+                                    @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
+                            >
+                                <template #icon>
+                                    <search-outlined/>
+                                </template>
+                                Search
+                            </a-button>
+                            <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
+                                Reset
+                            </a-button>
                         </div>
                     </template>
+                    <template #bodyCell="{ column, text, record }">
+                        <template v-if="['uid', 'name', 'classname', 'department'].includes(column.dataIndex)">
+                            <div>
+                                {{ text }}
+                            </div>
+                        </template>
 
-                    <template v-else-if="column.dataIndex === 'operation'">
-                        <div class="editable-row-operations">
+                        <template v-else-if="column.dataIndex === 'operation'">
+                            <div class="editable-row-operations">
                       <span>
                           <a @click="showModal(record.id)">编辑</a>
                       </span>
-                      <span>
+                                <span>
                           <a @click="showConfirm(record.id)">重置密码</a>
                       </span>
-                      <span>
-                        <a-popconfirm title="Sure to delete?" @confirm="deleteUser(record.key)"><a
+                                <span>
+                        <a-popconfirm title="确定删除此用户？" @confirm="deleteUser(record.id)"><a
                                 style="color: red">删除</a></a-popconfirm>
                       </span>
-                        </div>
+                            </div>
+                        </template>
                     </template>
-                </template>
-            </a-table>
+                </a-table>
+            </a-spin>
         </div>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false" >
+        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false">
             管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
         </div>
         <a-modal v-model:visible="visible" title="修改用户信息">
@@ -104,11 +109,11 @@
         </a-modal>
         <a-modal v-model:visible="visiblePassword" title="重置密码">
             <a-card>
-                <p>用户id：<span>{{  current_user.id  }}</span></p>
-                <p>学籍号：<span>{{  current_user.uid  }}</span></p>
-                <p>姓名：<span>{{  current_user.name  }}</span></p>
-                <p>班级：<span>{{  current_user.classname  }}</span></p>
-                <p>系部：<span>{{  current_user.department  }}</span></p>
+                <p>用户id：<span>{{ current_user.id }}</span></p>
+                <p>学籍号：<span>{{ current_user.uid }}</span></p>
+                <p>姓名：<span>{{ current_user.name }}</span></p>
+                <p>班级：<span>{{ current_user.classname }}</span></p>
+                <p>系部：<span>{{ current_user.department }}</span></p>
             </a-card>
             <a-card>
                 <p>密码已重置，密码为: {{ new_password }}</p>
@@ -125,8 +130,10 @@ import {reactive, ref, onMounted, createVNode} from 'vue';
 import {ExclamationCircleOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import {message, Modal} from "ant-design-vue";
 import api from "@/api";
+
 const isShow = ref(true);
-function handleResize (event) {
+
+function handleResize(event) {
     // 页面宽度小于525px时，不显示表格
     if (document.documentElement.clientWidth < 525) {
         isShow.value = false;
@@ -144,14 +151,18 @@ window.addEventListener('resize', handleResize);
 
 
 const myData = ref([]);
+const spinning = ref(false);
+
 const listUsers = () => {
+    spinning.value = true;
     api.get("/user").then((res) => {
+        spinning.value = false;
         let {data} = res.data;
         data = data.map(item => {
             if (item.is_admin === '1') {
                 item.is_admin = '管理员';
             } else {
-                item.is_admin ='用户';
+                item.is_admin = '用户';
             }
             return item;
         })
@@ -174,7 +185,6 @@ const changeUser = () => {
         message.error(msg);
     });
 }
-
 
 
 const dataSource = ref(myData);
@@ -205,7 +215,7 @@ const columns = [
     {
         title: '班级',
         dataIndex: 'classname',
-        width: '10%',
+        width: '6%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
             record.classname.toString().toLowerCase().includes(value.toLowerCase())
@@ -221,10 +231,18 @@ const columns = [
     {
         title: '角色',
         dataIndex: 'is_admin',
-        width: '20%',
+        width: '7%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
             record.is_admin.toString().toLowerCase().includes(value.toLowerCase())
+    },
+    {
+        title: '创建时间',
+        dataIndex: 'created_at',
+        width: '20%',
+        customFilterDropdown: true,
+        onFilter: (value, record) =>
+            record.created_at.toString().toLowerCase().includes(value.toLowerCase())
     },
     {
         title: '操作',
@@ -239,11 +257,18 @@ const handleSearch = (selectedKeys, confirm, dataIndex) => {
 };
 
 const handleReset = clearFilters => {
-    clearFilters({ confirm: true });
+    clearFilters({confirm: true});
     state.searchText = '';
 };
-const deleteUser = key => {
-    alert(key);
+const deleteUser = id => {
+    api.delete("/user/" + id).then((res) => {
+        let {msg} = res.data;
+        message.success(msg);
+        myData.value = myData.value.filter(user => user.id !== id);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
 };
 
 const visible = ref(false);

@@ -1,5 +1,7 @@
 <script setup>
-import {reactive} from "vue";
+import {reactive, ref} from "vue";
+import api from "@/api";
+import {message} from "ant-design-vue";
 
 const formItemLayout = {
     labelCol: {
@@ -10,14 +12,14 @@ const formItemLayout = {
     },
 };
 const formState = reactive({
-    user: {
-        name: '',
-        role: 'User',
-        email: '',
-        department: '',
-        className: '',
-        notes: '',
-    },
+    uid: '',
+    name: '',
+    is_admin: '0',
+    email: '',
+    password: '',
+    department: '',
+    classname: '',
+    note: '',
 });
 const validateMessages = {
     required: '${label} 必填!',
@@ -25,12 +27,27 @@ const validateMessages = {
         email: '${label} 非法邮箱格式',
     },
 };
-const onFinish = values => {
-    console.log('Success:', values);
-};
-const onFinishFailed = errorInfo => {
-    console.log('Failed:', errorInfo);
-};
+const loading = ref(false)
+const addUser = () => {
+    loading.value = true;
+    api.post("/user", formState).then((res) => {
+        loading.value = false;
+        let {msg} = res.data;
+        message.success(msg);
+        formState.uid = '';
+        formState.name = '';
+        formState.is_admin = '0';
+        formState.email = '';
+        formState.password = '';
+        formState.department = '';
+        formState.classname = '';
+        formState.note = '';
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        loading.value = false;
+        message.error(msg);
+    });
+}
 </script>
 
 <template>
@@ -47,42 +64,44 @@ const onFinishFailed = errorInfo => {
                         name="validate_other"
                         v-bind="formItemLayout"
                         :validate-messages="validateMessages"
-                        @finishFailed="onFinishFailed"
-                        @finish="onFinish"
+                        @submit="addUser"
                         style="max-width: 500px;"
 
                 >
                     <a-form-item
-                            :name="['user', 'role']"
+                            name="is_admin"
                             label="选择一个角色"
                             has-feedback
                             :rules="[{ required: true, message: '请选择角色' }]"
                     >
-                        <a-select v-model:value="formState.user.role" placeholder="选择用户角色" >
-                            <a-select-option value="User">用户(User)</a-select-option>
-                            <a-select-option value="Admin">管理员(Admin)</a-select-option>
+                        <a-select v-model:value="formState.is_admin" placeholder="选择用户角色">
+                            <a-select-option value="0">用户(User)</a-select-option>
+                            <a-select-option value="1">管理员(Admin)</a-select-option>
                         </a-select>
                     </a-form-item>
-                    <a-form-item :name="['user', 'uid']" label="学籍号" :rules="[{ required: true }]">
-                        <a-input v-model:value="formState.user.uid" />
+                    <a-form-item name="uid" label="学籍号" :rules="[{ required: true }]">
+                        <a-input v-model:value="formState.uid"/>
                     </a-form-item>
-                    <a-form-item :name="['user', 'name']" label="姓名" :rules="[{ required: true }]">
-                        <a-input v-model:value="formState.user.name" />
+                    <a-form-item name="name" label="姓名" :rules="[{ required: true }]">
+                        <a-input v-model:value="formState.name"/>
                     </a-form-item>
-                    <a-form-item :name="['user', 'email']" label="账户(邮箱)" :rules="[{ required: true, type: 'email' }]">
-                        <a-input v-model:value="formState.user.email" />
+                    <a-form-item name="email" label="账户(邮箱)" :rules="[{ required: true, type: 'email' }]">
+                        <a-input v-model:value="formState.email"/>
                     </a-form-item>
-                    <a-form-item :name="['user', 'department']" label="系部" :rules="[{ required: true }]">
-                        <a-input v-model:value="formState.user.department" />
+                    <a-form-item name="email" label="密码" :rules="[{ required: true, type: 'email' }]">
+                        <a-input v-model:value="formState.password" type="password"/>
                     </a-form-item>
-                    <a-form-item :name="['user', 'className']" label="班级" :rules="[{ required: true }]">
-                        <a-input v-model:value="formState.user.className" />
+                    <a-form-item name="department" label="系部" :rules="[{ required: true }]">
+                        <a-input v-model:value="formState.department"/>
                     </a-form-item>
-                    <a-form-item :name="['user', 'notes']" label="备注" :rules="[{ required: false }]">
-                        <a-input v-model:value="formState.user.note" />
+                    <a-form-item name="classname" label="班级" :rules="[{ required: true }]">
+                        <a-input v-model:value="formState.classname"/>
+                    </a-form-item>
+                    <a-form-item name="notes" label="备注" :rules="[{ required: false }]">
+                        <a-input v-model:value="formState.note"/>
                     </a-form-item>
                     <a-form-item :wrapper-col="{ span: 12, offset: 6 }">
-                        <a-button type="primary" html-type="submit">Submit</a-button>
+                        <a-button type="primary" html-type="submit" :loading="loading">提交</a-button>
                     </a-form-item>
                 </a-form>
             </a-col>
