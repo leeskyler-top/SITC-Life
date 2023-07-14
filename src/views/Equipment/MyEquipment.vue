@@ -207,17 +207,8 @@ const listDamagedApplications = () => {
     });
 }
 
-// setInterval(() => {
-//     console.log('activeKey' + activeKey.value);
-//     console.log('activeKey2' + activeKey2.value);
-//     console.log('activeKey3' + activeKey3.value);
-// }, 1000)
 const handleTabChange = (key) => {
     // 根据切换的标签 key 执行相应的操作，节流，节省请求次数。
-    console.log('activeKey' + activeKey.value);
-    console.log('activeKey2' + activeKey2.value);
-    console.log('activeKey3' + activeKey3.value);
-
     if (key === 'using') {
         listUsingApplications();
     } else if (key === 'assigned') {

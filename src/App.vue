@@ -17,11 +17,11 @@ const collapsed = ref(true);
 const selectedKeys = ref(['1']);
 const token = ref(localStorage.token);
 let latestToken = token.value; // 中间变量存储最新的token值
+const is_admin = ref(localStorage.is_admin);
 
 watch(token, (newToken) => {
     latestToken = newToken; // 更新最新的token值
 });
-
 
 // 在发送请求前应用最新的token值
 api.interceptors.request.use((config) => {
@@ -30,7 +30,6 @@ api.interceptors.request.use((config) => {
 });
 
 const name = ref(localStorage.name);
-const is_admin = ref(localStorage.is_admin);
 
 const signin = ref(false);
 const login = () => {
@@ -40,7 +39,7 @@ const login = () => {
         let {data, msg} = res.data;
         token.value = data.token;
         name.value = data.name;
-        name.is_admin = data.is_admin;
+        is_admin.value = data.is_admin;
         localStorage.token = data.token;
         localStorage.name = data.name;
         localStorage.is_admin = data.is_admin;
@@ -130,7 +129,7 @@ const logout = () => {
                         <a-menu-item key="17">
                             <RouterLink to="/checkin/list">签到</RouterLink>
                         </a-menu-item>
-                        <a-menu-item key="18" v-if="true">
+                        <a-menu-item key="18" v-if="is_admin === '1'">
                             <RouterLink to="/checkin/manager">签到管理</RouterLink>
                         </a-menu-item>
                     </a-sub-menu>
@@ -170,7 +169,7 @@ const logout = () => {
                         <router-link to="/equipment/apply">
                             <a-menu-item key="8">设备借用申请</a-menu-item>
                         </router-link>
-                        <div v-if="true">
+                        <div v-if="is_admin === '1'">
                             <router-link to="/equipment/manager">
                                 <a-menu-item key="9">设备管理</a-menu-item>
                             </router-link>
@@ -198,7 +197,7 @@ const logout = () => {
                         <router-link to="/activity/list">
                             <a-menu-item key="13">活动列表</a-menu-item>
                         </router-link>
-                        <div v-if="true">
+                        <div v-if="is_admin === '1'">
                             <router-link to="/activity/manager">
                                 <a-menu-item key="14">活动管理</a-menu-item>
                             </router-link>
