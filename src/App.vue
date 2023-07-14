@@ -22,6 +22,7 @@ watch(token, (newToken) => {
     latestToken = newToken; // 更新最新的token值
 });
 
+
 // 在发送请求前应用最新的token值
 api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${latestToken}`;
@@ -29,6 +30,7 @@ api.interceptors.request.use((config) => {
 });
 
 const name = ref(localStorage.name);
+const is_admin = ref(localStorage.is_admin);
 
 const signin = ref(false);
 const login = () => {
@@ -142,7 +144,7 @@ const logout = () => {
                         <a-menu-item key="3">
                             <RouterLink to="/user/detail">用户资料</RouterLink>
                         </a-menu-item>
-                        <div v-if="true">
+                        <div v-if="is_admin === '1'">
                             <a-menu-item key="4">
                                 <router-link to="/user/manager">用户管理</router-link>
                             </a-menu-item>

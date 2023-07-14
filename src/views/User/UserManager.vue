@@ -177,6 +177,11 @@ const changeUser = () => {
     api.patch("/user/" + current_id.value, formState).then((res) => {
         let {msg} = res.data;
         let current_user = myData.value.find(item => item.id === current_id.value)
+        if (formState.is_admin === '1') {
+            formState.is_admin = "管理员";
+        } else {
+            formState.is_admin = "用户";
+        }
         Object.assign(current_user, formState);
         visible.value = false;
         message.success(msg);
