@@ -1,104 +1,48 @@
 <script setup>
-import {reactive, ref} from "vue";
-import {Empty} from "ant-design-vue";
+import {onMounted, reactive, ref} from "vue";
+import {Empty, message} from "ant-design-vue";
 import {UploadOutlined} from "@ant-design/icons-vue";
+import api from "@/api";
 
-const data = [];
-const data_apply = [];
-const data_reject = [];
-const data_back = [];
-const data_report = [];
+const data_using = ref([]);
+const data_assigned = ref([]);
+const data_applying = ref([]);
+const data_delay_applying = ref([]);
+const data_delayed = ref([]);
+const data_reject = ref([]);
+const data_returned = ref([]);
+const data_missed = ref([]);
+const data_damaged = ref([]);
 
-const activeKey = ref('1');
+const activeKey = ref('using');
+const activeKey2 = ref('all');
+const activeKey3 = ref('damaged');
 
-for (let i = 1; i < 2; i++) {
-    data.push({
-        fixed_assets_num: "TY20220800001",
-        name: '惠普Z2工作站',
-        model: 'Tower G5 ( Intel i9 10900K, Nvidia Quadro P2200, 32G, 1T SSD )',
-        created_at: '2023-05-19 14:43:00',
-        apply_time: '2023-05-19 14:43:00',
-        audit_time: '2023-05-19 14:43:00',
-        audit_uid: '22100001',
-        audit_name: 'Demo',
-        status: "出借"
-    });
-    data_apply.push({
-        fixed_assets_num: "TY20220800001",
-        name: '惠普Z2工作站',
-        model: 'Tower G5 ( Intel i9 10900K, Nvidia Quadro P2200, 32G, 1T SSD )',
-        created_at: '2023-05-19 14:43:00',
-        apply_time: '2023-05-19 14:43:00',
-        audit_time: '2023-05-19 14:43:00',
-        audit_uid: '22100001',
-        audit_name: 'Demo',
-        status: "申请中"
-    });
-    data_reject.push({
-        fixed_assets_num: "TY20220800002",
-        name: '惠普Z2工作站',
-        model: 'Tower G5 ( Intel i9 10900K, Nvidia Quadro P2200, 32G, 1T SSD )',
-        created_at: '2023-05-19 14:43:00',
-        apply_time: '2023-05-19 14:43:00',
-        audit_time: '2023-05-19 14:43:00',
-        audit_uid: '22100001',
-        audit_name: 'Demo',
-        status: "已拒绝"
-    });
-    data_back.push({
-        fixed_assets_num: "TY20220800002",
-        name: '惠普Z2工作站',
-        model: 'Tower G5 ( Intel i9 10900K, Nvidia Quadro P2200, 32G, 1T SSD )',
-        created_at: '2023-05-19 14:43:00',
-        apply_time: '2023-05-19 14:43:00',
-        audit_time: '2023-05-19 14:43:00',
-        audit_uid: '22100001',
-        audit_name: 'Demo',
-        status: "已归还"
-    });
-    data_report.push({
-        fixed_assets_num: "TY20220800002",
-        name: '惠普Z2工作站',
-        model: 'Tower G5 ( Intel i9 10900K, Nvidia Quadro P2200, 32G, 1T SSD )',
-        created_at: '2023-05-19 14:43:00',
-        apply_time: '2023-05-19 14:43:00',
-        audit_time: '2023-05-19 14:43:00',
-        audit_uid: '22100001',
-        audit_name: 'Demo',
-        status: "损坏"
-    });
-}
+
 
 const current = ref(1);
 
+const deleteEquipment = id => {
 
-function deleteEquipment(id) {
-    alert(id);
-}
+};
 
-function lostEquipment(id) {
+const lostEquipment = id => {
 
-}
+};
 
-function brokeEquipment(id) {
+const brokeEquipment = id => {
 
-}
+};
+
 
 const formState = reactive({
-    activity: {
-        activity_title: '',
-        name: '',
-        start_datetime: '',
-        end_datetime: '',
-    },
     delayForm: {
         reason: '',
         apply_time: ''
     },
     report: {
-        situation: '',
         type: 'damaged',
-        upload: ''
+        damaged_url: ''
     },
 });
 const formItemLayout = {
@@ -111,21 +55,12 @@ const formItemLayout = {
 };
 const validateMessages = {
     required: '${label} 必填!',
-    types: {
-        email: '${label} 非法邮箱格式',
-    },
-};
-const onFinish = values => {
-    console.log('Success:', values);
-};
-const onFinishFailed = errorInfo => {
-    console.log('Failed:', errorInfo);
 };
 
-const visibleBack = ref(false);
+const visibleReturned = ref(false);
 
-const showBack = (id) => {
-    visibleBack.value = true;
+const showReturned = (id) => {
+    visibleReturned.value = true;
 }
 
 const visibleDelay = ref(false);
@@ -145,13 +80,140 @@ const showPhotos = id => {
     visiblePhotos.value = true;
 };
 const handleCancel = () => {
-    visibleBack.value = false;
+    visiblereturned.value = false;
     visibleDelay.value = false;
     visibleReport.value = false;
     visiblePhotos.value = false;
 };
 
+const images = ref([]);
 
+const listUsingApplications = () => {
+    api.get("/equipment/my/using").then((res) => {
+        let {data} = res.data;
+        data_using.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+const listAssignedApplications = () => {
+    api.get("/equipment/my/assigned").then((res) => {
+        let {data} = res.data;
+        data_assigned.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+const listRejectedApplications = () => {
+    api.get("/equipment/my/rejected").then((res) => {
+        let {data} = res.data;
+        data_returned.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+const listApplyingApplications = () => {
+    api.get("/equipment/my/applying").then((res) => {
+        let {data} = res.data;
+        data_applying.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+const listDelayApplyingApplications = () => {
+    api.get("/equipment/my/delay-applying").then((res) => {
+        let {data} = res.data;
+        data_delay_applying.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+const listDelayedApplications = () => {
+    api.get("/equipment/my/delayed").then((res) => {
+        let {data} = res.data;
+        data_delayed.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+const listReturnedApplications = () => {
+    api.get("/equipment/my/returned").then((res) => {
+        let {data} = res.data;
+        data_returned.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+const listMissedApplications = () => {
+    api.get("/equipment/my/missed").then((res) => {
+        let {data} = res.data;
+        data_missed.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+const listDamagedApplications = () => {
+    api.get("/equipment/my/damaged").then((res) => {
+        let {data} = res.data;
+        data_damaged.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+// setInterval(() => {
+//     console.log('activeKey' + activeKey.value);
+//     console.log('activeKey2' + activeKey2.value);
+//     console.log('activeKey3' + activeKey3.value);
+// }, 1000)
+const handleTabChange = (key) => {
+    // 根据切换的标签 key 执行相应的操作，节流，节省请求次数。
+    console.log('activeKey' + activeKey.value);
+    console.log('activeKey2' + activeKey2.value);
+    console.log('activeKey3' + activeKey3.value);
+
+    if (key === 'using') {
+        listUsingApplications();
+    } else if (key === 'assigned') {
+        listAssignedApplications();
+    } else if (key === 'delay-applying') {
+        listDelayApplyingApplications();
+    } else if (key === 'delayed') {
+        listDelayedApplications();
+    } else if (key === 'applying') {
+        listApplyingApplications();
+    } else if (key === 'rejected') {
+        listRejectedApplications();
+    } else if (key === 'returned') {
+        listReturnedApplications();
+    } else if (key === 'missed' || key === 'reported') {
+        listMissedApplications();
+    } else if (key === 'damaged') {
+        listDamagedApplications();
+    }
+};
+
+
+onMounted(() => {
+    listUsingApplications();
+})
 
 </script>
 
@@ -160,71 +222,183 @@ const handleCancel = () => {
         <h2>
             我的设备
         </h2>
-        <a-tabs v-model:activeKey="activeKey" type="card">
-            <a-tab-pane key="1" tab="使用中">
-                <a-descriptions-item v-if="data.length === 0">
-                    <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
-                    </div>
-                </a-descriptions-item>
-                <a-space direction="vertical" :size="5" style="height: 100%">
-
-                    <a-descriptions v-for="item in data" title="借条"
-                                    style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                        <a-descriptions-item label="固定资产编号">{{ item.fixed_assets_num }}</a-descriptions-item>
-                        <a-descriptions-item label="设备名称">{{ item.name }}</a-descriptions-item>
-                        <a-descriptions-item label="设备型号">{{ item.model }}</a-descriptions-item>
-                        <a-descriptions-item label="申请时间">{{ item.created_at }}</a-descriptions-item>
-                        <a-descriptions-item label="承诺归还时间">{{ item.apply_time }}</a-descriptions-item>
-                        <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
-                        <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
-                        <a-descriptions-item label="审批人时间">{{ item.audit_time }}</a-descriptions-item>
-                        <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
-                        <a-descriptions-item label="操作" v-if="item.status === '出借'">
-                            <a-row style="gap: 5px;">
-                                <a-col>
-                                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showBack(1)">归还申报</a-button>
-                                </a-col>
-                                <a-col>
-                                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showDelay(1)">延期申报</a-button>
-                                </a-col>
-                                <a-col>
-                                    <a-button danger style="padding-top: 5px; box-sizing: border-box;" @click="showReport(1)">异常报告</a-button>
-                                </a-col>
-                            </a-row>
+        <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
+            <a-tab-pane key="using" tab="使用中">
+                <a-tabs v-model:activeKey2="activeKey2" @update:activeKey2="handleTabChange" type="card" >
+                    <a-tab-pane key="all" tab="全部">
+                        <a-descriptions-item v-if="data_using.length === 0">
+                            <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                            </div>
                         </a-descriptions-item>
+                        <a-space direction="vertical" :size="5" style="height: 100%">
 
-                    </a-descriptions>
-                    <a-pagination align="center" style="margin-top: 8px;" v-model:current="current" simple pageSize="5"
-                                  :total="data.length" v-if="data.length !== 0"/>
-                </a-space>
+                            <a-descriptions v-for="item in data_using" title="借条"
+                                            style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+                                <a-descriptions-item label="固定资产编号">{{ item.equipment_fixed_assets_num }}</a-descriptions-item>
+                                <a-descriptions-item label="设备名称">{{ item.equipment_name }}</a-descriptions-item>
+                                <a-descriptions-item label="设备型号">{{ item.equipment_model }}</a-descriptions-item>
+                                <a-descriptions-item label="申请时间">{{ item.created_at }}</a-descriptions-item>
+                                <a-descriptions-item label="承诺归还时间">{{ item.apply_time }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人时间">{{ item.audit_time }}</a-descriptions-item>
+                                <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
+                                <a-descriptions-item label="操作">
+                                    <a-row style="gap: 5px;">
+                                        <a-col>
+                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showReturned(1)">归还申报</a-button>
+                                        </a-col>
+                                        <a-col v-if="item.status !== 'delay-applying'">
+                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showDelay(1)">延期申报</a-button>
+                                        </a-col>
+                                        <a-col>
+                                            <a-button danger style="padding-top: 5px; box-sizing: border-box;" @click="showReport(1)">异常报告</a-button>
+                                        </a-col>
+                                    </a-row>
+                                </a-descriptions-item>
+
+                            </a-descriptions>
+                            <a-pagination align="center" style="margin-top: 8px;" v-model:current="current" simple pageSize="5"
+                                          :total="data_using.length" v-if="data_using.length !== 0"/>
+                        </a-space>
+                    </a-tab-pane>
+                    <a-tab-pane key="assigned" tab="正常使用">
+                        <a-descriptions-item v-if="data_assigned.length === 0">
+                            <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                            </div>
+                        </a-descriptions-item>
+                        <a-space direction="vertical" :size="5" style="height: 100%">
+
+                            <a-descriptions v-for="item in data_assigned" title="借条"
+                                            style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+                                <a-descriptions-item label="固定资产编号">{{ item.equipment_fixed_assets_num }}</a-descriptions-item>
+                                <a-descriptions-item label="设备名称">{{ item.equipment_name }}</a-descriptions-item>
+                                <a-descriptions-item label="设备型号">{{ item.equipment_model }}</a-descriptions-item>
+                                <a-descriptions-item label="申请时间">{{ item.created_at }}</a-descriptions-item>
+                                <a-descriptions-item label="承诺归还时间">{{ item.apply_time }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人时间">{{ item.audit_time }}</a-descriptions-item>
+                                <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
+                                <a-descriptions-item label="操作">
+                                    <a-row style="gap: 5px;">
+                                        <a-col>
+                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showReturned(1)">归还申报</a-button>
+                                        </a-col>
+                                        <a-col>
+                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showDelay(1)">延期申报</a-button>
+                                        </a-col>
+                                        <a-col>
+                                            <a-button danger style="padding-top: 5px; box-sizing: border-box;" @click="showReport(1)">异常报告</a-button>
+                                        </a-col>
+                                    </a-row>
+                                </a-descriptions-item>
+
+                            </a-descriptions>
+                            <a-pagination align="center" style="margin-top: 8px;" v-model:current="current" simple pageSize="5"
+                                          :total="data_assigned.length" v-if="data_assigned.length !== 0"/>
+                        </a-space>
+                    </a-tab-pane>
+                    <a-tab-pane key="delay-applying" tab="申请延期中">
+                        <a-descriptions-item v-if="data_delay_applying.length === 0">
+                            <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                            </div>
+                        </a-descriptions-item>
+                        <a-space direction="vertical" :size="5" style="height: 100%">
+
+                            <a-descriptions v-for="item in data_delay_applying" title="借条"
+                                            style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+                                <a-descriptions-item label="固定资产编号">{{ item.equipment_fixed_assets_num }}</a-descriptions-item>
+                                <a-descriptions-item label="设备名称">{{ item.equipment_name }}</a-descriptions-item>
+                                <a-descriptions-item label="设备型号">{{ item.equipment_model }}</a-descriptions-item>
+                                <a-descriptions-item label="申请时间">{{ item.created_at }}</a-descriptions-item>
+                                <a-descriptions-item label="承诺归还时间">{{ item.apply_time }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人时间">{{ item.audit_time }}</a-descriptions-item>
+                                <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
+                                <a-descriptions-item label="操作">
+                                    <a-row style="gap: 5px;">
+                                        <a-col>
+                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showReturned(1)">归还申报</a-button>
+                                        </a-col>
+                                        <a-col>
+                                            <a-button danger style="padding-top: 5px; box-sizing: border-box;" @click="showReport(1)">异常报告</a-button>
+                                        </a-col>
+                                    </a-row>
+                                </a-descriptions-item>
+
+                            </a-descriptions>
+                            <a-pagination align="center" style="margin-top: 8px;" v-model:current="current" simple pageSize="5"
+                                          :total="data_delay_applying.length" v-if="data_delay_applying.length !== 0"/>
+                        </a-space>
+                    </a-tab-pane>
+                    <a-tab-pane key="delayed" tab="已延期">
+                        <a-descriptions-item v-if="data_delayed.length === 0">
+                            <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                            </div>
+                        </a-descriptions-item>
+                        <a-space direction="vertical" :size="5" style="height: 100%">
+
+                            <a-descriptions v-for="item in data_delayed" title="借条"
+                                            style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+                                <a-descriptions-item label="固定资产编号">{{ item.equipment_fixed_assets_num }}</a-descriptions-item>
+                                <a-descriptions-item label="设备名称">{{ item.equipment_name }}</a-descriptions-item>
+                                <a-descriptions-item label="设备型号">{{ item.equipment_model }}</a-descriptions-item>
+                                <a-descriptions-item label="申请时间">{{ item.created_at }}</a-descriptions-item>
+                                <a-descriptions-item label="承诺归还时间">{{ item.apply_time }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人时间">{{ item.audit_time }}</a-descriptions-item>
+                                <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
+                                <a-descriptions-item label="操作">
+                                    <a-row style="gap: 5px;">
+                                        <a-col>
+                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showReturned(1)">归还申报</a-button>
+                                        </a-col>
+                                        <a-col>
+                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showDelay(1)">延期申报</a-button>
+                                        </a-col>
+                                        <a-col>
+                                            <a-button danger style="padding-top: 5px; box-sizing: border-box;" @click="showReport(1)">异常报告</a-button>
+                                        </a-col>
+                                    </a-row>
+                                </a-descriptions-item>
+
+                            </a-descriptions>
+                            <a-pagination align="center" style="margin-top: 8px;" v-model:current="current" simple pageSize="5"
+                                          :total="data_delayed.length" v-if="data_delayed.length !== 0"/>
+                        </a-space>
+                    </a-tab-pane>
+                </a-tabs>
             </a-tab-pane>
-            <a-tab-pane key="2" tab="待审核">
-                <a-descriptions-item v-if="data_apply.length === 0">
+            <a-tab-pane key="applying" tab="待审核">
+                <a-descriptions-item v-if="data_applying.length === 0">
                     <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                     </div>
                 </a-descriptions-item>
                 <a-space direction="vertical" :size="5" style="height: 100%">
 
-                    <a-descriptions v-for="item in data_apply" title="审核信息"
+                    <a-descriptions v-for="item in data_applying" title="审核信息"
                                     style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                        <a-descriptions-item label="固定资产编号">{{ item.fixed_assets_num }}</a-descriptions-item>
-                        <a-descriptions-item label="设备名称">{{ item.name }}</a-descriptions-item>
-                        <a-descriptions-item label="设备型号">{{ item.model }}</a-descriptions-item>
+                        <a-descriptions-item label="固定资产编号">{{ item.equipment_fixed_assets_num }}</a-descriptions-item>
+                        <a-descriptions-item label="设备名称">{{ item.equipment_name }}</a-descriptions-item>
+                        <a-descriptions-item label="设备型号">{{ item.equipment_model }}</a-descriptions-item>
                         <a-descriptions-item label="申请时间">{{ item.created_at }}</a-descriptions-item>
                         <a-descriptions-item label="承诺归还时间">{{ item.apply_time }}</a-descriptions-item>
-                        <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
-                        <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
-                        <a-descriptions-item label="审批人时间">{{ item.audit_time }}</a-descriptions-item>
                         <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
 
                     </a-descriptions>
                     <a-pagination align="center" style="margin-top: 8px;" v-model:current="current" simple pageSize="5"
-                                  :total="data_apply.length" v-if="data_apply.length !== 0"/>
+                                  :total="data_applying.length" v-if="data_applying.length !== 0"/>
                 </a-space>
             </a-tab-pane>
-            <a-tab-pane key="3" tab="已驳回">
+            <a-tab-pane key="rejected" tab="已驳回">
                 <a-descriptions-item v-if="data_reject.length === 0">
                     <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
@@ -234,9 +408,9 @@ const handleCancel = () => {
 
                     <a-descriptions v-for="item in data_reject" title="驳回通知"
                                     style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                        <a-descriptions-item label="固定资产编号">{{ item.fixed_assets_num }}</a-descriptions-item>
-                        <a-descriptions-item label="设备名称">{{ item.name }}</a-descriptions-item>
-                        <a-descriptions-item label="设备型号">{{ item.model }}</a-descriptions-item>
+                        <a-descriptions-item label="固定资产编号">{{ item.equipment_fixed_assets_num }}</a-descriptions-item>
+                        <a-descriptions-item label="设备名称">{{ item.equipment_name }}</a-descriptions-item>
+                        <a-descriptions-item label="设备型号">{{ item.equipment_model }}</a-descriptions-item>
                         <a-descriptions-item label="申请时间">{{ item.created_at }}</a-descriptions-item>
                         <a-descriptions-item label="承诺归还时间">{{ item.apply_time }}</a-descriptions-item>
                         <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
@@ -249,44 +423,26 @@ const handleCancel = () => {
                                   :total="data_reject.length" v-if="data_reject.length !== 0"/>
                 </a-space>
             </a-tab-pane>
-            <a-tab-pane key="4" tab="已归还">
-                <a-descriptions-item v-if="data_back.length === 0">
+            <a-tab-pane key="returned" tab="已归还">
+                <a-descriptions-item v-if="data_returned.length === 0">
                     <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                     </div>
                 </a-descriptions-item>
                 <a-space direction="vertical" :size="5" style="height: 100%">
 
-                    <a-descriptions v-for="item in data_reject" title="驳回通知"
+                    <a-descriptions v-for="item in data_returned" title="归还情况"
                                     style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                        <a-descriptions-item label="固定资产编号">{{ item.fixed_assets_num }}</a-descriptions-item>
-                        <a-descriptions-item label="设备名称">{{ item.name }}</a-descriptions-item>
-                        <a-descriptions-item label="设备型号">{{ item.model }}</a-descriptions-item>
-                        <a-descriptions-item label="申请时间">{{ item.created_at }}</a-descriptions-item>
-                        <a-descriptions-item label="承诺归还时间">{{ item.apply_time }}</a-descriptions-item>
-                        <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
-                        <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
-                        <a-descriptions-item label="审批人时间">{{ item.audit_time }}</a-descriptions-item>
-                        <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
-
-                    </a-descriptions>
-                    <a-pagination align="center" style="margin-top: 8px;" v-model:current="current" simple pageSize="5"
-                                  :total="data_reject.length" v-if="data_reject.length !== 0"/>
-                </a-space>
-                <a-space direction="vertical" :size="5" style="height: 100%">
-
-                    <a-descriptions v-for="item in data_back" title="归还情况"
-                                    style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                        <a-descriptions-item label="设备ID">{{ item.fixed_assets_num }}</a-descriptions-item>
-                        <a-descriptions-item label="设备名称">{{ item.name }}</a-descriptions-item>
-                        <a-descriptions-item label="设备型号">{{ item.model }}</a-descriptions-item>
+                        <a-descriptions-item label="设备ID">{{ item.equipment_fixed_assets_num }}</a-descriptions-item>
+                        <a-descriptions-item label="设备名称">{{ item.equipment_name }}</a-descriptions-item>
+                        <a-descriptions-item label="设备型号">{{ item.equipment_model }}</a-descriptions-item>
                         <a-descriptions-item label="申请人学籍号">{{ item.apply_uid }}</a-descriptions-item>
                         <a-descriptions-item label="申请人姓名">{{ item.apply_name }}</a-descriptions-item>
                         <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
                         <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
                         <a-descriptions-item label="审批时间">{{ item.audit_time }}</a-descriptions-item>
-                        <a-descriptions-item label="归还时间">{{ item.back_time }}</a-descriptions-item>
-                        <a-descriptions-item label="操作" v-if="item.type === '损坏'">
+                        <a-descriptions-item label="归还时间">{{ item.returned_time }}</a-descriptions-item>
+                        <a-descriptions-item label="操作">
                             <a-row style="gap: 5px;">
                                 <a-col>
                                     <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;"
@@ -299,9 +455,9 @@ const handleCancel = () => {
 
                             <a-descriptions v-for="item in data_reject" title="驳回通知"
                                             style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                                <a-descriptions-item label="固定资产编号">{{ item.fixed_assets_num }}</a-descriptions-item>
-                                <a-descriptions-item label="设备名称">{{ item.name }}</a-descriptions-item>
-                                <a-descriptions-item label="设备型号">{{ item.model }}</a-descriptions-item>
+                                <a-descriptions-item label="固定资产编号">{{ item.equipment_fixed_assets_num }}</a-descriptions-item>
+                                <a-descriptions-item label="设备名称">{{ item.equipment_name }}</a-descriptions-item>
+                                <a-descriptions-item label="设备型号">{{ item.equipment_model }}</a-descriptions-item>
                                 <a-descriptions-item label="申请时间">{{ item.created_at }}</a-descriptions-item>
                                 <a-descriptions-item label="承诺归还时间">{{ item.apply_time }}</a-descriptions-item>
                                 <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
@@ -315,54 +471,92 @@ const handleCancel = () => {
                         </a-space>
                     </a-descriptions>
                     <a-pagination align="center" style="margin-top: 8px;" v-model:current="current" simple pageSize="5"
-                                  :total="data_back.length" v-if="data_back.length !== 0"/>
+                                  :total="data_returned.length" v-if="data_returned.length !== 0"/>
                 </a-space>
             </a-tab-pane>
-            <a-tab-pane key="5" tab="异常报告">
-                <a-descriptions-item v-if="data_report.length === 0">
-                    <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
-                    </div>
-                </a-descriptions-item>
-                <a-space direction="vertical" :size="5" style="height: 100%">
-
-                    <a-descriptions v-for="item in data_report" title="异常报告"
-                                    style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                        <a-descriptions-item label="设备ID">{{ item.fixed_assets_num }}</a-descriptions-item>
-                        <a-descriptions-item label="设备名称">{{ item.name }}</a-descriptions-item>
-                        <a-descriptions-item label="设备型号">{{ item.model }}</a-descriptions-item>
-                        <a-descriptions-item label="申请人学籍号">{{ item.apply_uid }}</a-descriptions-item>
-                        <a-descriptions-item label="申请人姓名">{{ item.apply_name }}</a-descriptions-item>
-                        <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
-                        <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
-                        <a-descriptions-item label="审批时间">{{ item.audit_time }}</a-descriptions-item>
-                        <a-descriptions-item label="报告时间">{{ item.report_time }}</a-descriptions-item>
-                        <a-descriptions-item label="情况">{{ item.type }}</a-descriptions-item>
-                        <a-descriptions-item label="操作" v-if="item.type === '损坏'">
-                            <a-row style="gap: 5px;">
-                                <a-col>
-                                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;"
-                                              @click="showPhotos(item.id)">查看照片
-                                    </a-button>
-                                </a-col>
-                            </a-row>
+            <a-tab-pane key="reported" tab="异常报告">
+                <a-tabs  v-model:activeKey3="activeKey3" @update:activeKey3="handleTabChange" type="card">
+                    <a-tab-pane key="damaged" tab="报损坏">
+                        <a-descriptions-item v-if="data_damaged.length === 0">
+                            <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                            </div>
                         </a-descriptions-item>
+                        <a-space direction="vertical" :size="5" style="height: 100%">
 
-                    </a-descriptions>
-                    <a-pagination align="center" style="margin-top: 8px;" v-model:current="current" simple pageSize="5"
-                                  :total="data_report.length" v-if="data_report.length !== 0"/>
-                </a-space>
+                            <a-descriptions v-for="item in data_damaged" title="损坏情况"
+                                            style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+                                <a-descriptions-item label="设备ID">{{ item.equipment_fixed_assets_num }}</a-descriptions-item>
+                                <a-descriptions-item label="设备名称">{{ item.equipment_name }}</a-descriptions-item>
+                                <a-descriptions-item label="设备型号">{{ item.equipment_model }}</a-descriptions-item>
+                                <a-descriptions-item label="申请人学籍号">{{ item.apply_uid }}</a-descriptions-item>
+                                <a-descriptions-item label="申请人姓名">{{ item.apply_name }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
+                                <a-descriptions-item label="审批时间">{{ item.audit_time }}</a-descriptions-item>
+                                <a-descriptions-item label="报告时间">{{ item.report_time }}</a-descriptions-item>
+                                <a-descriptions-item label="情况">{{ item.type }}</a-descriptions-item>
+                                <a-descriptions-item label="操作" v-if="item.type === '损坏'">
+                                    <a-row style="gap: 5px;">
+                                        <a-col>
+                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;"
+                                                      @click="showPhotos(item.id)">查看照片
+                                            </a-button>
+                                        </a-col>
+                                    </a-row>
+                                </a-descriptions-item>
+
+                            </a-descriptions>
+                            <a-pagination align="center" style="margin-top: 8px;" v-model:current="current" simple pageSize="5"
+                                          :total="data_damaged.length" v-if="data_damaged.length !== 0"/>
+                        </a-space>
+                    </a-tab-pane>
+                    <a-tab-pane key="missed" tab="报丢失">
+                        <a-descriptions-item v-if="data_missed.length === 0">
+                            <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                            </div>
+                        </a-descriptions-item>
+                        <a-space direction="vertical" :size="5" style="height: 100%">
+
+                            <a-descriptions v-for="item in data_missed" title="丢失记录"
+                                            style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+                                <a-descriptions-item label="设备ID">{{ item.equipment_fixed_assets_num }}</a-descriptions-item>
+                                <a-descriptions-item label="设备名称">{{ item.equipment_name }}</a-descriptions-item>
+                                <a-descriptions-item label="设备型号">{{ item.equipment_model }}</a-descriptions-item>
+                                <a-descriptions-item label="申请人学籍号">{{ item.apply_uid }}</a-descriptions-item>
+                                <a-descriptions-item label="申请人姓名">{{ item.apply_name }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
+                                <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
+                                <a-descriptions-item label="审批时间">{{ item.audit_time }}</a-descriptions-item>
+                                <a-descriptions-item label="报告时间">{{ item.report_time }}</a-descriptions-item>
+                                <a-descriptions-item label="情况">{{ item.type }}</a-descriptions-item>
+                                <a-descriptions-item label="操作">
+                                    <a-row style="gap: 5px;">
+                                        <a-col>
+                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;"
+                                                      @click="showPhotos(item.id)">查看照片
+                                            </a-button>
+                                        </a-col>
+                                    </a-row>
+                                </a-descriptions-item>
+
+                            </a-descriptions>
+                            <a-pagination align="center" style="margin-top: 8px;" v-model:current="current" simple pageSize="5"
+                                          :total="data_missed.length" v-if="data_missed.length !== 0"/>
+                        </a-space>
+                    </a-tab-pane>
+                </a-tabs>
             </a-tab-pane>
+
         </a-tabs>
 
 
-        <a-modal v-model:visible="visibleBack" title="归还实物照片登记">
+        <a-modal v-model:visible="visiblereturned" title="归还实物照片登记">
             <a-form
                     :model="formState"
                     name="validate_other"
                     v-bind="formItemLayout"
-                    @finishFailed="onFinishFailed"
-                    @finish="onFinish"
             >
 
                 <a-form-item name="upload" label="Upload" extra="至少上传一张图片，最多两张">
@@ -393,7 +587,7 @@ const handleCancel = () => {
                 <a-form-item :name="['delayForm', 'reason']" label="理由">
                     <a-textarea v-model:value="formState.delayForm.reason" />
                 </a-form-item>
-                <a-form-item has-feedback
+                <a-form-item has-feedreturned
                              :rules="[{ required: true, message: '请选择日期' }]"   name="apply_time" label="承诺归还时间" v-bind="config">
                     <a-date-picker
                         v-model:value="formState.delayForm.apply_time"
@@ -410,7 +604,7 @@ const handleCancel = () => {
                 <a-form-item
                     name="type"
                     label="类型"
-                    has-feedback
+                    has-feedreturned
                     :rules="[{ required: true, message: '请选择类型' }]"
                 >
                     <a-select v-model:value="formState.report.type" placeholder="选择类型">
@@ -442,8 +636,7 @@ const handleCancel = () => {
         </a-modal>
         <a-modal v-model:visible="visiblePhotos">
             <a-image-preview-group>
-                <a-image :width="200" src="https://aliyuncdn.antdv.com/vue.png"/>
-                <a-image :width="200" src="https://aliyuncdn.antdv.com/logo.png"/>
+                <a-image v-for="i in images" :width="200" :src="i.url"/>
             </a-image-preview-group>
             <template #footer>
                 <a-button type="primary" @click="handleCancel">OK</a-button>
