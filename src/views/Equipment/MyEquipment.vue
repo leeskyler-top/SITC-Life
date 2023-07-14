@@ -224,7 +224,7 @@ onMounted(() => {
         </h2>
         <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
             <a-tab-pane key="using" tab="使用中">
-                <a-tabs v-model:activeKey2="activeKey2" @update:activeKey2="handleTabChange" type="card" >
+                <a-tabs v-model:activeKey="activeKey2" @update:activeKey="handleTabChange" type="card" >
                     <a-tab-pane key="all" tab="全部">
                         <a-descriptions-item v-if="data_using.length === 0">
                             <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -475,7 +475,7 @@ onMounted(() => {
                 </a-space>
             </a-tab-pane>
             <a-tab-pane key="reported" tab="异常报告">
-                <a-tabs  v-model:activeKey3="activeKey3" @update:activeKey3="handleTabChange" type="card">
+                <a-tabs  v-model:activeKey="activeKey3" @update:activeKey="handleTabChange" type="card">
                     <a-tab-pane key="damaged" tab="报损坏">
                         <a-descriptions-item v-if="data_damaged.length === 0">
                             <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
