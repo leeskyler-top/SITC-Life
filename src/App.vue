@@ -1,6 +1,14 @@
 <script setup>
-import {CalendarOutlined ,DashboardOutlined, ToolOutlined, UserOutlined, LockOutlined, CarryOutOutlined, FileOutlined} from '@ant-design/icons-vue';
-import { message } from "ant-design-vue";
+import {
+    CalendarOutlined,
+    DashboardOutlined,
+    ToolOutlined,
+    UserOutlined,
+    LockOutlined,
+    CarryOutOutlined,
+    FileOutlined
+} from '@ant-design/icons-vue';
+import {message} from "ant-design-vue";
 import {ref, computed, reactive, watch} from 'vue';
 import api from './api.js';
 
@@ -72,13 +80,13 @@ const logout = () => {
 <template>
     <div v-if="!token" class="login">
         <a-form
-            :model="formState"
-            name="basic"
-            :label-col="{ span: 8 }"
-            :wrapper-col="{ span: 16 }"
-            autocomplete="off"
-            @submit="login"
-            style="background-color: #FFFFFF;     z-index: 1;
+                :model="formState"
+                name="basic"
+                :label-col="{ span: 8 }"
+                :wrapper-col="{ span: 16 }"
+                autocomplete="off"
+                @submit="login"
+                style="background-color: #FFFFFF;     z-index: 1;
              padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; border-radius: 3px; box-shadow: #FFFFFF 0 0 1px 1px;
 "
 
@@ -86,20 +94,20 @@ const logout = () => {
             <h2 align="center">欢迎登录</h2>
             <p align="center">SITC 团委学生会 宣传部</p>
             <a-form-item
-                label="账户"
-                name="email"
-                :rules="[{ required: true, message: '请输入账户!' }]"
-                style="margin-top: 16px;"
+                    label="账户"
+                    name="email"
+                    :rules="[{ required: true, message: '请输入账户!' }]"
+                    style="margin-top: 16px;"
             >
-                <a-input v-model:value="formState.email" />
+                <a-input v-model:value="formState.email"/>
             </a-form-item>
 
             <a-form-item
-                label="密码"
-                name="password"
-                :rules="[{ required: true, message: '请输入密码!' }]"
+                    label="密码"
+                    name="password"
+                    :rules="[{ required: true, message: '请输入密码!' }]"
             >
-                <a-input-password v-model:value="formState.password" />
+                <a-input-password v-model:value="formState.password"/>
             </a-form-item>
 
             <div style="display: flex; align-items: center; justify-content: center; margin-top: 16px;">
@@ -110,11 +118,13 @@ const logout = () => {
 
         </a-form>
     </div>
-    <div v-if="token" style="height: 100%">
+    <div v-if="token" style="height: 100%;">
         <a-layout style="min-height: 100vh">
             <a-layout-sider v-model:collapsed="collapsed" collapsible>
-                <div class="logo" :style="{height: '64px',display: 'flex', alignItems: 'center', justifyContent: 'center'}">
-                    <img src="./assets/imgs/logo.png" height="60" width="60" style="border-radius: 50%; background-color: #FFFFFF"/>
+                <div class="logo"
+                     :style="{height: '64px',display: 'flex', alignItems: 'center', justifyContent: 'center'}">
+                    <img src="./assets/imgs/logo.png" height="60" width="60"
+                         style="border-radius: 50%; background-color: #FFFFFF"/>
                 </div>
                 <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
                     <a-menu-item key="1" @click.prevent="$router.push('/')">
@@ -123,7 +133,7 @@ const logout = () => {
                     </a-menu-item>
                     <a-sub-menu key="sub4">
                         <template #title>
-                            <carry-out-outlined />
+                            <carry-out-outlined/>
                             <span>签到</span>
                         </template>
                         <a-menu-item key="17">
@@ -159,54 +169,76 @@ const logout = () => {
                     <a-sub-menu key="sub2">
                         <template #title>
                           <span>
-                            <tool-outlined />
+                            <tool-outlined/>
                             <span>设备</span>
                           </span>
                         </template>
-                        <router-link to="/equipment/my">
-                            <a-menu-item key="7">我的设备</a-menu-item>
-                        </router-link>
-                        <router-link to="/equipment/apply">
-                            <a-menu-item key="8">设备借用申请</a-menu-item>
-                        </router-link>
+                        <a-menu-item key="7">
+                            <router-link to="/equipment/my">
+                                我的设备
+                            </router-link>
+                        </a-menu-item>
+                        <a-menu-item key="8">
+                            <router-link to="/equipment/apply">
+                                设备借用申请
+                            </router-link>
+                        </a-menu-item>
                         <div v-if="is_admin === '1'">
-                            <router-link to="/equipment/manager">
-                                <a-menu-item key="9">设备管理</a-menu-item>
-                            </router-link>
-                            <router-link to="/equipment/audit">
-                                <a-menu-item key="10">设备申请审核</a-menu-item>
-                            </router-link>
-                            <router-link to="/equipment/history">
-                                <a-menu-item key="19">设备出借历史</a-menu-item>
-                            </router-link>
-                            <router-link to="/equipment/add">
-                                <a-menu-item key="11">设备添加</a-menu-item>
-                            </router-link>
-                            <router-link to="/equipment/batch">
-                                <a-menu-item key="12">批量添加</a-menu-item>
-                            </router-link>
+                            <a-menu-item key="9">
+                                <router-link to="/equipment/manager">
+                                    设备管理
+                                </router-link>
+                            </a-menu-item>
+                            <a-menu-item key="10">
+                                <router-link to="/equipment/audit">
+                                    设备申请审核
+                                </router-link>
+                            </a-menu-item>
+                            <a-menu-item key="19">
+                                <router-link to="/equipment/history">
+                                    设备出借历史
+                                </router-link>
+                            </a-menu-item>
+                            <a-menu-item key="11">
+                                <router-link to="/equipment/add">
+                                    设备添加
+                                </router-link>
+                            </a-menu-item>
+                            <a-menu-item key="12">
+                                <router-link to="/equipment/batch">
+                                    批量添加
+                                </router-link>
+                            </a-menu-item>
                         </div>
                     </a-sub-menu>
                     <a-sub-menu key="sub3">
                         <template #title>
                           <span>
-                            <calendar-outlined />
+                            <calendar-outlined/>
                             <span>活动</span>
                           </span>
                         </template>
-                        <router-link to="/activity/list">
-                            <a-menu-item key="13">活动列表</a-menu-item>
-                        </router-link>
+                        <a-menu-item key="13">
+                            <router-link to="/activity/list">
+                                活动列表
+                            </router-link>
+                        </a-menu-item>
                         <div v-if="is_admin === '1'">
-                            <router-link to="/activity/manager">
-                                <a-menu-item key="14">活动管理</a-menu-item>
-                            </router-link>
-                            <router-link to="/activity/add">
-                                <a-menu-item key="15">活动添加</a-menu-item>
-                            </router-link>
-                            <router-link to="/activity/enrollment">
-                                <a-menu-item key="16">报名审核</a-menu-item>
-                            </router-link>
+                            <a-menu-item key="14">
+                                <router-link to="/activity/manager">
+                                    活动管理
+                                </router-link>
+                            </a-menu-item>
+                            <a-menu-item key="15">
+                                <router-link to="/activity/add">
+                                    活动添加
+                                </router-link>
+                            </a-menu-item>
+                            <a-menu-item key="16">
+                                <router-link to="/activity/enrollment">
+                                    报名审核
+                                </router-link>
+                            </a-menu-item>
                         </div>
                     </a-sub-menu>
                 </a-menu>
@@ -214,10 +246,10 @@ const logout = () => {
             <a-layout>
                 <a-layout-header style="background: #fff; padding: 0">
                     <div class="header-bar">
-                        <div class="welcome-display" style="margin-left: 28px;" >
+                        <div class="welcome-display" style="margin-left: 28px;">
                             <span>SITC 团委学生会宣传部-管理系统</span>
                         </div>
-                        <div  style="margin-left: 24px; margin-right: 28px;">
+                        <div style="margin-left: 24px; margin-right: 28px;">
                             <span style="margin-right: 8px;">你好！{{ name }}</span>
                             <span @click="logout"><a>登出</a></span>
                         </div>
@@ -236,6 +268,11 @@ const logout = () => {
 </template>
 
 <style>
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
 #components-layout-demo-side .logo {
     height: 32px;
     margin: 16px;
