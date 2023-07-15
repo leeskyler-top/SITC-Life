@@ -42,8 +42,11 @@ const formState = reactive({
     },
     report: {
         type: 'damaged',
-        damaged_url: ''
+        damaged_url: []
     },
+    upload: {
+
+    }
 });
 const formItemLayout = {
     labelCol: {
@@ -63,6 +66,12 @@ const showReturned = (id) => {
     visibleReturned.value = true;
 }
 
+let config = {
+    headers: {
+        'Content-Type': 'multipart/form-data',
+    },
+};
+
 const visibleDelay = ref(false);
 
 const showDelay = (id) => {
@@ -71,8 +80,37 @@ const showDelay = (id) => {
 
 const visibleReport = ref(false);
 
+const fileList = ref([]);
+
+const current_rent_application_id = ref();
 const showReport = (id) => {
     visibleReport.value = true;
+    current_rent_application_id.value = id;
+}
+
+const reportEquipment = () => {
+    let formData = new FormData();
+    // console.log(file.value[0].originFileObj);
+    if (formState.report.type === 'damaged') {
+        for (let entry of formData.entries()) {
+            console.log(entry);
+        }
+    }
+    // for (let entry of formData.entries()) {
+    //     console.log(entry);
+    // }
+    spinning.value = true;
+    api.post("/equipment/report" + current_rent_application_id.value, formData, config).then(res => {
+        let {msg} = res.data;
+        spinning.value = false;
+        current_rent_application_id.value = null;
+        message.success(msg);
+    }).catch(err => {
+        let {msg} = err.response.data;
+        spinning.value = false;
+        current_rent_application_id.value = null;
+        message.error(msg);
+    });
 }
 
 const visiblePhotos = ref(false)
@@ -246,7 +284,7 @@ onMounted(() => {
             <a-tab-pane key="using" tab="使用中">
                 <a-tabs v-model:activeKey="activeKey2" @update:activeKey="handleTabChange" type="card" >
                     <a-tab-pane key="all" tab="全部">
-                        <a-spin :spinning="spinning">
+                        <a-spin :spinning="spinning" tip="Loading...">
                             <a-descriptions-item v-if="data_using.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
@@ -286,7 +324,7 @@ onMounted(() => {
                         </a-spin>
                     </a-tab-pane>
                     <a-tab-pane key="assigned" tab="正常使用">
-                        <a-spin :spinning="spinning">
+                        <a-spin :spinning="spinning" tip="Loading...">
                             <a-descriptions-item v-if="data_assigned.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
@@ -326,7 +364,7 @@ onMounted(() => {
                         </a-spin>
                     </a-tab-pane>
                     <a-tab-pane key="delay-applying" tab="申请延期中">
-                        <a-spin :spinning="spinning">
+                        <a-spin :spinning="spinning" tip="Loading...">
                             <a-descriptions-item v-if="data_delay_applying.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
@@ -363,7 +401,7 @@ onMounted(() => {
                         </a-spin>
                     </a-tab-pane>
                     <a-tab-pane key="delayed" tab="已延期">
-                        <a-spin :spinning="spinning">
+                        <a-spin :spinning="spinning" tip="Loading...">
                             <a-descriptions-item v-if="data_delayed.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
@@ -405,7 +443,7 @@ onMounted(() => {
                 </a-tabs>
             </a-tab-pane>
             <a-tab-pane key="applying" tab="待审核">
-                <a-spin :spinning="spinning">
+                <a-spin :spinning="spinning" tip="Loading...">
                     <a-descriptions-item v-if="data_applying.length === 0">
                         <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                             <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
@@ -429,7 +467,7 @@ onMounted(() => {
                 </a-spin>
             </a-tab-pane>
             <a-tab-pane key="rejected" tab="已驳回">
-                <a-spin :spinning="spinning">
+                <a-spin :spinning="spinning" tip="Loading...">
                     <a-descriptions-item v-if="data_reject.length === 0">
                         <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                             <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
@@ -456,7 +494,7 @@ onMounted(() => {
                 </a-spin>
             </a-tab-pane>
             <a-tab-pane key="returned" tab="已归还">
-                <a-spin :spinning="spinning">
+                <a-spin :spinning="spinning" tip="Loading...">
                     <a-descriptions-item v-if="data_returned.length === 0">
                         <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                             <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
@@ -511,7 +549,7 @@ onMounted(() => {
             <a-tab-pane key="reported" tab="异常报告">
                 <a-tabs  v-model:activeKey="activeKey3" @update:activeKey="handleTabChange" type="card">
                     <a-tab-pane key="damaged" tab="报损坏">
-                        <a-spin :spinning="spinning">
+                        <a-spin :spinning="spinning" tip="Loading...">
                             <a-descriptions-item v-if="data_damaged.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
@@ -548,7 +586,7 @@ onMounted(() => {
                         </a-spin>
                     </a-tab-pane>
                     <a-tab-pane key="missed" tab="报丢失">
-                        <a-spin :spinning="spinning">
+                        <a-spin :spinning="spinning" tip="Loading...">
                             <a-descriptions-item v-if="data_missed.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
@@ -590,7 +628,7 @@ onMounted(() => {
         </a-tabs>
 
 
-        <a-modal v-model:visible="visiblereturned" title="归还实物照片登记">
+        <a-modal v-model:visible="visibleReturned" title="归还实物照片登记">
             <a-form
                     :model="formState"
                     name="validate_other"
@@ -601,9 +639,8 @@ onMounted(() => {
                     <a-upload
                             v-model:fileList="formState.upload"
                             name="logo"
-                            action="/upload.do"
                             list-type="picture"
-                            before-upload="false" max-count="2"
+                            :before-upload="true" max-count="2"
                     >
                         <a-button>
                             <template #icon><UploadOutlined /></template>
@@ -650,18 +687,13 @@ onMounted(() => {
                         <a-select-option value="missed">丢失</a-select-option>
                     </a-select>
                 </a-form-item>
-
-                <a-form-item name="situation" label="情况" :rules="[{ required: true, message: '请说明情况' }]">
-                    <a-textarea v-model:value="formState.report.situation" />
-                </a-form-item>
-
-                <div v-if="true">
-                    <a-form-item name="upload" label="Upload" extra="至少上传一张图片，最多两张" :rules="[{ required: true, message: '至少上传一张图片' }]">
+                <div v-if="formState.report.type === 'damaged'">
+                    <a-form-item :name="['report', 'damaged_url']" label="Upload" extra="至少上传一张图片，最多两张" :rules="[{ required: true, message: '至少上传一张图片' }]">
                         <a-upload
-                            name="logo"
-                            action="/upload.do"
+                            name="damaged_url"
                             list-type="picture"
                             before-upload="false" max-count="2"
+                            v-model:file-list="fileList"
                         >
                             <a-button>
                                 <template #icon><UploadOutlined /></template>
@@ -671,6 +703,10 @@ onMounted(() => {
                     </a-form-item>
                 </div>
             </a-form>
+            <template>
+                <a-button type="primary" danger @click="handleCancel">取消</a-button>
+                <a-button type="primary" @click="reportEquipment">确定上传</a-button>
+            </template>
         </a-modal>
         <a-modal v-model:visible="visiblePhotos">
             <a-image-preview-group>
