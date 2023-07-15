@@ -268,10 +268,6 @@ const logout = () => {
 </template>
 
 <style>
-html, body {
-    margin: 0;
-    padding: 0;
-}
 
 #components-layout-demo-side .logo {
     height: 32px;
