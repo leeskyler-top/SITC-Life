@@ -139,15 +139,6 @@ const handleCancel = () => {
 const onDelete = key => {
     dataSource.value = dataSource.value.filter(item => item.key !== key);
 };
-const handleAdd = () => {
-    const newData = {
-        key: `${count.value}`,
-        name: `Edward King ${count.value}`,
-        age: 32,
-        address: `London, Park Lane no. ${count.value}`,
-    };
-    dataSource.value.push(newData);
-};
 
 const formState = reactive({
     equipment: {

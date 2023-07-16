@@ -1,7 +1,8 @@
 import axios from 'axios';
+import my_config from "@/my_config.js";
 
 const api = axios.create({
-    baseURL: 'https://twxc-beta.leeskyler.top/backend/api/v1/', // 设置baseURL
+    baseURL: my_config.api_url, // 设置baseURL
     headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + localStorage.token
