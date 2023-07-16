@@ -16,7 +16,6 @@ import autoprefixer from "autoprefixer";
 export default defineConfig({
     plugins: [
         vue(),
-        // legacy 兼容设置，与babel冲突。
         legacy({
             targets: [
                 "> 0.5%, last 1 version, ie >= 11",
