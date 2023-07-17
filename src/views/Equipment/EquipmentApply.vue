@@ -111,7 +111,7 @@ onMounted(() => {
                         </a-form-item>
 
                         <a-form-item has-feedback
-                                     :rules="[{ required: true, message: '请选择日期' }]"   name="apply_time" label="承诺归还时间" v-bind="config">
+                                     :rules="[{ required: true, message: '请选择日期' }]"   name="apply_time" label="承诺归还时间">
                             <a-date-picker
                                 v-model:value="formState['apply_time']"
                                 show-time

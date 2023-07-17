@@ -29,8 +29,9 @@ export default defineConfig({
             ],
             additionalLegacyPolyfills: ["regenerator-runtime/runtime"],
             polyfills: ["es.promise.finally", "es/map", "es/set"],
+            renderLegacyChunks:true,
             // modernPolyfills: ["es.promise.finally"]
-             modernPolyfills: true,
+            modernPolyfills: true,
         }),
         // Components({
         //   resolvers: [AntDesignVueResolver()],
@@ -74,7 +75,7 @@ export default defineConfig({
         rollupOptions: {
             plugins: [],
         },
-        target: "es2015"
+        // target: "es2015"
     },
     css: {
         postcss: {

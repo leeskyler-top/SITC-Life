@@ -10,85 +10,7 @@ const data_report = [];
 
 const activeKey = ref('1');
 
-for (let i = 1; i < 2; i++) {
-    data_back.push({
-            fixed_assets_num: 'TY20220800001',
-            name: '惠普Z2工作站',
-            model: 'Tower G5 ( Intel i9 10900K, Nvidia Quadro P2200, 32G, 1T SSD )',
-            apply_uid: '22200001',
-            apply_name: 'Demo Demo',
-            audit_uid: '22200001',
-            audit_name: 'Demo Demo',
-            back_time: "2023-05-31 09:00:00",
-            audit_time: "2023-05-31 09:00:00"
-        },
-        {
-            fixed_assets_num: 'TY20220800002',
-            name: '惠普Z2工作站',
-            model: 'Tower G5 ( Intel i9 10900K, Nvidia Quadro P2200, 32G, 1T SSD )',
-            apply_uid: '22200001',
-            apply_name: 'Demo Demo',
-            audit_uid: '22200001',
-            audit_name: 'Demo Demo',
-            back_time: "2023-05-31 09:00:00",
-            audit_time: "2023-05-31 09:00:00"
-        })
-    data_apply.push({
-            fixed_assets_num: 'TY20220800001',
-            name: '惠普Z2工作站',
-            model: 'Tower G5 ( Intel i9 10900K, Nvidia Quadro P2200, 32G, 1T SSD )',
-            apply_uid: '22200001',
-            apply_name: 'Demo Demo',
-            apply_time: "2023-05-31 09:00:00"
-        },
-        {
-            fixed_assets_num: 'TY20220800002',
-            name: '惠普Z2工作站',
-            model: 'Tower G5 ( Intel i9 10900K, Nvidia Quadro P2200, 32G, 1T SSD )',
-            apply_uid: '22200001',
-            apply_name: 'Demo Demo',
-            apply_time: "2023-05-31 09:00:00"
-        })
-    data_report.push(    {
-            fixed_assets_num: 'TY20220800001',
-            name: '惠普Z2工作站',
-            model: 'Tower G5 ( Intel i9 10900K, Nvidia Quadro P2200, 32G, 1T SSD )',
-            apply_uid: '22200001',
-            apply_name: 'Demo Demo',
-            audit_uid: '22200001',
-            audit_name: 'Demo Demo',
-            report_time: "2023-05-31 09:00:00",
-            audit_time: "2023-05-31 09:00:00",
-            type: "损坏"
-        },
-        {
-            fixed_assets_num: 'TY20220800002',
-            name: '惠普Z2工作站',
-            model: 'Tower G5 ( Intel i9 10900K, Nvidia Quadro P2200, 32G, 1T SSD )',
-            apply_uid: '22200001',
-            apply_name: 'Demo Demo',
-            audit_uid: '22200001',
-            audit_name: 'Demo Demo',
-            back_time: "2023-05-31 09:00:00",
-            audit_time: "2023-05-31 09:00:00",
-            type: "丢失"
-        })
-}
-
 const current = ref(1);
-
-
-function deleteEquipment(id) {
-    alert(id);
-}
-
-function lostEquipment(id) {
-
-}
-
-function brokeEquipment(id) {
-
-}
 
 const visiblePhotos = ref(false)
 const showPhotos = id => {
@@ -146,8 +68,8 @@ const showConfirm = (op) => {
                         <a-descriptions-item label="设备ID">{{ item.fixed_assets_num }}</a-descriptions-item>
                         <a-descriptions-item label="设备名称">{{ item.name }}</a-descriptions-item>
                         <a-descriptions-item label="设备型号">{{ item.model }}</a-descriptions-item>
-                        <a-descriptions-item label="申请人学籍号">{{ item.apply_uid }}</a-descriptions-item>
-                        <a-descriptions-item label="申请人姓名">{{ item.apply_name }}</a-descriptions-item>
+                        <a-descriptions-item label="申请人学籍号">{{ item.user_uid }}</a-descriptions-item>
+                        <a-descriptions-item label="申请人姓名">{{ item.user_name }}</a-descriptions-item>
                         <a-descriptions-item label="承诺归还时间">{{ item.apply_time }}</a-descriptions-item>
                         <a-descriptions-item label="操作">
                             <a-row style="gap: 5px;">
