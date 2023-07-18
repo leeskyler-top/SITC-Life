@@ -61,10 +61,10 @@ const applyEquipment = () => {
     api.post("/equipment/apply/", formData, config).then(res => {
         let {msg} = res.data;
         loading.value = false;
-        formState.equipment_id = null;
         formState.apply_time = null;
         formState.assigned_url = [];
-        unassignedEquipments.value = unassignedEquipments.value.filter(item => item.id !== current_rent_application_id.value);
+        unassignedEquipments.value = unassignedEquipments.value.filter(item => item.id != formState.equipment_id);
+        formState.equipment_id = null;
         message.success(msg);
     }).catch(err => {
         let {msg} = err.response.data;
