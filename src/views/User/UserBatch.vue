@@ -49,6 +49,10 @@ const handleUpload = () => {
     });
 };
 
+const handleCancel = () => {
+    visibleUsers.value = false;
+}
+
 const formItemLayout = {
     labelCol: {
         span: 6,

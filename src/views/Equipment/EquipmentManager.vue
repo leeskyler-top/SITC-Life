@@ -97,9 +97,6 @@ const listEquipments = () => {
 }
 
 const now = new Date();
-// 设置最小日期为当前日期
-const minDate = ref(now);
-
 // 禁用早于当前日期的日期
 const disabledDate = (date) => {
     return date && date.valueOf() < now.valueOf();
