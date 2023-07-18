@@ -27,6 +27,16 @@ const token = ref(localStorage.token);
 let latestToken = token.value; // 中间变量存储最新的token值
 const is_admin = ref(localStorage.is_admin);
 
+api.interceptors.response.use(null,  (error) => {
+    if ((error.response.status === 401 && error.response.data.msg === '未授权') || (error.response.status === 401 && error.response.data.msg === '未授权: 非法角色!') ) {
+        localStorage.clear();
+        token.value = null;
+        name.value = null;
+        is_admin.value = null;
+    }
+    return Promise.reject(error);
+});
+
 watch(token, (newToken) => {
     latestToken = newToken; // 更新最新的token值
 });
@@ -65,12 +75,14 @@ const logout = () => {
         localStorage.clear();
         token.value = null;
         name.value = null;
+        is_admin.value = null;
         message.success(msg);
     }).catch((err) => {
         let {msg} = err.response.data;
         localStorage.clear();
         token.value = null;
         name.value = null;
+        is_admin.value = null;
         localStorage.clear();
         message.warn("会话注销可能失败:" + msg);
     });
