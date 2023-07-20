@@ -88,6 +88,12 @@ const logout = () => {
     });
 }
 
+const logoLoading = ref('none')
+const stopLoadingLogo = () => {
+    console.log(1)
+    logoLoading.value = 'block';
+}
+
 </script>
 <template>
     <a-style-provider hash-priority="high" :transformers="[legacyLogicalPropertiesTransformer]">
@@ -136,8 +142,10 @@ const logout = () => {
                 <a-layout-sider v-model:collapsed="collapsed" collapsible>
                     <div class="logo"
                          :style="{height: '64px',display: 'flex', alignItems: 'center', justifyContent: 'center'}">
-                        <img src="./assets/imgs/logo.png" height="60" width="60"
+                        <img src="./assets/imgs/logo.png" @load="stopLoadingLogo" :style="{ display: logoLoading }" height="60" width="60"
                              style="border-radius: 50%; background-color: #FFFFFF"/>
+                        <a-spin :spinning="logoLoading === 'none'"></a-spin>
+
                     </div>
                     <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
                         <a-menu-item key="1" @click.prevent="$router.push('/')">
