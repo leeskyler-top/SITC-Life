@@ -24,6 +24,6 @@ export default defineConfig({
     //TODO 设置资源根路径，默认为  '/'  导致只能在根目录下访问。  修改为 './'  即可访问相对路径。
     base: './',
     build: {
-        target: "es2015"
+        target: "ios11"
     },
 })

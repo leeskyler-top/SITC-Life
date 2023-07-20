@@ -30,6 +30,7 @@ const showPhotos = (id, key) => {
     visiblePhotos.value = true;
     if (key === 'applying') {
         images.value = JSON.parse(data_applying.value.find(i => i.id === id).assigned_url);
+        console.log(data_applying.value.find(i => i.id === id).assigned_url);
     } else if (key === 'rejected') {
         images.value = JSON.parse(data_rejected.value.find(i => i.id === id).assigned_url);
     } else if (key === 'damaged') {
@@ -459,15 +460,11 @@ const showConfirm = (id, op) => {
                                     <a-descriptions-item label="使用人学籍号">{{ item.user_uid }}</a-descriptions-item>
                                     <a-descriptions-item label="使用人姓名">{{ item.user_name }}</a-descriptions-item>
                                     <a-descriptions-item label="设备申请审批人学籍号">{{
-                                        item.audit_uid
+                                        item.equipment_application_audit_uid
                                         }}
                                     </a-descriptions-item>
                                     <a-descriptions-item label="设备申请审批人姓名">{{
-                                        item.audit_name
-                                        }}
-                                    </a-descriptions-item>
-                                    <a-descriptions-item label="设备申请审批人时间">{{
-                                        item.audit_time
+                                        item.equipment_application_audit_name
                                         }}
                                     </a-descriptions-item>
                                     <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
@@ -525,16 +522,24 @@ const showConfirm = (id, op) => {
                                     </a-descriptions-item>
                                     <a-descriptions-item label="使用人学籍号">{{ item.user_uid }}</a-descriptions-item>
                                     <a-descriptions-item label="使用人姓名">{{ item.user_name }}</a-descriptions-item>
-                                    <a-descriptions-item label="设备申请审批人学籍号">{{
+                                    <a-descriptions-item label="设备申请延期审批人学籍号">{{
                                         item.audit_uid
                                         }}
                                     </a-descriptions-item>
-                                    <a-descriptions-item label="设备申请审批人姓名">{{
-                                        item.audit_name
+                                    <a-descriptions-item label="设备申请延期审批人姓名">{{
+                                            item.audit_name
                                         }}
                                     </a-descriptions-item>
-                                    <a-descriptions-item label="设备申请审批人时间">{{
-                                        item.audit_time
+                                    <a-descriptions-item label="设备申请审批时间">{{
+                                            item.equipment_application_audit_time
+                                        }}
+                                    </a-descriptions-item>
+                                    <a-descriptions-item label="设备申请审批人学籍号">{{
+                                            item.equipment_application_audit_uid
+                                        }}
+                                    </a-descriptions-item>
+                                    <a-descriptions-item label="设备申请审批人姓名">{{
+                                            item.equipment_application_audit_name
                                         }}
                                     </a-descriptions-item>
                                     <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
@@ -547,7 +552,7 @@ const showConfirm = (id, op) => {
                     </a-tab-pane>
                     <a-tab-pane key="delay-rejected" tab="已拒绝">
                         <a-spin :spinning="spinning" tip="Loading...">
-                            <a-descriptions-item v-if="data_delay_applying.length === 0">
+                            <a-descriptions-item v-if="data_rejected_delay.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                                 </div>
@@ -575,31 +580,32 @@ const showConfirm = (id, op) => {
                                     </a-descriptions-item>
                                     <a-descriptions-item label="使用人学籍号">{{ item.user_uid }}</a-descriptions-item>
                                     <a-descriptions-item label="使用人姓名">{{ item.user_name }}</a-descriptions-item>
-                                    <a-descriptions-item label="审批人学籍号">{{ item.audit_uid }}</a-descriptions-item>
-                                    <a-descriptions-item label="审批人姓名">{{ item.audit_name }}</a-descriptions-item>
-                                    <a-descriptions-item label="审批人时间">{{ item.audit_time }}</a-descriptions-item>
-                                    <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
-                                    <a-descriptions-item label="操作">
-                                        <a-row style="gap: 5px;">
-                                            <a-col>
-                                                <a-button danger style="padding-top: 5px; box-sizing: border-box;"
-                                                          @click="showConfirm(item.id , 'reject')">拒绝
-                                                </a-button>
-                                            </a-col>
-                                            <a-col>
-                                                <a-button type="primary"
-                                                          style="padding-top: 5px; box-sizing: border-box;"
-                                                          @click="showReturn(item.id, 'agree')">同意
-                                                </a-button>
-                                            </a-col>
-                                        </a-row>
+                                    <a-descriptions-item label="设备延期申请审批人学籍号">{{
+                                            item.audit_uid
+                                        }}
                                     </a-descriptions-item>
-
+                                    <a-descriptions-item label="设备延期申请审批人姓名">{{
+                                            item.audit_name
+                                        }}
+                                    </a-descriptions-item>
+                                    <a-descriptions-item label="设备申请审批人时间">{{
+                                            item.equipment_application_audit_time
+                                        }}
+                                    </a-descriptions-item>
+                                    <a-descriptions-item label="设备申请审批人学籍号">{{
+                                            item.equipment_application_audit_uid
+                                        }}
+                                    </a-descriptions-item>
+                                    <a-descriptions-item label="设备申请审批人姓名">{{
+                                            item.equipment_application_audit_name
+                                        }}
+                                    </a-descriptions-item>
+                                    <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
                                 </a-descriptions>
                                 <a-pagination align="center" style="margin-top: 8px;"
                                               v-model:current="currentDelayRejectedPage" simple pageSize="5"
-                                              :total="data_delay_applying.length"
-                                              v-if="data_delay_applying.length !== 0"/>
+                                              :total="data_rejected_delay.length"
+                                              v-if="data_rejected_delay.length !== 0"/>
                             </a-space>
                         </a-spin>
                     </a-tab-pane>
