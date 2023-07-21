@@ -13,8 +13,8 @@ import {ref, computed, reactive, watch} from 'vue';
 import api from './api.js';
 
 const formState = reactive({
-    email: '',
-    password: '',
+    email: null,
+    password: null,
 });
 
 const disabled = computed(() => {
@@ -33,6 +33,18 @@ api.interceptors.response.use(null,  (error) => {
         token.value = null;
         name.value = null;
         is_admin.value = null;
+    }
+    else if (error.response.status === 413) {
+        message.error("上传数据不得大于10M");
+    }
+    else if (error.response.status === 429) {
+        message.error("请求过于频繁");
+    }
+    else if (error.response.status === 500) {
+        message.error("服务器内部出错");
+    }
+    else if (error.response.status === 502) {
+        message.error("网关出错");
     }
     return Promise.reject(error);
 });
@@ -131,7 +143,7 @@ const stopLoadingLogo = () => {
 
                 <div style="display: flex; align-items: center; justify-content: center; margin-top: 16px;">
                     <a-form-item>
-                        <a-button type="primary" html-type="submit" :loading="signin">登录</a-button>
+                        <a-button type="primary" html-type="submit" :loading="signin" :disabled="!formState.email || !formState.password">登录</a-button>
                     </a-form-item>
                 </div>
 
@@ -280,7 +292,7 @@ const stopLoadingLogo = () => {
                         <RouterView></RouterView>
                     </a-layout-content>
                     <a-layout-footer style="text-align: center">
-                        上海信息技术学校团委学生会宣传部 &copy; 2023
+                        上海信息技术学校团委学生会宣传部 &copy; 2023 | <a href="https://github.com/leeskyler-top/SITC-Publicity-Backend" style="text-decoration: none; color: black">GitHub 仓库</a>
                     </a-layout-footer>
                 </a-layout>
             </a-layout>
