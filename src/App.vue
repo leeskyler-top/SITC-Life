@@ -10,6 +10,7 @@ import {
 import {message, legacyLogicalPropertiesTransformer} from "ant-design-vue";
 import {ref, computed, reactive, watch, onMounted} from 'vue';
 import api from './api.js';
+import router from "@/router";
 
 const isShow = ref(true);
 
@@ -76,6 +77,8 @@ const login = () => {
     signin.value = true;
     api.post("/auth/login", formState).then((res) => {
         signin.value = false;
+        formState.email = null;
+        formState.password = null;
         let {data, msg} = res.data;
         token.value = data.token;
         name.value = data.name;
@@ -92,6 +95,7 @@ const login = () => {
 }
 
 const logout = () => {
+    router.push("/");
     api.delete("/auth/logout").then((res) => {
         let {msg} = res.data;
         localStorage.clear();

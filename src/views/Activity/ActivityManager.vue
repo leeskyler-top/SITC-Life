@@ -83,6 +83,11 @@ const columns = [
     }
 ];
 
+const now = new Date();
+// 禁用早于当前日期的日期
+const disabledDate = (date) => {
+    return date && date.valueOf() < now.valueOf();
+};
 const handleSearch = (selectedKeys, confirm, dataIndex) => {
     confirm();
     state.searchText = selectedKeys[0];
@@ -93,13 +98,19 @@ const handleReset = clearFilters => {
     clearFilters({confirm: true});
     state.searchText = '';
 };
-const deleteActivity = id => {
-    alert(id);
-};
 
 const visibleInfo = ref(false);
 const showInfo = id => {
     visibleInfo.value = true;
+    current_activity_id.value = id;
+    let current_activity = myData.value.find(item => item.id === current_activity_id.value)
+    formState.activity.title = current_activity.title;
+    formState.activity.type = current_activity.type;
+    formState.activity.place = current_activity.place;
+    formState.activity.note = current_activity.note;
+    formState.activity.start_time = current_activity.start_time;
+    formState.activity.end_time = current_activity.end_time;
+    formState.activity.type = current_activity.type;
 };
 
 const loading = ref(false);
@@ -151,13 +162,15 @@ const editUser = () => {
 
 const formState = reactive({
     activity: {
-        title: '',
-        notes: '',
-        place: '',
-        start_datetime: '',
-        end_datetime: '',
+        title: null,
+        note: null,
+        place: null,
+        type: null,
+        start_time: null,
+        end_time: null,
     },
 });
+setInterval(() => console.log(formState.activity), 1000)
 const validateMessages = {
     required: '${label} 必填!',
     types: {
@@ -194,12 +207,12 @@ const listActivities = () => {
         let {data} = res.data;
         spinning.value = false;
         data = data.map(item => {
-            if (item.status === 'self-enrollment') {
-                item.status = '仅自主报名';
-            } else if (item.status === 'assignment') {
-                item.status = '仅分配';
-            } else if (item.status === 'ase') {
-                item.status = '自主报名或分配';
+            if (item.type === 'self-enrollment') {
+                item.type = '仅自主报名';
+            } else if (item.type === 'assignment') {
+                item.type = '仅分配';
+            } else if (item.type === 'ase') {
+                item.type = '自主报名或分配';
             }
             return item;
         })
@@ -207,6 +220,41 @@ const listActivities = () => {
     }).catch((err) => {
         let {msg} = err.response.data;
         spinning.value = false;
+        message.error(msg);
+    });
+}
+
+const deleteActivity = id => {
+    api.delete("/activity/" + id).then((res) => {
+        let {msg} = res.data;
+        message.success(msg);
+        myData.value = myData.value.filter(activity => activity.id !== id);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+const current_activity_id = ref();
+const changeActivityInfo = () => {
+    loading.value = true;
+    api.patch("/activity/" + current_activity_id.value, formState.activity).then((res) => {
+        let {msg} = res.data;
+        let current_activity = myData.value.find(item => item.id === current_activity_id.value)
+        if (formState.activity.type === 'assignment') {
+            formState.activity.type = '指派';
+        } else if (formState.activity.type === 'self-enrollment') {
+            formState.activity.type = '自主报名';
+        } else if (formState.activity.type === 'ase') {
+            formState.activity.type = '自主报名与指派';
+        }
+        loading.value = false;
+        Object.assign(current_activity, formState.activity);
+        visibleInfo.value = false;
+        message.success(msg);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        loading.value = false;
         message.error(msg);
     });
 }
@@ -220,7 +268,7 @@ watch(state.value, () => {
     state.fetching = false;
 });
 
-const showConfirm = (op) => {
+const showConfirm = (op, id) => {
     if (op === "refuse") {
         Modal.confirm({
             title: '确认操作',
@@ -380,8 +428,8 @@ const showConfirm = (op) => {
                 <a-form-item :name="['activity', 'title']" label="活动标题" :rules="[{ required: true }]">
                     <a-input v-model:value="formState.activity.title"/>
                 </a-form-item>
-                <a-form-item :name="['activity', 'notes']" label="需求" :rules="[{ required: true }]">
-                    <a-textarea v-model:value="formState.activity.notes"/>
+                <a-form-item :name="['activity', 'note']" label="需求" :rules="[{ required: true }]">
+                    <a-textarea v-model:value="formState.activity.note"/>
                 </a-form-item>
                 <a-form-item :name="['activity', 'place']" label="地点" :rules="[{ required: true }]">
                     <a-input v-model:value="formState.activity.place"/>
@@ -392,7 +440,7 @@ const showConfirm = (op) => {
                         has-feedback
                         :rules="[{ required: true, message: '请选择发布方式' }]"
                 >
-                    <a-select placeholder="选择一个发布类型" value="self-enrollment" disabled>
+                    <a-select v-model:value="formState.activity.type" placeholder="选择一个发布类型" value="self-enrollment" disabled>
                         <a-select-option value="assignment">指派</a-select-option>
                         <a-select-option value="self-enrollment">自主报名</a-select-option>
                         <a-select-option value="ase">自主报名与指派</a-select-option>
@@ -408,9 +456,9 @@ const showConfirm = (op) => {
                 </div>
                 <a-form-item has-feedback
                              :rules="[{ required: true, message: '请选择日期' }]"
-                             v-model:value="formState.activity.start_datetime" name="date-time-picker" label="开始时间">
+                             v-model:value="formState.activity.start_time" :name="['activity', 'start_time']" label="开始时间">
                     <a-date-picker
-                            v-model:value="formState['date-time-picker']"
+                            v-model:value="formState.activity.start_time"
                             show-time
                             format="YYYY-MM-DD HH:mm:ss"
                             value-format="YYYY-MM-DD HH:mm:ss"
@@ -421,9 +469,9 @@ const showConfirm = (op) => {
                 </a-form-item>
                 <a-form-item has-feedback
                              :rules="[{ required: true, message: '请选择日期' }]"
-                             v-model:value="formState.activity.end_datetime" name="date-time-picker" label="结束时间">
+                             v-model:value="formState.activity.end_time" :name="['activity', 'end_time']" label="结束时间">
                     <a-date-picker
-                            v-model:value="formState['date-time-picker']"
+                            v-model:value="formState.activity.end_time"
                             show-time
                             format="YYYY-MM-DD HH:mm:ss"
                             value-format="YYYY-MM-DD HH:mm:ss"
@@ -432,14 +480,11 @@ const showConfirm = (op) => {
 
                     />
                 </a-form-item>
-
-                <a-form-item :wrapper-col="{ span: 12, offset: 6 }">
-                    <template #footer>
-                        <a-button type="primary" @click="handleCancel">关闭</a-button>
-                        <a-button type="primary" @click="changeNote" html-type="submit" danger>变更</a-button>
-                    </template>
-                </a-form-item>
             </a-form>
+            <template #footer>
+                <a-button type="primary" @click="handleCancel">关闭</a-button>
+                <a-button type="primary" @click="changeActivityInfo" html-type="submit" danger>变更</a-button>
+            </template>
         </a-modal>
         <a-modal v-model:visible="visiblePeople" title="活动人员">
             <template #footer>
@@ -448,7 +493,7 @@ const showConfirm = (op) => {
             <a-card>
                 <div>
                     <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" v-if="true"
-                              @click="showAddUsers(1)">新增人员
+                              @click="showAddUsers(1)" >新增人员
                     </a-button>
                     <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
                               v-if="true" danger>关闭报名

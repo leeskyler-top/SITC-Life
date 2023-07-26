@@ -230,7 +230,7 @@ const disabledDate = (date) => {
                     </a-form>
                 </div>
                 <a-form-item :wrapper-col="{ span: 12, offset: 2 }">
-                    <a-button type="primary" @click="addActivity" :disabled="!formState.activity.title || !formState.activity.start_time ||  !formState.activity.end_time || !formState.activity.place">提交</a-button>
+                    <a-button type="primary" :loading="loading" @click="addActivity" :disabled="!formState.activity.title || !formState.activity.start_time ||  !formState.activity.end_time || !formState.activity.place">提交</a-button>
                 </a-form-item>
             </a-col>
         </a-row>
