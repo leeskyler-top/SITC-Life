@@ -2,10 +2,12 @@
 import {reactive, ref, onMounted, watch, createVNode} from 'vue';
 import {cloneDeep, debounce} from 'lodash-es';
 import {ExclamationCircleOutlined, PlusOutlined, SearchOutlined} from '@ant-design/icons-vue';
-import {Modal} from "ant-design-vue";
+import {message, Modal} from "ant-design-vue";
+import api from "@/api";
 
 const isShow = ref(true);
-function handleResize (event) {
+
+function handleResize(event) {
     // 页面宽度小于525px时，不显示表格
     if (document.documentElement.clientWidth < 525) {
         isShow.value = false;
@@ -21,23 +23,9 @@ onMounted(() => {
 window.addEventListener('resize', handleResize);
 
 const activeKey = ref([]);
-const text = `A dog is a type of domesticated animal.Known for its loyalty and faithfulness,it can be found as a welcome guest in many households across the world.`;
 
-const data = [];
-for (let i = 0; i < 5; i++) {
-    data.push({
-        id: i,
-        title: `demo demo`,
-        notes: "三名摄影，一名摄像，多准备CF卡",
-        type: "自主报名",
-        place: "8#影视中心",
-        start_datetime: "2023-05-31 11:11:30",
-        end_datetime: "2023-05-31 11:11:30",
-    });
-}
+const myData = ref([]);
 
-const dataSource = ref(data);
-const editableData = reactive({});
 const state = reactive({
     searchText: '',
     searchedColumn: '',
@@ -47,9 +35,6 @@ const state = reactive({
 });
 
 const searchInput = ref();
-const edit = key => {
-    editableData[key] = cloneDeep(dataSource.value.filter(item => key === item.key)[0]);
-};
 
 const columns = [
     {
@@ -58,7 +43,7 @@ const columns = [
         width: '30%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
-            record.uid.toString().toLowerCase().includes(value.toLowerCase()),
+            record.title.toString().toLowerCase().includes(value.toLowerCase()),
     },
     {
         title: '类型',
@@ -66,7 +51,7 @@ const columns = [
         width: '10%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
-            record.name.toString().toLowerCase().includes(value.toLowerCase()),
+            record.type.toString().toLowerCase().includes(value.toLowerCase()),
     },
     {
         title: '地点',
@@ -74,23 +59,23 @@ const columns = [
         width: '15%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
-            record.role.toString().toLowerCase().includes(value.toLowerCase()),
+            record.place.toString().toLowerCase().includes(value.toLowerCase()),
     },
     {
         title: '开始时间',
-        dataIndex: 'start_datetime',
+        dataIndex: 'start_time',
         width: '12%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
-            record.role.toString().toLowerCase().includes(value.toLowerCase()),
+            record.start_time.toString().toLowerCase().includes(value.toLowerCase()),
     },
     {
         title: '结束时间',
-        dataIndex: 'end_datetime',
+        dataIndex: 'end_time',
         width: '12%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
-            record.role.toString().toLowerCase().includes(value.toLowerCase()),
+            record.end_time.toString().toLowerCase().includes(value.toLowerCase()),
     },
     {
         title: '操作',
@@ -105,18 +90,11 @@ const handleSearch = (selectedKeys, confirm, dataIndex) => {
 };
 
 const handleReset = clearFilters => {
-    clearFilters({ confirm: true });
+    clearFilters({confirm: true});
     state.searchText = '';
 };
 const deleteActivity = id => {
     alert(id);
-};
-const save = key => {
-    Object.assign(dataSource.value.filter(item => key === item.key)[0], editableData[key]);
-    delete editableData[key];
-};
-const cancel = key => {
-    delete editableData[key];
 };
 
 const visibleInfo = ref(false);
@@ -186,14 +164,9 @@ const validateMessages = {
         email: '${label} 非法邮箱格式',
     },
 };
-const onFinish = values => {
-    console.log('Success:', values);
-};
-const onFinishFailed = errorInfo => {
-    console.log('Failed:', errorInfo);
-};
-
 let lastFetchId = 0;
+
+const spinning = ref(false)
 
 const fetchUser = debounce(value => {
     console.log('fetching user', value);
@@ -214,6 +187,34 @@ const fetchUser = debounce(value => {
         state.fetching = false;
     });
 }, 300);
+
+const listActivities = () => {
+    spinning.value = true;
+    api.get("/activity").then((res) => {
+        let {data} = res.data;
+        spinning.value = false;
+        data = data.map(item => {
+            if (item.status === 'self-enrollment') {
+                item.status = '仅自主报名';
+            } else if (item.status === 'assignment') {
+                item.status = '仅分配';
+            } else if (item.status === 'ase') {
+                item.status = '自主报名或分配';
+            }
+            return item;
+        })
+        myData.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        spinning.value = false;
+        message.error(msg);
+    });
+}
+
+onMounted(() => {
+    listActivities();
+});
+
 watch(state.value, () => {
     state.data = [];
     state.fetching = false;
@@ -262,73 +263,71 @@ const showConfirm = (op) => {
             :style="{margin: '16px'}"
     >
         <h2>活动管理</h2>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow" >
-            <a-row justify="end">
-                <router-link to="/activity/add">
-                    <a-button type="primary" style="margin: 8px; " ghost>添加活动</a-button>
-                </router-link>
-            </a-row>
-            <a-table :columns="columns" :data-source="dataSource" bordered>
-                <template
-                        #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
-                >
-                    <div style="padding: 8px">
-                        <a-input
-                                ref="searchInput"
-                                :placeholder="`Search ${column.dataIndex}`"
-                                :value="selectedKeys[0]"
-                                style="width: 188px; margin-bottom: 8px; display: block"
-                                @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
-                                @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
-                        />
-                        <a-button
-                                type="primary"
-                                size="small"
-                                style="width: 90px; margin-right: 8px"
-                                @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
-                        >
-                            <template #icon><search-outlined /></template>
-                            Search
-                        </a-button>
-                        <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
-                            Reset
-                        </a-button>
-                    </div>
-                </template>
-                <template #bodyCell="{ column, text, record }">
-                    <template v-if="['title', 'type', 'place', 'start_datetime', 'end_datetime'].includes(column.dataIndex)">
-                        <div>
+        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow">
+            <a-spin :spinning="spinning" tip="Loading...">
+                <a-row justify="end">
+                    <router-link to="/activity/add">
+                        <a-button type="primary" style="margin: 8px; " ghost>添加活动</a-button>
+                    </router-link>
+                </a-row>
+                <a-table :columns="columns" :data-source="myData" bordered>
+                    <template
+                            #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
+                    >
+                        <div style="padding: 8px">
                             <a-input
-                                    v-if="editableData[record.key]"
-                                    v-model:value="editableData[record.key][column.dataIndex]"
-                                    style="margin: -5px 0"
+                                    ref="searchInput"
+                                    :placeholder="`Search ${column.dataIndex}`"
+                                    :value="selectedKeys[0]"
+                                    style="width: 188px; margin-bottom: 8px; display: block"
+                                    @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
+                                    @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
                             />
-                            <template v-else>
-                                {{ text }}
-                            </template>
+                            <a-button
+                                    type="primary"
+                                    size="small"
+                                    style="width: 90px; margin-right: 8px"
+                                    @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
+                            >
+                                <template #icon>
+                                    <search-outlined/>
+                                </template>
+                                Search
+                            </a-button>
+                            <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
+                                Reset
+                            </a-button>
                         </div>
                     </template>
-                    <template v-else-if="column.dataIndex === 'operation'">
-                        <div class="editable-row-operations">
+                    <template #bodyCell="{ column, text, record }">
+                        <template
+                                v-if="['title', 'type', 'place', 'start_datetime', 'end_datetime'].includes(column.dataIndex)">
+                            <div>
+                                {{ text }}
+                            </div>
+                        </template>
+                        <template v-else-if="column.dataIndex === 'operation'">
+                            <div class="editable-row-operations">
                       <span>
-                          <a :disabled="editableData[record.key]" @click="showInfo(record.id)">编辑</a>
+                          <a @click="showInfo(record.id)">编辑</a>
                       </span>
-                      <span>
-                          <a :disabled="editableData[record.key]" @click="showPeople(record.id)">活动人员</a>
+                                <span>
+                          <a @click="showPeople(record.id)">活动人员</a>
                       </span>
-                      <span>
-                          <a :disabled="editableData[record.key]" @click="showModal(record.id)">签到管理</a>
+                                <span>
+                          <a @click="showModal(record.id)">签到管理</a>
                       </span>
-                      <span>
+                                <span>
                         <a-popconfirm title="Sure to delete?" @confirm="deleteActivity(record.id)"><a
                                 style="color: red">删除</a></a-popconfirm>
                       </span>
-                        </div>
+                            </div>
+                        </template>
                     </template>
-                </template>
-            </a-table>
+                </a-table>
+            </a-spin>
         </div>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false" >
+        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false">
             管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
         </div>
         <a-modal v-model:visible="visible" title="签到管理">
@@ -341,20 +340,28 @@ const showConfirm = (op) => {
                         <p>签到开始时间: 2023-06-02 21:42</p>
                         <p>签到结束时间: 2023-06-02 21:50</p>
                         <div>
-                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;">变更结束时间</a-button>
-                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;" danger @click="showConfirm('deleteCheckIn')">删除签到</a-button>
+                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;">变更结束时间
+                            </a-button>
+                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
+                                      danger @click="showConfirm('deleteCheckIn')">删除签到
+                            </a-button>
                         </div>
                     </a-card>
                     <a-card>
                         <a-descriptions v-for="item in data" title="姓名"
-                                         layout="vertical">
+                                        layout="vertical">
 
-                                <a-descriptions-item label="签到时间">2023-06-03 21:09</a-descriptions-item>
-                                <a-descriptions-item label="签到状态">demo</a-descriptions-item>
-                                <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
-                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger @click="showConfirm('refuse')">驳回</a-button>
-                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 5px;" @click="showPhotos(item.id)">查看照片</a-button>
-                                </a-descriptions-item>
+                            <a-descriptions-item label="签到时间">2023-06-03 21:09</a-descriptions-item>
+                            <a-descriptions-item label="签到状态">demo</a-descriptions-item>
+                            <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
+                                <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
+                                          @click="showConfirm('refuse')">驳回
+                                </a-button>
+                                <a-button type="primary"
+                                          style="padding-top: 5px; box-sizing: border-box; margin-left: 5px;"
+                                          @click="showPhotos(item.id)">查看照片
+                                </a-button>
+                            </a-descriptions-item>
                         </a-descriptions>
                     </a-card>
                 </a-collapse-panel>
@@ -363,13 +370,11 @@ const showConfirm = (op) => {
         <a-modal v-model:visible="visibleInfo" title="变更活动信息">
 
             <a-form
-                :model="formState"
-                name="validate_other"
-                v-bind="formItemLayout"
-                :validate-messages="validateMessages"
-                @finishFailed="onFinishFailed"
-                @finish="onFinish"
-                style="max-width: 500px;"
+                    :model="formState"
+                    name="validate_other"
+                    v-bind="formItemLayout"
+                    :validate-messages="validateMessages"
+                    style="max-width: 500px;"
 
             >
                 <a-form-item :name="['activity', 'title']" label="活动标题" :rules="[{ required: true }]">
@@ -382,10 +387,10 @@ const showConfirm = (op) => {
                     <a-input v-model:value="formState.activity.place"/>
                 </a-form-item>
                 <a-form-item
-                    :name="['activity', 'type']"
-                    label="发布类型"
-                    has-feedback
-                    :rules="[{ required: true, message: '请选择发布方式' }]"
+                        :name="['activity', 'type']"
+                        label="发布类型"
+                        has-feedback
+                        :rules="[{ required: true, message: '请选择发布方式' }]"
                 >
                     <a-select placeholder="选择一个发布类型" value="self-enrollment" disabled>
                         <a-select-option value="assignment">指派</a-select-option>
@@ -405,22 +410,26 @@ const showConfirm = (op) => {
                              :rules="[{ required: true, message: '请选择日期' }]"
                              v-model:value="formState.activity.start_datetime" name="date-time-picker" label="开始时间">
                     <a-date-picker
-                        v-model:value="formState['date-time-picker']"
-                        show-time
-                        format="YYYY-MM-DD HH:mm:ss"
-                        value-format="YYYY-MM-DD HH:mm:ss"
-                        placeholder="不得早于当前时间"
+                            v-model:value="formState['date-time-picker']"
+                            show-time
+                            format="YYYY-MM-DD HH:mm:ss"
+                            value-format="YYYY-MM-DD HH:mm:ss"
+                            placeholder="不得早于当前时间"
+                            :disabled-date="disabledDate"
+
                     />
                 </a-form-item>
                 <a-form-item has-feedback
                              :rules="[{ required: true, message: '请选择日期' }]"
                              v-model:value="formState.activity.end_datetime" name="date-time-picker" label="结束时间">
                     <a-date-picker
-                        v-model:value="formState['date-time-picker']"
-                        show-time
-                        format="YYYY-MM-DD HH:mm:ss"
-                        value-format="YYYY-MM-DD HH:mm:ss"
-                        placeholder="不得早于当前时间"
+                            v-model:value="formState['date-time-picker']"
+                            show-time
+                            format="YYYY-MM-DD HH:mm:ss"
+                            value-format="YYYY-MM-DD HH:mm:ss"
+                            placeholder="不得早于当前时间"
+                            :disabled-date="disabledDate"
+
                     />
                 </a-form-item>
 
@@ -438,8 +447,12 @@ const showConfirm = (op) => {
             </template>
             <a-card>
                 <div>
-                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" v-if="true" @click="showAddUsers(1)">新增人员</a-button>
-                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;" v-if="true" danger>关闭报名</a-button>
+                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" v-if="true"
+                              @click="showAddUsers(1)">新增人员
+                    </a-button>
+                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
+                              v-if="true" danger>关闭报名
+                    </a-button>
                 </div>
             </a-card>
             <a-descriptions v-for="item in data" title="学籍号 系部 姓名"
@@ -447,14 +460,16 @@ const showConfirm = (op) => {
 
                 <a-descriptions-item label="报名（指派）时间">2023-06-03 21:09</a-descriptions-item>
                 <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
-                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger @click="showConfirm('deleteUser')">移除并通知</a-button>
+                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
+                              @click="showConfirm('deleteUser')">移除并通知
+                    </a-button>
                 </a-descriptions-item>
             </a-descriptions>
         </a-modal>
-        <a-modal  v-model:visible="visiblePhotos">
+        <a-modal v-model:visible="visiblePhotos">
             <a-image-preview-group>
-                <a-image :width="200" src="https://aliyuncdn.antdv.com/vue.png" />
-                <a-image :width="200" src="https://aliyuncdn.antdv.com/logo.png" />
+                <a-image :width="200" src="https://aliyuncdn.antdv.com/vue.png"/>
+                <a-image :width="200" src="https://aliyuncdn.antdv.com/logo.png"/>
             </a-image-preview-group>
             <template #footer>
                 <a-button type="primary" @click="hidePhotos">关闭</a-button>
@@ -462,18 +477,18 @@ const showConfirm = (op) => {
         </a-modal>
         <a-modal v-model:visible="visibleAddUsers" title="指派人员">
             <a-select
-                v-model:value="state.value"
-                mode="multiple"
-                label-in-value
-                placeholder="Select users"
-                style="width: 100%"
-                :filter-option="false"
-                :not-found-content="state.fetching ? undefined : null"
-                :options="state.data"
-                @search="fetchUser"
+                    v-model:value="state.value"
+                    mode="multiple"
+                    label-in-value
+                    placeholder="Select users"
+                    style="width: 100%"
+                    :filter-option="false"
+                    :not-found-content="state.fetching ? undefined : null"
+                    :options="state.data"
+                    @search="fetchUser"
             >
                 <template v-if="state.fetching" #notFoundContent>
-                    <a-spin size="small" />
+                    <a-spin size="small"/>
                 </template>
             </a-select>
         </a-modal>

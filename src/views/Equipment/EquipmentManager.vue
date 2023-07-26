@@ -318,10 +318,7 @@ const validateMessages = {
                 <a-form
                         :model="formState"
                         name="validate_other"
-                        v-bind="formItemLayout"
                         :validate-messages="validateMessages"
-                        @finishFailed="onFinishFailed"
-                        @finish="onFinish"
                         style="max-width: 500px;"
 
                 >
