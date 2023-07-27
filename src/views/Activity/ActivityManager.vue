@@ -2,7 +2,7 @@
 import {reactive, ref, onMounted, watch, createVNode} from 'vue';
 import {cloneDeep, debounce} from 'lodash-es';
 import {ExclamationCircleOutlined, PlusOutlined, SearchOutlined} from '@ant-design/icons-vue';
-import {message, Modal} from "ant-design-vue";
+import {Empty, message, Modal} from "ant-design-vue";
 import api from "@/api";
 
 const isShow = ref(true);
@@ -122,12 +122,9 @@ const handleCancel = () => {
     visible.value = false;
     visibleInfo.value = false;
     visiblePhotos.value = false;
+    visiblePeople.value = false;
     visibleAddUsers.value = false;
 };
-
-const changeNote = () => {
-
-}
 
 const visiblePhotos = ref(false)
 const showPhotos = id => {
@@ -135,8 +132,22 @@ const showPhotos = id => {
 };
 const visiblePeople = ref(false);
 
+const activityUsers = ref([]);
 const showPeople = id => {
+    activityUsers.value = [];
     visiblePeople.value = true;
+    current_activity_id.value = id;
+    users_spinning.value = true;
+    api.get("/activity/" + id).then(res => {
+        users_spinning.value = false;
+        let {msg, data} = res.data;
+        activityUsers.value = data.users;
+        message.success(msg);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        users_spinning.value = false;
+        message.error(msg);
+    });
 }
 const hidePhotos = () => {
     visiblePhotos.value = false;
@@ -154,10 +165,6 @@ const formItemLayout = {
     wrapperCol: {
         span: 14,
     },
-};
-
-const editUser = () => {
-
 };
 
 const formState = reactive({
@@ -180,6 +187,7 @@ const validateMessages = {
 let lastFetchId = 0;
 
 const spinning = ref(false)
+const users_spinning = ref(false)
 
 const fetchUser = debounce(value => {
     console.log('fetching user', value);
@@ -259,6 +267,17 @@ const changeActivityInfo = () => {
     });
 }
 
+const removeUser = (user_id) => {
+    api.delete("/activity/enrollment/remove/" + current_activity_id + '/' + id).then((res) => {
+        let {msg} = res.data;
+        message.success(msg);
+        activityUsers.value = activityUsers.value.filter(user => user.id !== id);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
 onMounted(() => {
     listActivities();
 });
@@ -291,7 +310,7 @@ const showConfirm = (op, id) => {
 
             }
         });
-    } else if (op === "deleteUser") {
+    } else if (op === "deleteUser", id) {
         Modal.confirm({
             title: '确认操作',
             icon: createVNode(ExclamationCircleOutlined),
@@ -299,7 +318,7 @@ const showConfirm = (op, id) => {
             okText: '确认',
             cancelText: '取消',
             onOk() {
-
+                removeUser(id);
             }
         });
     }
@@ -440,7 +459,8 @@ const showConfirm = (op, id) => {
                         has-feedback
                         :rules="[{ required: true, message: '请选择发布方式' }]"
                 >
-                    <a-select v-model:value="formState.activity.type" placeholder="选择一个发布类型" value="self-enrollment" disabled>
+                    <a-select v-model:value="formState.activity.type" placeholder="选择一个发布类型"
+                              value="self-enrollment" disabled>
                         <a-select-option value="assignment">指派</a-select-option>
                         <a-select-option value="self-enrollment">自主报名</a-select-option>
                         <a-select-option value="ase">自主报名与指派</a-select-option>
@@ -456,7 +476,8 @@ const showConfirm = (op, id) => {
                 </div>
                 <a-form-item has-feedback
                              :rules="[{ required: true, message: '请选择日期' }]"
-                             v-model:value="formState.activity.start_time" :name="['activity', 'start_time']" label="开始时间">
+                             v-model:value="formState.activity.start_time" :name="['activity', 'start_time']"
+                             label="开始时间">
                     <a-date-picker
                             v-model:value="formState.activity.start_time"
                             show-time
@@ -469,7 +490,8 @@ const showConfirm = (op, id) => {
                 </a-form-item>
                 <a-form-item has-feedback
                              :rules="[{ required: true, message: '请选择日期' }]"
-                             v-model:value="formState.activity.end_time" :name="['activity', 'end_time']" label="结束时间">
+                             v-model:value="formState.activity.end_time" :name="['activity', 'end_time']"
+                             label="结束时间">
                     <a-date-picker
                             v-model:value="formState.activity.end_time"
                             show-time
@@ -487,29 +509,39 @@ const showConfirm = (op, id) => {
             </template>
         </a-modal>
         <a-modal v-model:visible="visiblePeople" title="活动人员">
+            <a-spin :spinning="users_spinning" tip="Loading...">
+                <a-card>
+                    <div>
+                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" v-if="true"
+                                  @click="showAddUsers(1)">新增人员
+                        </a-button>
+                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
+                                  v-if="true" danger>关闭报名
+                        </a-button>
+                    </div>
+                </a-card>
+                <a-descriptions-item v-if="activityUsers.length === 0">
+                    <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                    </div>
+                </a-descriptions-item>
+                <a-card>
+                    <a-descriptions v-for="item in activityUsers"
+                                    :title="item.uid + '-' + item.department + '-' + item.name"
+                                    layout="vertical" style="padding-top: 6px;">
+
+                        <a-descriptions-item label="报名（指派）时间">2023-06-03 21:09</a-descriptions-item>
+                        <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
+                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
+                                      @click="showConfirm('deleteUser', item.id)">移除并通知
+                            </a-button>
+                        </a-descriptions-item>
+                    </a-descriptions>
+                </a-card>
+            </a-spin>
             <template #footer>
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
             </template>
-            <a-card>
-                <div>
-                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" v-if="true"
-                              @click="showAddUsers(1)" >新增人员
-                    </a-button>
-                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
-                              v-if="true" danger>关闭报名
-                    </a-button>
-                </div>
-            </a-card>
-            <a-descriptions v-for="item in data" title="学籍号 系部 姓名"
-                            layout="vertical" style="margin-top: 4px;">
-
-                <a-descriptions-item label="报名（指派）时间">2023-06-03 21:09</a-descriptions-item>
-                <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
-                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
-                              @click="showConfirm('deleteUser')">移除并通知
-                    </a-button>
-                </a-descriptions-item>
-            </a-descriptions>
         </a-modal>
         <a-modal v-model:visible="visiblePhotos">
             <a-image-preview-group>
