@@ -1,5 +1,5 @@
 <script setup>
-import {reactive, ref, onMounted, watch, createVNode} from 'vue';
+import {reactive, ref, onMounted, watch, computed, createVNode} from 'vue';
 import {cloneDeep, debounce} from 'lodash-es';
 import {ExclamationCircleOutlined, PlusOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import {Empty, message, Modal} from "ant-design-vue";
@@ -31,7 +31,7 @@ const state = reactive({
     searchedColumn: '',
     data: [],
     value: [],
-    fetching: false,
+    fetching: false
 });
 
 const searchInput = ref();
@@ -111,6 +111,7 @@ const showInfo = id => {
     formState.activity.start_time = current_activity.start_time;
     formState.activity.end_time = current_activity.end_time;
     formState.activity.type = current_activity.type;
+    formState.activity.is_enrolling = current_activity.is_enrolling;
 };
 
 const loading = ref(false);
@@ -123,6 +124,10 @@ const handleCancel = () => {
     visibleInfo.value = false;
     visiblePhotos.value = false;
     visiblePeople.value = false;
+    visibleAddUsers.value = false;
+};
+
+const handleCancelAddUser = () => {
     visibleAddUsers.value = false;
 };
 
@@ -175,9 +180,9 @@ const formState = reactive({
         type: null,
         start_time: null,
         end_time: null,
+        is_enrolling: '1'
     },
 });
-setInterval(() => console.log(formState.activity), 1000)
 const validateMessages = {
     required: '${label} 必填!',
     types: {
@@ -189,25 +194,21 @@ let lastFetchId = 0;
 const spinning = ref(false)
 const users_spinning = ref(false)
 
-const fetchUser = debounce(value => {
-    console.log('fetching user', value);
-    lastFetchId += 1;
-    const fetchId = lastFetchId;
-    state.data = [];
-    state.fetching = true;
-    fetch('https://randomuser.me/api/?results=5').then(response => response.json()).then(body => {
-        if (fetchId !== lastFetchId) {
-            // for fetch callback order
-            return;
-        }
-        const data = body.results.map(user => ({
-            label: `${user.name.first} ${user.name.last}`,
-            value: user.login.username,
+const users = ref([]);
+const fetchUser = value => {
+    api.post("/activity/search/users/" + current_activity_id.value, {
+        info: value
+    }).then(res => {
+        let {data} = res.data;
+        users.value = data.map(i => ({
+            label: `${i.uid} - ${i.name}`,
+            value: `${i.id}`,
         }));
-        state.data = data;
-        state.fetching = false;
+    }).catch(err => {
+        let {msg} = err.response.data;
+        message.error(msg);
     });
-}, 300);
+}
 
 const listActivities = () => {
     spinning.value = true;
@@ -267,11 +268,36 @@ const changeActivityInfo = () => {
     });
 }
 
+const changeActivityUser = () => {
+    users_spinning.value = true;
+    loading.value = true;
+    visibleAddUsers.value = false;
+     let formData = {
+         user_id: []
+     }
+    for (let item of state.value) {
+        formData.user_id.push(item.value)
+    }
+    api.patch("/activity/" + current_activity_id.value, formData).then((res) => {
+        let {msg, data} = res.data;
+        visibleInfo.value = false;
+        activityUsers.value = data.users
+        users_spinning.value = false
+        loading.value = false;
+        message.success(msg);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        users_spinning.value = false;
+        loading.value = false;
+        message.error(msg);
+    });
+}
+
 const removeUser = (user_id) => {
-    api.delete("/activity/enrollment/remove/" + current_activity_id + '/' + id).then((res) => {
+    api.delete("/activity/remove/" + current_activity_id.value + '/' + user_id).then((res) => {
         let {msg} = res.data;
         message.success(msg);
-        activityUsers.value = activityUsers.value.filter(user => user.id !== id);
+        activityUsers.value = activityUsers.value.filter(user => user.id !== user_id);
     }).catch((err) => {
         let {msg} = err.response.data;
         message.error(msg);
@@ -285,6 +311,46 @@ onMounted(() => {
 watch(state.value, () => {
     state.data = [];
     state.fetching = false;
+});
+
+const shouldRenderOpenEnrollButton = computed(() => {
+    // 获取当前活动的类型
+    const currentActivity = myData.value.find(
+        (activity) => activity.id === current_activity_id.value
+    );
+    return currentActivity.type !== "仅分配" && currentActivity.is_enrolling === '0';
+});
+
+const shouldRenderCloseEnrollButton = computed(() => {
+    // 获取当前活动的类型
+    const currentActivity = myData.value.find(
+        (activity) => activity.id === current_activity_id.value
+    );
+    return currentActivity.type !== "仅分配" && currentActivity.is_enrolling === '1'
+});
+
+const shouldDisableEnrollButton = computed(() => {
+    // 获取当前活动的类型
+    const currentActivity = myData.value.find(
+        (activity) => activity.id === current_activity_id.value
+    );
+    return currentActivity.type !== "仅分配" && currentActivity.status !== 'waiting'
+});
+
+const shouldRenderAddUserButton = computed(() => {
+    // 获取当前活动的类型
+    const currentActivity = myData.value.find(
+        (activity) => activity.id === current_activity_id.value
+    );
+    return currentActivity.type !== "仅自主报名";
+});
+
+const shouldRenderEnrollSelection = computed(() => {
+    // 获取当前活动的类型
+    const currentActivity = myData.value.find(
+        (activity) => activity.id === current_activity_id.value
+    );
+    return currentActivity.type !== "仅分配";
 });
 
 const showConfirm = (op, id) => {
@@ -322,6 +388,40 @@ const showConfirm = (op, id) => {
             }
         });
     }
+}
+
+const openEnroll = () => {
+    api.patch("/activity/" + current_activity_id.value, {
+        'is_enrolling': '1'
+    }).then(res => {
+        const currentActivityIndex = myData.value.findIndex(
+            (activity) => activity.id === current_activity_id.value
+        );
+        if (currentActivityIndex !== -1) {
+            myData.value[currentActivityIndex].is_enrolling = '1';
+        }
+        message.success("活动已开始报名")
+    }).catch(err => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    })
+}
+
+const closeEnroll = () => {
+    api.patch("/activity/" + current_activity_id.value, {
+        'is_enrolling': '0'
+    }).then(res => {
+        const currentActivityIndex = myData.value.findIndex(
+            (activity) => activity.id === current_activity_id.value
+        );
+        if (currentActivityIndex !== -1) {
+            myData.value[currentActivityIndex].is_enrolling = '0';
+        }
+        message.success("活动已停止报名")
+    }).catch(err => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    })
 }
 
 </script>
@@ -466,14 +566,6 @@ const showConfirm = (op, id) => {
                         <a-select-option value="ase">自主报名与指派</a-select-option>
                     </a-select>
                 </a-form-item>
-                <div v-if="formState.activity.type === 'assignment' || formState.activity.type === 'ase'">
-                    <a-form-item style="display: flex; align-items: center; justify-content: center;">
-                        <a-button type="dashed" block @click="editUser">
-                            <PlusOutlined/>
-                            Add user
-                        </a-button>
-                    </a-form-item>
-                </div>
                 <a-form-item has-feedback
                              :rules="[{ required: true, message: '请选择日期' }]"
                              v-model:value="formState.activity.start_time" :name="['activity', 'start_time']"
@@ -502,6 +594,19 @@ const showConfirm = (op, id) => {
 
                     />
                 </a-form-item>
+                <a-form-item
+                    :name="['activity', 'is_enrolling']"
+                    label="是否开启报名"
+                    has-feedback
+                    :rules="[{ required: true, message: '请选择是否开启报名' }]"
+                    v-if="shouldRenderEnrollSelection"
+                >
+                    <a-select v-model:value="formState.activity.is_enrolling"  placeholder="选择一个状态"
+                              value="1">
+                        <a-select-option value="1">开启</a-select-option>
+                        <a-select-option value="0">关闭</a-select-option>
+                    </a-select>
+                </a-form-item>
             </a-form>
             <template #footer>
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
@@ -512,11 +617,14 @@ const showConfirm = (op, id) => {
             <a-spin :spinning="users_spinning" tip="Loading...">
                 <a-card>
                     <div>
-                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" v-if="true"
-                                  @click="showAddUsers(1)">新增人员
+                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;"
+                                  v-if="shouldRenderAddUserButton" @click="showAddUsers(1)">新增人员
                         </a-button>
                         <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
-                                  v-if="true" danger>关闭报名
+                                  @click="closeEnroll" v-if="shouldRenderCloseEnrollButton" :disabled="shouldDisableEnrollButton" danger>关闭报名
+                        </a-button>
+                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
+                                  @click="openEnroll" v-if="shouldRenderOpenEnrollButton" :disabled="shouldDisableEnrollButton">打开报名
                         </a-button>
                     </div>
                 </a-card>
@@ -525,8 +633,8 @@ const showConfirm = (op, id) => {
                         <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                     </div>
                 </a-descriptions-item>
-                <a-card>
-                    <a-descriptions v-for="item in activityUsers"
+                <a-card v-for="item in activityUsers">
+                    <a-descriptions
                                     :title="item.uid + '-' + item.department + '-' + item.name"
                                     layout="vertical" style="padding-top: 6px;">
 
@@ -557,17 +665,21 @@ const showConfirm = (op, id) => {
                     v-model:value="state.value"
                     mode="multiple"
                     label-in-value
-                    placeholder="Select users"
+                    placeholder="搜索用户，输入*获取所有"
                     style="width: 100%"
                     :filter-option="false"
                     :not-found-content="state.fetching ? undefined : null"
-                    :options="state.data"
+                    :options="users"
                     @search="fetchUser"
             >
-                <template v-if="state.fetching" #notFoundContent>
-                    <a-spin size="small"/>
-                </template>
             </a-select>
+            <template v-if="state.fetching" #notFoundContent>
+                <a-spin size="small" />
+            </template>
+            <template #footer>
+                <a-button type="primary" @click="handleCancelAddUser">关闭</a-button>
+                <a-button type="primary" @click="changeActivityUser" html-type="submit" danger>变更</a-button>
+            </template>
         </a-modal>
     </a-layout-content>
 

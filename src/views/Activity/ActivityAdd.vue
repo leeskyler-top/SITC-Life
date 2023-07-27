@@ -41,7 +41,6 @@ const validateMessages = {
 const state = reactive({
     data: [],
     value: [],
-    fetching: false,
 });
 
 const checkInSwitcher = ref(false);
