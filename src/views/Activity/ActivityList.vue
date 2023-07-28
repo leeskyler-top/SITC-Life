@@ -60,7 +60,7 @@ const listRecuritingActivities = () => {
 
 const listApplyingActivities = () => {
     spinning.value = true;
-    api.get("/activity/list/applying").then((res) => {
+    api.get("/activity/list/application/applying").then((res) => {
         let {data} = res.data;
         data_applying.value = data;
         spinning.value = false;
@@ -86,7 +86,7 @@ const listAssignmentActivities = () => {
 
 const listRejectedActivities = () => {
     spinning.value = true;
-    api.get("/activity/list/rejected").then((res) => {
+    api.get("/activity/list/application/rejected").then((res) => {
         let {data} = res.data;
         data_rejected.value = data;
         spinning.value = false;
@@ -190,9 +190,8 @@ const countDown = () => {
                             <a-descriptions-item label="开始时间">{{ item.start_time }}</a-descriptions-item>
                             <a-descriptions-item label="结束时间">{{  item.end_time  }}</a-descriptions-item>
                             <a-descriptions-item label="面向人员类型">{{  item.type  }}</a-descriptions-item>
-                            <a-descriptions-item label="审批人学籍号">22100001</a-descriptions-item>
-                            <a-descriptions-item label="审批人姓名">Demo</a-descriptions-item>
-                            <a-descriptions-item label="同意时间">2023/05/14 14:45:00</a-descriptions-item>
+                            <a-descriptions-item label="负责人学籍号">{{  item.admin_uid  }}</a-descriptions-item>
+                            <a-descriptions-item label="负责人姓名">{{  item.admin_name  }}</a-descriptions-item>
                         </a-descriptions>
                         <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentAssignmentPage" simple pageSize="5"
                                       :total="data_assignment.length" v-if="data_assignment.length !== 0"/>
@@ -210,16 +209,16 @@ const countDown = () => {
 
                         <a-descriptions v-for="item in currentRecruitingPageData" title="活动公告"
                                         style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                            <a-descriptions-item label="地点">校内8#影视中心</a-descriptions-item>
-                            <a-descriptions-item label="需求">demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo</a-descriptions-item>
-                            <a-descriptions-item label="开始时间">2023/05/14 14:45:00</a-descriptions-item>
-                            <a-descriptions-item label="结束时间">2023/05/14 14:45:00</a-descriptions-item>
-                            <a-descriptions-item label="面向人员类型">面向全体和指派</a-descriptions-item>
+                            <a-descriptions-item label="地点">{{  item.place  }}</a-descriptions-item>
+                            <a-descriptions-item label="需求">{{ item.note }}</a-descriptions-item>
+                            <a-descriptions-item label="开始时间">{{ item.start_time }}</a-descriptions-item>
+                            <a-descriptions-item label="结束时间">{{  item.end_time  }}</a-descriptions-item>
+                            <a-descriptions-item label="面向人员类型">{{  item.type  }}</a-descriptions-item>
+                            <a-descriptions-item label="负责人学籍号">{{  item.admin_uid  }}</a-descriptions-item>
+                            <a-descriptions-item label="负责人姓名">{{  item.admin_name  }}</a-descriptions-item>
                             <a-descriptions-item label="操作">
                                 <a-row>
-                                    <a-col v-if="true">
-                                        <a-button type="primary" @click="enroll(item.id)">报名</a-button>
-                                    </a-col>
+                                    <a-button type="primary" @click="enroll(item.id)">报名</a-button>
                                 </a-row>
                             </a-descriptions-item>
 
@@ -240,12 +239,13 @@ const countDown = () => {
 
                         <a-descriptions v-for="item in currentApplyingPageData" title="活动公告"
                                         style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                            <a-descriptions-item label="地点">校内8#影视中心</a-descriptions-item>
-                            <a-descriptions-item label="需求">demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo</a-descriptions-item>
-                            <a-descriptions-item label="开始时间">2023/05/14 14:45:00</a-descriptions-item>
-                            <a-descriptions-item label="结束时间">2023/05/14 14:45:00</a-descriptions-item>
-                            <a-descriptions-item label="申请时间">2023/05/14 14:45:00</a-descriptions-item>
-                            <a-descriptions-item label="面向人员类型">面向全体和指派</a-descriptions-item>
+                            <a-descriptions-item label="地点">{{  item.place  }}</a-descriptions-item>
+                            <a-descriptions-item label="需求">{{ item.note }}</a-descriptions-item>
+                            <a-descriptions-item label="开始时间">{{ item.start_time }}</a-descriptions-item>
+                            <a-descriptions-item label="结束时间">{{  item.end_time  }}</a-descriptions-item>
+                            <a-descriptions-item label="面向人员类型">{{  item.type  }}</a-descriptions-item>
+                            <a-descriptions-item label="负责人学籍号">{{  item.admin_uid  }}</a-descriptions-item>
+                            <a-descriptions-item label="负责人姓名">{{  item.admin_name  }}</a-descriptions-item>
                         </a-descriptions>
                         <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentApplyingPage" simple pageSize="5"
                                       :total="data_applying.length" v-if="data_applying.length !== 0"/>
@@ -298,11 +298,13 @@ const countDown = () => {
 
                         <a-descriptions v-for="item in currentEndedPageData" title="活动公告"
                                         style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                            <a-descriptions-item label="地点">校内8#影视中心</a-descriptions-item>
-                            <a-descriptions-item label="需求">demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo</a-descriptions-item>
-                            <a-descriptions-item label="开始时间">2023/05/14 14:45:00</a-descriptions-item>
-                            <a-descriptions-item label="结束时间">2023/05/14 14:45:00</a-descriptions-item>
-                            <a-descriptions-item label="面向人员类型">面向全体和指派</a-descriptions-item>
+                            <a-descriptions-item label="地点">{{  item.place  }}</a-descriptions-item>
+                            <a-descriptions-item label="需求">{{ item.note }}</a-descriptions-item>
+                            <a-descriptions-item label="开始时间">{{ item.start_time }}</a-descriptions-item>
+                            <a-descriptions-item label="结束时间">{{  item.end_time  }}</a-descriptions-item>
+                            <a-descriptions-item label="面向人员类型">{{  item.type  }}</a-descriptions-item>
+                            <a-descriptions-item label="负责人学籍号">{{  item.admin_uid  }}</a-descriptions-item>
+                            <a-descriptions-item label="负责人姓名">{{  item.admin_name  }}</a-descriptions-item>
                         </a-descriptions>
                         <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentEndedPage" simple pageSize="5"
                                       :total="data_ended.length" v-if="data_ended.length !== 0"/>
