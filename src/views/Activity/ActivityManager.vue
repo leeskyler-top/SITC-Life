@@ -326,7 +326,7 @@ const shouldRenderCloseEnrollButton = computed(() => {
     const currentActivity = myData.value.find(
         (activity) => activity.id === current_activity_id.value
     );
-    return currentActivity.type !== "仅分配" && currentActivity.is_enrolling === '1'
+    return currentActivity.type !== "仅分配" && currentActivity.is_enrolling === '1';
 });
 
 const shouldDisableEnrollButton = computed(() => {
@@ -334,7 +334,7 @@ const shouldDisableEnrollButton = computed(() => {
     const currentActivity = myData.value.find(
         (activity) => activity.id === current_activity_id.value
     );
-    return currentActivity.type !== "仅分配" && currentActivity.status !== 'waiting'
+    return currentActivity.type !== "仅分配" || currentActivity.status !== 'waiting';
 });
 
 const shouldRenderAddUserButton = computed(() => {
@@ -350,7 +350,7 @@ const shouldRenderEnrollSelection = computed(() => {
     const currentActivity = myData.value.find(
         (activity) => activity.id === current_activity_id.value
     );
-    return currentActivity.type !== "仅分配";
+    return currentActivity.type === "仅分配" || currentActivity.status !== 'waiting';
 });
 
 const showConfirm = (op, id) => {
@@ -575,9 +575,6 @@ const closeEnroll = () => {
                             show-time
                             format="YYYY-MM-DD HH:mm:ss"
                             value-format="YYYY-MM-DD HH:mm:ss"
-                            placeholder="不得早于当前时间"
-                            :disabled-date="disabledDate"
-
                     />
                 </a-form-item>
                 <a-form-item has-feedback
@@ -590,7 +587,6 @@ const closeEnroll = () => {
                             format="YYYY-MM-DD HH:mm:ss"
                             value-format="YYYY-MM-DD HH:mm:ss"
                             placeholder="不得早于当前时间"
-                            :disabled-date="disabledDate"
 
                     />
                 </a-form-item>
@@ -599,10 +595,11 @@ const closeEnroll = () => {
                     label="是否开启报名"
                     has-feedback
                     :rules="[{ required: true, message: '请选择是否开启报名' }]"
-                    v-if="shouldRenderEnrollSelection"
                 >
                     <a-select v-model:value="formState.activity.is_enrolling"  placeholder="选择一个状态"
-                              value="1">
+                              value="1"
+                              :disabled="shouldRenderEnrollSelection"
+                    >
                         <a-select-option value="1">开启</a-select-option>
                         <a-select-option value="0">关闭</a-select-option>
                     </a-select>
