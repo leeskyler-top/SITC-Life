@@ -1,8 +1,9 @@
 <script setup>
-import {reactive, ref, onMounted, createVNode} from 'vue';
+import {reactive, ref, onMounted, createVNode, computed} from 'vue';
 import {cloneDeep} from 'lodash-es';
 import {ExclamationCircleOutlined, SearchOutlined} from '@ant-design/icons-vue';
-import {Modal} from "ant-design-vue";
+import {Empty, message, Modal} from "ant-design-vue";
+import api from "@/api";
 
 const isShow = ref(true);
 function handleResize (event) {
@@ -16,25 +17,54 @@ function handleResize (event) {
 
 onMounted(() => {
     handleResize();
+    listEnrollmentByActivity();
 });
+
+const activeKey = ref('activity');
+
+const spinning = ref(false)
+
+const handleTabChange = (key) => {
+    // 根据切换的标签 key 执行相应的操作，节流，节省请求次数。
+    if (key === 'activity') {
+        listAssignmentActivities();
+    } else if (key === 'type') {
+        listApplyingActivities()
+    } else if (key === 'applying') {
+        listEndedActivities();
+    } else if (key === 'rejected') {
+        listRejectedActivities();
+    }
+};
 
 window.addEventListener('resize', handleResize);
 
 
-const data = [];
-for (let i = 0; i < 5; i++) {
-    data.push({
-        id: i,
-        title: `demo demo`,
-        notes: "三名摄影，一名摄像，多准备CF卡",
-        type: "自主报名",
-        place: "8#影视中心",
-        start_datetime: "2023-05-31 11:11:30",
-        end_datetime: "2023-05-31 11:11:30",
+const activityData = ref([]);
+const currentActivity = ref();
+const current_activity_id = ref();
+const listEnrollmentByActivity = () => {
+    spinning.value = true;
+    api.get("/activity/enrollment/list").then((res) => {
+        let {data} = res.data;
+        spinning.value = false;
+        data = data.map(item => {
+            if (item.type === 'self-enrollment') {
+                item.type = '仅自主报名';
+            } else if (item.type === 'assignment') {
+                item.type = '仅分配';
+            } else if (item.type === 'ase') {
+                item.type = '自主报名或分配';
+            }
+            return item;
+        })
+        activityData.value = data;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        spinning.value = false;
+        message.error(msg);
     });
 }
-
-const dataSource = ref(data);
 const editableData = reactive({});
 const state = reactive({
     searchText: '',
@@ -47,10 +77,26 @@ const columns = [
     {
         title: '活动标题',
         dataIndex: 'title',
-        width: '30%',
+        width: '25%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
             record.uid.toString().toLowerCase().includes(value.toLowerCase()),
+    },
+    {
+        title: '负责人学籍号',
+        dataIndex: 'admin_uid',
+        width: '10%',
+        customFilterDropdown: true,
+        onFilter: (value, record) =>
+            record.admin_name.toString().toLowerCase().includes(value.toLowerCase()),
+    },
+    {
+        title: '负责人姓名',
+        dataIndex: 'admin_name',
+        width: '10%',
+        customFilterDropdown: true,
+        onFilter: (value, record) =>
+            record.admin_name.toString().toLowerCase().includes(value.toLowerCase()),
     },
     {
         title: '类型',
@@ -70,7 +116,7 @@ const columns = [
     },
     {
         title: '开始时间',
-        dataIndex: 'start_datetime',
+        dataIndex: 'start_time',
         width: '12%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
@@ -78,7 +124,7 @@ const columns = [
     },
     {
         title: '结束时间',
-        dataIndex: 'end_datetime',
+        dataIndex: 'end_time',
         width: '12%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
@@ -99,16 +145,6 @@ const handleSearch = (selectedKeys, confirm, dataIndex) => {
 const handleReset = clearFilters => {
     clearFilters({ confirm: true });
     state.searchText = '';
-};
-const deleteActivity = id => {
-    alert(id);
-};
-const save = key => {
-    Object.assign(dataSource.value.filter(item => key === item.key)[0], editableData[key]);
-    delete editableData[key];
-};
-const cancel = key => {
-    delete editableData[key];
 };
 
 const visible = ref(false);
@@ -140,6 +176,8 @@ const showConfirm = (op) => {
 
 const showModal = id => {
     visible.value = true;
+    current_activity_id.value = id;
+    currentActivity.value = activityData.value.find(item => item.id === id);
 };
 const handleCancel = () => {
     visible.value = false;
@@ -163,92 +201,222 @@ const countDown = () => {
     }, secondsToGo * 1000);
 };
 
+// const openEnroll = () => {
+//     api.patch("/activity/" + current_activity_id.value, {
+//         'is_enrolling': '1'
+//     }).then(res => {
+//         const currentActivityIndex = myData.value.findIndex(
+//             (activity) => activity.id === current_activity_id.value
+//         );
+//         if (currentActivityIndex !== -1) {
+//             myData.value[currentActivityIndex].is_enrolling = '1';
+//         }
+//         message.success("活动已开始报名")
+//     }).catch(err => {
+//         let {msg} = err.response.data;
+//         message.error(msg);
+//     })
+// }
+//
+// const closeEnroll = () => {
+//     api.patch("/activity/" + current_activity_id.value, {
+//         'is_enrolling': '0'
+//     }).then(res => {
+//         const currentActivityIndex = myData.value.findIndex(
+//             (activity) => activity.id === current_activity_id.value
+//         );
+//         if (currentActivityIndex !== -1) {
+//             myData.value[currentActivityIndex].is_enrolling = '0';
+//         }
+//         message.success("活动已停止报名")
+//     }).catch(err => {
+//         let {msg} = err.response.data;
+//         message.error(msg);
+//     })
+// }
+
+const shouldRenderOpenEnrollButton = computed(() => {
+    // 获取当前活动的类型
+    const currentActivity = activityData.value.find(
+        (activity) => activity.id === current_activity_id.value
+    );
+    return currentActivity.type !== "仅分配" && currentActivity.is_enrolling === '0';
+});
+
+const shouldRenderCloseEnrollButton = computed(() => {
+    // 获取当前活动的类型
+    const currentActivity = activityData.value.find(
+        (activity) => activity.id === current_activity_id.value
+    );
+    return currentActivity.type !== "仅分配" && currentActivity.is_enrolling === '1';
+});
+
+
 </script>
 <template>
     <a-layout-content
             :style="{margin: '16px'}"
     >
         <h2>审核列表</h2>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow" >
-            <a-row justify="end">
-                <router-link to="/activity/add">
-                    <a-button type="primary" style="margin: 8px; " ghost>添加活动</a-button>
-                </router-link>
-            </a-row>
-            <a-table :columns="columns" :data-source="dataSource" bordered>
-                <template
-                        #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
-                >
-                    <div style="padding: 8px">
-                        <a-input
-                                ref="searchInput"
-                                :placeholder="`Search ${column.dataIndex}`"
-                                :value="selectedKeys[0]"
-                                style="width: 188px; margin-bottom: 8px; display: block"
-                                @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
-                                @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
-                        />
-                        <a-button
-                                type="primary"
-                                size="small"
-                                style="width: 90px; margin-right: 8px"
-                                @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
-                        >
-                            <template #icon><search-outlined /></template>
-                            Search
-                        </a-button>
-                        <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
-                            Reset
-                        </a-button>
-                    </div>
-                </template>
-                <template #bodyCell="{ column, text, record }">
-                    <template v-if="['title', 'type', 'place', 'start_datetime', 'end_datetime'].includes(column.dataIndex)">
-                        <div>
-                            <a-input
-                                    v-if="editableData[record.key]"
-                                    v-model:value="editableData[record.key][column.dataIndex]"
-                                    style="margin: -5px 0"
-                            />
-                            <template v-else>
-                                {{ text }}
+        <div style="padding: 8px;" v-if="isShow" >
+            <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
+                <a-tab-pane key="activity" tab="按活动分组">
+                    <a-spin :spinning="spinning" tip="Loading...">
+                        <a-table style="background-color: #FFFFFF;" :columns="columns" :data-source="activityData" bordered>
+                            <template
+                                #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
+                            >
+                                <div style="padding: 8px">
+                                    <a-input
+                                        ref="searchInput"
+                                        :placeholder="`Search ${column.dataIndex}`"
+                                        :value="selectedKeys[0]"
+                                        style="width: 188px; margin-bottom: 8px; display: block"
+                                        @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
+                                        @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
+                                    />
+                                    <a-button
+                                        type="primary"
+                                        size="small"
+                                        style="width: 90px; margin-right: 8px"
+                                        @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
+                                    >
+                                        <template #icon><search-outlined /></template>
+                                        Search
+                                    </a-button>
+                                    <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
+                                        Reset
+                                    </a-button>
+                                </div>
                             </template>
-                        </div>
-                    </template>
-                    <template v-else-if="column.dataIndex === 'operation'">
-                        <div class="editable-row-operations">
+                            <template #bodyCell="{ column, text, record }">
+                                <template v-if="['title', 'type', 'place', 'start_datetime', 'end_datetime'].includes(column.dataIndex)">
+                                    <div>
+                                        <a-input
+                                            v-if="editableData[record.key]"
+                                            v-model:value="editableData[record.key][column.dataIndex]"
+                                            style="margin: -5px 0"
+                                        />
+                                        <template v-else>
+                                            {{ text }}
+                                        </template>
+                                    </div>
+                                </template>
+                                <template v-else-if="column.dataIndex === 'operation'">
+                                    <div class="editable-row-operations">
                         <span>
                           <a @click="showModal(record.id)">详情</a>
                         </span>
-                        </div>
-                    </template>
-                </template>
-            </a-table>
+                                    </div>
+                                </template>
+                            </template>
+                        </a-table>
+                    </a-spin>
+                </a-tab-pane>
+                <a-tab-pane key="type" tab="按类型分组">
+                    <a-spin :spinning="spinning" tip="Loading...">
+                        <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
+                            <a-tab-pane key="applying" tab="待审核">
+                                <a-spin :spinning="spinning" tip="Loading...">
+                                    <a-descriptions-item v-if="data_applying.length === 0">
+                                        <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                            <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                                        </div>
+                                    </a-descriptions-item>
+                                    <a-space direction="vertical" :size="5" style="height: 100%">
+
+                                        <a-descriptions v-for="item in currentApplyingPageData" title="活动公告"
+                                                        style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+                                            <a-descriptions-item label="地点">{{  item.activity.place  }}</a-descriptions-item>
+                                            <a-descriptions-item label="需求">{{ item.activity.note }}</a-descriptions-item>
+                                            <a-descriptions-item label="开始时间">{{ item.activity.start_time }}</a-descriptions-item>
+                                            <a-descriptions-item label="结束时间">{{  item.activity.end_time  }}</a-descriptions-item>
+                                            <a-descriptions-item label="面向人员类型">{{  item.activity.type  }}</a-descriptions-item>
+                                            <a-descriptions-item label="负责人学籍号">{{  item.admin_uid  }}</a-descriptions-item>
+                                            <a-descriptions-item label="负责人姓名">{{  item.admin_name  }}</a-descriptions-item>
+                                        </a-descriptions>
+                                        <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentApplyingPage" simple pageSize="5"
+                                                      :total="data_applying.length" v-if="data_applying.length !== 0"/>
+
+                                    </a-space>
+                                </a-spin>
+                            </a-tab-pane>
+                            <a-tab-pane key="rejected" tab="曾驳回">
+                                <a-spin :spinning="spinning" tip="Loading...">
+                                    <a-descriptions-item v-if="data_rejected.length === 0">
+                                        <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                            <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                                        </div>
+                                    </a-descriptions-item>
+                                    <a-space direction="vertical" :size="5" style="height: 100%">
+
+                                        <a-descriptions v-for="item in currentRejectedPageData" title="活动公告"
+                                                        style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+                                            <a-descriptions-item label="地点">校内8#影视中心</a-descriptions-item>
+                                            <a-descriptions-item label="需求">demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo</a-descriptions-item>
+                                            <a-descriptions-item label="开始时间">2023/05/14 14:45:00</a-descriptions-item>
+                                            <a-descriptions-item label="结束时间">2023/05/14 14:45:00</a-descriptions-item>
+                                            <a-descriptions-item label="申请时间">2023/05/14 14:45:00</a-descriptions-item>
+                                            <a-descriptions-item label="面向人员类型">面向全体和指派</a-descriptions-item>
+                                            <a-descriptions-item label="审批人学籍号">22100001</a-descriptions-item>
+                                            <a-descriptions-item label="审批人姓名">Demo</a-descriptions-item>
+                                            <a-descriptions-item label="驳回时间">2023/05/14 14:45:00</a-descriptions-item>
+                                            <a-descriptions-item label="操作">
+                                                <a-row>
+                                                    <a-col v-if="true">
+                                                        <a-button type="primary" @click="enroll(item.id)">再次报名</a-button>
+                                                    </a-col>
+                                                </a-row>
+                                            </a-descriptions-item>
+
+                                        </a-descriptions>
+                                        <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentRejectedPage" simple pageSize="5"
+                                                      :total="data_rejected.length" v-if="data_rejected.length !== 0"/>
+                                    </a-space>
+                                </a-spin>
+                            </a-tab-pane>
+                        </a-tabs>
+                    </a-spin>
+
+                </a-tab-pane>
+            </a-tabs>
+
         </div>
         <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false" >
             管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
         </div>
         <a-modal v-model:visible="visible" title="报名管理">
+            <a-card>
+                <div>
+                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
+                              @click="closeEnroll" v-if="shouldRenderCloseEnrollButton" danger>关闭报名
+                    </a-button>
+                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
+                              @click="openEnroll" v-if="shouldRenderOpenEnrollButton">打开报名
+                    </a-button>
+                </div>
+            </a-card>
+            <a-descriptions-item v-if="currentActivity.activity_audits.length === 0">
+                <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                </div>
+            </a-descriptions-item>
+            <a-card v-for="item in currentActivity.activity_audits">
+                <a-descriptions
+                    :title="item.uid + '-' + item.department + '-' + item.name"
+                    layout="vertical" style="padding-top: 6px;">
+
+                    <a-descriptions-item label="报名（指派）时间">2023-06-03 21:09</a-descriptions-item>
+                    <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
+                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
+                                  @click="showConfirm('deleteUser', item.id)">移除并通知
+                        </a-button>
+                    </a-descriptions-item>
+                </a-descriptions>
+            </a-card>
             <template #footer>
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
             </template>
-            <a-card>
-                <p>活动开始时间: 2023-06-02 21:42</p>
-                <div>
-                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger v-if="true" >关闭报名</a-button>
-                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" v-if="false">打开报名</a-button>
-                </div>
-            </a-card>
-            <a-descriptions v-for="item in data" title="学籍号 系部 姓名"
-                            layout="vertical" style="margin-top: 4px;">
-
-                <a-descriptions-item label="报名时间">2023-06-03 21:09</a-descriptions-item>
-                <a-descriptions-item label="报名状态">待审核</a-descriptions-item>
-                <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
-                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showConfirm('refuse')" danger>驳回</a-button>
-                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 5px;" @click="showConfirm('agree')">同意</a-button>
-                </a-descriptions-item>
-            </a-descriptions>
         </a-modal>
     </a-layout-content>
 

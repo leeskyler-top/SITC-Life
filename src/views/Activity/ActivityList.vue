@@ -142,28 +142,37 @@ const enroll = id => {
         okText: '确认',
         cancelText: '取消',
         onOk() {
-            countDown();
+            countDown(id);
         }
     });
 
 }
 
-const countDown = () => {
-    let secondsToGo = 5;
-    const modal = Modal.success({
-        title: '报名成功',
-        content: `提示框将在 ${secondsToGo}s 后关闭`,
-    });
-    const interval = setInterval(() => {
-        secondsToGo -= 1;
-        modal.update({
+const loading = ref(false)
+const countDown = (id) => {
+    loading.value = true;
+    api.get("/activity/enroll/" + id).then((res) => {
+        loading.value = false;
+        data_recruiting.value = data_recruiting.value.filter(activity => activity.id !== id);
+        let secondsToGo = 5;
+        const modal = Modal.success({
+            title: '报名成功',
             content: `提示框将在 ${secondsToGo}s 后关闭`,
         });
-    }, 1000);
-    setTimeout(() => {
-        clearInterval(interval);
-        modal.destroy();
-    }, secondsToGo * 1000);
+        const interval = setInterval(() => {
+            secondsToGo -= 1;
+            modal.update({
+                content: `提示框将在 ${secondsToGo}s 后关闭`,
+            });
+        }, 1000);
+        setTimeout(() => {
+            clearInterval(interval);
+            modal.destroy();
+        }, secondsToGo * 1000);
+    }).catch(err => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
 };
 
 </script>
@@ -239,11 +248,11 @@ const countDown = () => {
 
                         <a-descriptions v-for="item in currentApplyingPageData" title="活动公告"
                                         style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                            <a-descriptions-item label="地点">{{  item.place  }}</a-descriptions-item>
-                            <a-descriptions-item label="需求">{{ item.note }}</a-descriptions-item>
-                            <a-descriptions-item label="开始时间">{{ item.start_time }}</a-descriptions-item>
-                            <a-descriptions-item label="结束时间">{{  item.end_time  }}</a-descriptions-item>
-                            <a-descriptions-item label="面向人员类型">{{  item.type  }}</a-descriptions-item>
+                            <a-descriptions-item label="地点">{{  item.activity.place  }}</a-descriptions-item>
+                            <a-descriptions-item label="需求">{{ item.activity.note }}</a-descriptions-item>
+                            <a-descriptions-item label="开始时间">{{ item.activity.start_time }}</a-descriptions-item>
+                            <a-descriptions-item label="结束时间">{{  item.activity.end_time  }}</a-descriptions-item>
+                            <a-descriptions-item label="面向人员类型">{{  item.activity.type  }}</a-descriptions-item>
                             <a-descriptions-item label="负责人学籍号">{{  item.admin_uid  }}</a-descriptions-item>
                             <a-descriptions-item label="负责人姓名">{{  item.admin_name  }}</a-descriptions-item>
                         </a-descriptions>
