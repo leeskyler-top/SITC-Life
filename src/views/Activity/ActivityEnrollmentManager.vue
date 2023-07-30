@@ -201,39 +201,45 @@ const countDown = () => {
     }, secondsToGo * 1000);
 };
 
-// const openEnroll = () => {
-//     api.patch("/activity/" + current_activity_id.value, {
-//         'is_enrolling': '1'
-//     }).then(res => {
-//         const currentActivityIndex = myData.value.findIndex(
-//             (activity) => activity.id === current_activity_id.value
-//         );
-//         if (currentActivityIndex !== -1) {
-//             myData.value[currentActivityIndex].is_enrolling = '1';
-//         }
-//         message.success("活动已开始报名")
-//     }).catch(err => {
-//         let {msg} = err.response.data;
-//         message.error(msg);
-//     })
-// }
-//
-// const closeEnroll = () => {
-//     api.patch("/activity/" + current_activity_id.value, {
-//         'is_enrolling': '0'
-//     }).then(res => {
-//         const currentActivityIndex = myData.value.findIndex(
-//             (activity) => activity.id === current_activity_id.value
-//         );
-//         if (currentActivityIndex !== -1) {
-//             myData.value[currentActivityIndex].is_enrolling = '0';
-//         }
-//         message.success("活动已停止报名")
-//     }).catch(err => {
-//         let {msg} = err.response.data;
-//         message.error(msg);
-//     })
-// }
+const loading = ref(false);
+const openEnroll = () => {
+    loading.value = true;
+    api.patch("/activity/" + current_activity_id.value, {
+        'is_enrolling': '1'
+    }).then(res => {
+        loading.value = false;
+        const currentActivityIndex = activityData.value.findIndex(
+            (activity) => activity.id === current_activity_id.value
+        );
+        if (currentActivityIndex !== -1) {
+            activityData.value[currentActivityIndex].is_enrolling = '1';
+        }
+        message.success("活动已开始报名")
+    }).catch(err => {
+        let {msg} = err.response.data;
+        loading.value = false;
+        message.error(msg);
+    })
+}
+const closeEnroll = () => {
+    loading.value = true;
+    api.patch("/activity/" + current_activity_id.value, {
+        'is_enrolling': '0'
+    }).then(res => {
+        loading.value = false;
+        const currentActivityIndex = activityData.value.findIndex(
+            (activity) => activity.id === current_activity_id.value
+        );
+        if (currentActivityIndex !== -1) {
+            activityData.value[currentActivityIndex].is_enrolling = '0';
+        }
+        message.success("活动已停止报名")
+    }).catch(err => {
+        let {msg} = err.response.data;
+        loading.value = false;
+        message.error(msg);
+    })
+}
 
 const shouldRenderOpenEnrollButton = computed(() => {
     // 获取当前活动的类型
@@ -389,10 +395,10 @@ const shouldRenderCloseEnrollButton = computed(() => {
             <a-card>
                 <div>
                     <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
-                              @click="closeEnroll" v-if="shouldRenderCloseEnrollButton" danger>关闭报名
+                              @click="closeEnroll" :loading="loading" v-if="shouldRenderCloseEnrollButton" danger>关闭报名
                     </a-button>
                     <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
-                              @click="openEnroll" v-if="shouldRenderOpenEnrollButton">打开报名
+                              @click="openEnroll" :loading="loading" v-if="shouldRenderOpenEnrollButton">打开报名
                     </a-button>
                 </div>
             </a-card>

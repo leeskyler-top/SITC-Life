@@ -334,7 +334,7 @@ const shouldDisableEnrollButton = computed(() => {
     const currentActivity = myData.value.find(
         (activity) => activity.id === current_activity_id.value
     );
-    return currentActivity.type !== "仅分配" || currentActivity.status !== 'waiting';
+    return currentActivity.type === "仅分配" || currentActivity.status !== 'waiting';
 });
 
 const shouldRenderAddUserButton = computed(() => {
@@ -389,11 +389,12 @@ const showConfirm = (op, id) => {
         });
     }
 }
-
 const openEnroll = () => {
+    loading.value = true;
     api.patch("/activity/" + current_activity_id.value, {
         'is_enrolling': '1'
     }).then(res => {
+        loading.value = false;
         const currentActivityIndex = myData.value.findIndex(
             (activity) => activity.id === current_activity_id.value
         );
@@ -402,15 +403,18 @@ const openEnroll = () => {
         }
         message.success("活动已开始报名")
     }).catch(err => {
+        loading.value = false;
         let {msg} = err.response.data;
         message.error(msg);
     })
 }
 
 const closeEnroll = () => {
+    loading.value = true;
     api.patch("/activity/" + current_activity_id.value, {
         'is_enrolling': '0'
     }).then(res => {
+        loading.value = false;
         const currentActivityIndex = myData.value.findIndex(
             (activity) => activity.id === current_activity_id.value
         );
@@ -419,6 +423,7 @@ const closeEnroll = () => {
         }
         message.success("活动已停止报名")
     }).catch(err => {
+        loading.value = false;
         let {msg} = err.response.data;
         message.error(msg);
     })
@@ -607,7 +612,7 @@ const closeEnroll = () => {
             </a-form>
             <template #footer>
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
-                <a-button type="primary" @click="changeActivityInfo" html-type="submit" danger>变更</a-button>
+                <a-button type="primary" @click="changeActivityInfo" :loading="loading" html-type="submit" danger>变更</a-button>
             </template>
         </a-modal>
         <a-modal v-model:visible="visiblePeople" title="活动人员">
@@ -618,10 +623,10 @@ const closeEnroll = () => {
                                   v-if="shouldRenderAddUserButton" @click="showAddUsers(1)">新增人员
                         </a-button>
                         <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
-                                  @click="closeEnroll" v-if="shouldRenderCloseEnrollButton" :disabled="shouldDisableEnrollButton" danger>关闭报名
+                                  @click="closeEnroll" v-if="shouldRenderCloseEnrollButton" :loading="loading" :disabled="shouldDisableEnrollButton" danger>关闭报名
                         </a-button>
                         <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
-                                  @click="openEnroll" v-if="shouldRenderOpenEnrollButton" :disabled="shouldDisableEnrollButton">打开报名
+                                  @click="openEnroll" v-if="shouldRenderOpenEnrollButton" :loading="loading" :disabled="shouldDisableEnrollButton">打开报名
                         </a-button>
                     </div>
                 </a-card>
