@@ -643,7 +643,7 @@ const closeEnroll = () => {
                         <a-descriptions-item label="报名（指派）时间">2023-06-03 21:09</a-descriptions-item>
                         <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
                             <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
-                                      @click="showConfirm('deleteUser', item.id)">移除并通知
+                                      :loading="loading" @click="showConfirm('deleteUser', item.id)">移除并通知
                             </a-button>
                         </a-descriptions-item>
                     </a-descriptions>

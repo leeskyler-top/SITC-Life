@@ -21,6 +21,7 @@ onMounted(() => {
 });
 
 const activeKey = ref('activity');
+const activeKey2 = ref('activity_applying');
 
 const spinning = ref(false)
 
@@ -42,6 +43,8 @@ window.addEventListener('resize', handleResize);
 
 const activityData = ref([]);
 const currentActivity = ref();
+const currentApplicationData = ref([]);
+const currentRejectedData = ref([]);
 const current_activity_id = ref();
 const listEnrollmentByActivity = () => {
     spinning.value = true;
@@ -148,7 +151,7 @@ const handleReset = clearFilters => {
 };
 
 const visible = ref(false);
-const showConfirm = (op) => {
+const showConfirm = (op, id) => {
     if (op === "agree") {
         Modal.confirm({
             title: '确认操作',
@@ -157,7 +160,7 @@ const showConfirm = (op) => {
             okText: '确认',
             cancelText: '取消',
             onOk() {
-
+                agreeApplication(id);
             }
         });
     } else if (op === "refuse") {
@@ -168,16 +171,41 @@ const showConfirm = (op) => {
             okText: '确认',
             cancelText: '取消',
             onOk() {
-
+                rejectApplication(id);
             }
         });
     }
 }
 
+
+const agreeApplication = (id) => {
+    let {msg} = res.data;
+    api.get("/activity/enrollment/agree/" + id).then(res => {
+        currentApplicationData.value = currentApplicationData.value.filter(item => item.id !== id);
+        message.success(msg);
+    }).catch(err => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    })
+}
+
+const rejectApplication = (id) => {
+    api.get("/activity/enrollment/reject/" + id).then(res => {
+        let {msg} = res.data;
+        currentRejectedData.value.push(currentApplicationData.value.find(item => item.id === id));
+        currentApplicationData.value = currentApplicationData.value.filter(item => item.id !== id);
+        message.success(msg);
+    }).catch(err => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    })
+}
 const showModal = id => {
     visible.value = true;
     current_activity_id.value = id;
     currentActivity.value = activityData.value.find(item => item.id === id);
+    currentApplicationData.value = currentActivity.value.activity_audits.filter(item => item.status === 'applying');
+    currentRejectedData.value = currentActivity.value.activity_audits.filter(item => item.status === 'rejected');
 };
 const handleCancel = () => {
     visible.value = false;
@@ -402,24 +430,48 @@ const shouldRenderCloseEnrollButton = computed(() => {
                     </a-button>
                 </div>
             </a-card>
-            <a-descriptions-item v-if="currentActivity.activity_audits.length === 0">
-                <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
-                </div>
-            </a-descriptions-item>
-            <a-card v-for="item in currentActivity.activity_audits">
-                <a-descriptions
-                    :title="item.uid + '-' + item.department + '-' + item.name"
-                    layout="vertical" style="padding-top: 6px;">
-
-                    <a-descriptions-item label="报名（指派）时间">2023-06-03 21:09</a-descriptions-item>
-                    <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
-                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
-                                  @click="showConfirm('deleteUser', item.id)">移除并通知
-                        </a-button>
+            <a-tabs v-model:activeKey="activeKey2" @update:activeKey="handleTabChange">
+                <a-tab-pane key="activity_applying" tab="申请中">
+                    <a-descriptions-item v-if="currentApplicationData.length === 0">
+                        <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                        </div>
                     </a-descriptions-item>
-                </a-descriptions>
-            </a-card>
+                    <a-card v-for="item in currentApplicationData">
+                        <a-descriptions
+                            :title="item.uid + '-' + item.department + '-' + item.name"
+                            layout="vertical" style="padding-top: 6px;">
+
+                            <a-descriptions-item label="报名时间">{{  item.created_at  }}</a-descriptions-item>
+                            <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
+                                <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;"
+                                          @click="showConfirm('agree', item.id)">同意
+                                </a-button>
+                                <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;" danger
+                                          @click="showConfirm('refuse', item.id)">拒绝
+                                </a-button>
+                            </a-descriptions-item>
+                        </a-descriptions>
+                    </a-card>
+                </a-tab-pane>
+
+                <a-tab-pane key="activity_rejected" tab="已拒绝">
+                    <a-descriptions-item v-if="currentRejectedData.length === 0">
+                        <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                        </div>
+                    </a-descriptions-item>
+                    <a-card v-for="item in currentRejectedData">
+                        <a-descriptions
+                            :title="item.uid + '-' + item.department + '-' + item.name"
+                            layout="vertical" style="padding-top: 6px;">
+
+                            <a-descriptions-item label="报名时间">{{ item.created_at }}</a-descriptions-item>
+                        </a-descriptions>
+                    </a-card>
+                </a-tab-pane>
+            </a-tabs>
+
             <template #footer>
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
             </template>
