@@ -49,6 +49,16 @@ const listRecuritingActivities = () => {
     spinning.value = true;
     api.get("/activity/list/recruiting").then((res) => {
         let {data} = res.data;
+        data = data.map(item => {
+            if (item.type === 'self-enrollment') {
+                item.type = '仅自主报名';
+            } else if (item.type === 'assignment') {
+                item.type = '仅分配';
+            } else if (item.type === 'ase') {
+                item.type = '自主报名或分配';
+            }
+            return item;
+        })
         data_recruiting.value = data;
         spinning.value = false;
     }).catch((err) => {
@@ -62,6 +72,16 @@ const listApplyingActivities = () => {
     spinning.value = true;
     api.get("/activity/list/application/applying").then((res) => {
         let {data} = res.data;
+        data = data.map(item => {
+            if (item.activity.type === 'self-enrollment') {
+                item.activity.type = '仅自主报名';
+            } else if (item.activity.type === 'assignment') {
+                item.activity.type = '仅分配';
+            } else if (item.activity.type === 'ase') {
+                item.activity.type = '自主报名或分配';
+            }
+            return item;
+        })
         data_applying.value = data;
         spinning.value = false;
     }).catch((err) => {
@@ -75,6 +95,16 @@ const listAssignmentActivities = () => {
     spinning.value = true;
     api.get("/activity/list/assignment").then((res) => {
         let {data} = res.data;
+        data = data.map(item => {
+            if (item.type === 'self-enrollment') {
+                item.type = '仅自主报名';
+            } else if (item.type === 'assignment') {
+                item.type = '仅分配';
+            } else if (item.type === 'ase') {
+                item.type = '自主报名或分配';
+            }
+            return item;
+        })
         data_assignment.value = data;
         spinning.value = false;
     }).catch((err) => {
@@ -88,6 +118,16 @@ const listRejectedActivities = () => {
     spinning.value = true;
     api.get("/activity/list/application/rejected").then((res) => {
         let {data} = res.data;
+        data = data.map(item => {
+            if (item.activity.type === 'self-enrollment') {
+                item.activity.type = '仅自主报名';
+            } else if (item.activity.type === 'assignment') {
+                item.type = '仅分配';
+            } else if (item.activity.type === 'ase') {
+                item.activity.type = '自主报名或分配';
+            }
+            return item;
+        })
         data_rejected.value = data;
         spinning.value = false;
     }).catch((err) => {
@@ -101,6 +141,16 @@ const listEndedActivities = () => {
     spinning.value = true;
     api.get("/activity/list/ended").then((res) => {
         let {data} = res.data;
+        data = data.map(item => {
+            if (item.type === 'self-enrollment') {
+                item.type = '仅自主报名';
+            } else if (item.type === 'assignment') {
+                item.type = '仅分配';
+            } else if (item.type === 'ase') {
+                item.type = '自主报名或分配';
+            }
+            return item;
+        })
         data_ended.value = data;
         spinning.value = false;
     }).catch((err) => {
@@ -262,7 +312,7 @@ const countDown = (id) => {
                     </a-space>
                 </a-spin>
             </a-tab-pane>
-            <a-tab-pane key="rejected" tab="曾驳回">
+            <a-tab-pane key="rejected" tab="曾驳回记录">
                 <a-spin :spinning="spinning" tip="Loading...">
                     <a-descriptions-item v-if="data_rejected.length === 0">
                         <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -273,19 +323,18 @@ const countDown = (id) => {
 
                         <a-descriptions v-for="item in currentRejectedPageData" title="活动公告"
                                         style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                            <a-descriptions-item label="地点">校内8#影视中心</a-descriptions-item>
-                            <a-descriptions-item label="需求">demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo</a-descriptions-item>
-                            <a-descriptions-item label="开始时间">2023/05/14 14:45:00</a-descriptions-item>
-                            <a-descriptions-item label="结束时间">2023/05/14 14:45:00</a-descriptions-item>
-                            <a-descriptions-item label="申请时间">2023/05/14 14:45:00</a-descriptions-item>
-                            <a-descriptions-item label="面向人员类型">面向全体和指派</a-descriptions-item>
-                            <a-descriptions-item label="审批人学籍号">22100001</a-descriptions-item>
-                            <a-descriptions-item label="审批人姓名">Demo</a-descriptions-item>
-                            <a-descriptions-item label="驳回时间">2023/05/14 14:45:00</a-descriptions-item>
+                            <a-descriptions-item label="地点">{{  item.activity.place  }}</a-descriptions-item>
+                            <a-descriptions-item label="需求">{{ item.activity.note }}</a-descriptions-item>
+                            <a-descriptions-item label="开始时间">{{ item.activity.start_time }}</a-descriptions-item>
+                            <a-descriptions-item label="结束时间">{{  item.activity.end_time  }}</a-descriptions-item>
+                            <a-descriptions-item label="面向人员类型">{{  item.activity.type  }}</a-descriptions-item>
+                            <a-descriptions-item label="负责人学籍号">{{  item.admin_uid  }}</a-descriptions-item>
+                            <a-descriptions-item label="负责人姓名">{{  item.admin_name  }}</a-descriptions-item>
+                            <a-descriptions-item label="驳回时间">{{ item.updated_at }}</a-descriptions-item>
                             <a-descriptions-item label="操作">
                                 <a-row>
                                     <a-col v-if="true">
-                                        <a-button type="primary" @click="enroll(item.id)">再次报名</a-button>
+                                        <a-button type="primary" @click="enroll(item.activity.id)">尝试再次报名</a-button>
                                     </a-col>
                                 </a-row>
                             </a-descriptions-item>

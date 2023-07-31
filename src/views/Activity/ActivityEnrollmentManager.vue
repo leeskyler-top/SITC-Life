@@ -30,9 +30,9 @@ const handleTabChange = (key) => {
     // 根据切换的标签 key 执行相应的操作，节流，节省请求次数。
     if (key === 'activity') {
         listEnrollmentByActivity();
-    } else if (key === 'type' || key === 'activity_applying') {
+    } else if (key === 'type' || key === 'applying') {
         listApplyingApplication()
-    }  else if (key === 'activity_rejected') {
+    }  else if (key === 'rejected') {
         listRejectedApplication();
     }
 };
@@ -86,9 +86,9 @@ const listEnrollmentByActivity = () => {
 
 const listApplyingApplication = () => {
     spinning.value = true;
-    api.get("/activity/enrollment/list/rejected").then((res) => {
+    api.get("/activity/enrollment/list/applying").then((res) => {
         let {data} = res.data;
-        data_rejected.value = data;
+        data_applying.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -224,6 +224,7 @@ const agreeApplication = (id) => {
     api.get("/activity/enrollment/agree/" + id).then(res => {
         let {msg} = res.data;
         currentApplicationData.value = currentApplicationData.value.filter(item => item.id !== id);
+        data_applying.value = data_applying.value.filter(item => item.id !== id);
         message.success(msg);
     }).catch(err => {
         let {msg} = err.response.data;
@@ -235,6 +236,7 @@ const rejectApplication = (id) => {
     api.get("/activity/enrollment/reject/" + id).then(res => {
         let {msg} = res.data;
         currentRejectedData.value.push(currentApplicationData.value.find(item => item.id === id));
+        data_applying.value = data_applying.value.filter(item => item.id !== id);
         currentApplicationData.value = currentApplicationData.value.filter(item => item.id !== id);
         message.success(msg);
     }).catch(err => {
@@ -390,57 +392,67 @@ const shouldRenderCloseEnrollButton = computed(() => {
                     </a-spin>
                 </a-tab-pane>
                 <a-tab-pane key="type" tab="按类型分组">
-                    <a-spin :spinning="spinning" tip="Loading...">
-                        <a-tabs v-model:activeKey="activeKey2" @update:activeKey="handleTabChange" type="card">
-                            <a-tab-pane key="applying" tab="待审核">
-                                <a-spin :spinning="spinning" tip="Loading...">
-                                    <a-descriptions-item v-if="data_applying.length === 0">
-                                        <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                                            <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
-                                        </div>
-                                    </a-descriptions-item>
-                                    <a-space direction="vertical" :size="5" style="height: 100%">
+                    <a-tabs v-model:activeKey="activeKey2" @update:activeKey="handleTabChange" type="card">
+                        <a-tab-pane key="applying" tab="待审核">
+                            <a-spin :spinning="spinning" tip="Loading...">
+                                <a-descriptions-item v-if="data_applying.length === 0">
+                                    <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                        <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                                    </div>
+                                </a-descriptions-item>
+                                <a-space direction="vertical" :size="5" style="height: 100%">
 
-                                        <a-descriptions v-for="item in currentApplyingPageData" title="活动公告"
-                                                        style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                                            <a-descriptions-item label="地点">{{  item.activity.place  }}</a-descriptions-item>
-                                            <a-descriptions-item label="需求">{{ item.activity.note }}</a-descriptions-item>
-                                            <a-descriptions-item label="开始时间">{{ item.activity.start_time }}</a-descriptions-item>
-                                            <a-descriptions-item label="结束时间">{{  item.activity.end_time  }}</a-descriptions-item>
-                                            <a-descriptions-item label="面向人员类型">{{  item.activity.type  }}</a-descriptions-item>
-                                            <a-descriptions-item label="负责人学籍号">{{  item.admin_uid  }}</a-descriptions-item>
-                                            <a-descriptions-item label="负责人姓名">{{  item.admin_name  }}</a-descriptions-item>
-                                        </a-descriptions>
-                                        <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentApplyingPage" simple pageSize="5"
-                                                      :total="data_applying.length" v-if="data_applying.length !== 0"/>
+                                    <a-descriptions v-for="item in currentApplyingPageData" :title="'申请者' + ':' + item.user_uid + '-' + item.user_name"
+                                                    style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+                                        <a-descriptions-item label="活动标题">{{  item.activity.title  }}</a-descriptions-item>
+                                        <a-descriptions-item label="地点">{{  item.activity.place  }}</a-descriptions-item>
+                                        <a-descriptions-item label="需求">{{ item.activity.note }}</a-descriptions-item>
+                                        <a-descriptions-item label="开始时间">{{ item.activity.start_time }}</a-descriptions-item>
+                                        <a-descriptions-item label="结束时间">{{  item.activity.end_time  }}</a-descriptions-item>
+                                        <a-descriptions-item label="负责人学籍号">{{  item.admin_uid  }}</a-descriptions-item>
+                                        <a-descriptions-item label="负责人姓名">{{  item.admin_name  }}</a-descriptions-item>
+                                        <a-descriptions-item label="报名时间">{{  item.created_at  }}</a-descriptions-item>
+                                        <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
+                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;"
+                                                      @click="showConfirm('agree', item.id)">同意
+                                            </a-button>
+                                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;" danger
+                                                      @click="showConfirm('refuse', item.id)">拒绝
+                                            </a-button>
+                                        </a-descriptions-item>
+                                    </a-descriptions>
+                                    <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentApplyingPage" simple pageSize="5"
+                                                  :total="data_applying.length" v-if="data_applying.length !== 0"/>
 
-                                    </a-space>
-                                </a-spin>
-                            </a-tab-pane>
-                            <a-tab-pane key="rejected" tab="曾驳回">
-                                <a-spin :spinning="spinning" tip="Loading...">
-                                    <a-descriptions-item v-if="data_rejected.length === 0">
-                                        <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                                            <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
-                                        </div>
-                                    </a-descriptions-item>
-                                    <a-space direction="vertical" :size="5" style="height: 100%">
+                                </a-space>
+                            </a-spin>
+                        </a-tab-pane>
+                        <a-tab-pane key="rejected" tab="曾驳回">
+                            <a-spin :spinning="spinning" tip="Loading...">
+                                <a-descriptions-item v-if="data_rejected.length === 0">
+                                    <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                        <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                                    </div>
+                                </a-descriptions-item>
+                                <a-space direction="vertical" :size="5" style="height: 100%">
 
-                                        <a-descriptions v-for="item in currentRejectedPageData" title="活动公告"
-                                                        style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                                            <a-descriptions-item label="活动标题">校内8#影视中心</a-descriptions-item>
-                                            <a-descriptions-item label="负责人学籍号">demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo</a-descriptions-item>
-                                            <a-descriptions-item label="负责人姓名">2023/05/14 14:45:00</a-descriptions-item>
-                                            <a-descriptions-item label="报名者">2023/05/14 14:45:00</a-descriptions-item>
-                                            <a-descriptions-item label="报名时间">2023/05/14 14:45:00</a-descriptions-item>
-                                        </a-descriptions>
-                                        <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentRejectedPage" simple pageSize="5"
-                                                      :total="data_rejected.length" v-if="data_rejected.length !== 0"/>
-                                    </a-space>
-                                </a-spin>
-                            </a-tab-pane>
-                        </a-tabs>
-                    </a-spin>
+                                    <a-descriptions v-for="item in currentRejectedPageData" :title="'申请者' + ':' + item.user_uid + '-' + item.user_name"
+                                                    style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+                                        <a-descriptions-item label="活动标题">{{  item.activity.title  }}</a-descriptions-item>
+                                        <a-descriptions-item label="地点">{{  item.activity.place  }}</a-descriptions-item>
+                                        <a-descriptions-item label="需求">{{ item.activity.note }}</a-descriptions-item>
+                                        <a-descriptions-item label="开始时间">{{ item.activity.start_time }}</a-descriptions-item>
+                                        <a-descriptions-item label="结束时间">{{  item.activity.end_time  }}</a-descriptions-item>
+                                        <a-descriptions-item label="负责人学籍号">{{  item.admin_uid  }}</a-descriptions-item>
+                                        <a-descriptions-item label="负责人姓名">{{  item.admin_name  }}</a-descriptions-item>
+                                        <a-descriptions-item label="报名时间">{{  item.created_at  }}</a-descriptions-item>
+                                    </a-descriptions>
+                                    <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentRejectedPage" simple pageSize="5"
+                                                  :total="data_rejected.length" v-if="data_rejected.length !== 0"/>
+                                </a-space>
+                            </a-spin>
+                        </a-tab-pane>
+                    </a-tabs>
 
                 </a-tab-pane>
             </a-tabs>
