@@ -21,7 +21,8 @@ onMounted(() => {
 });
 
 const activeKey = ref('activity');
-const activeKey2 = ref('activity_applying');
+const activeKey2 = ref('applying');
+const activeKey3 = ref('activity_applying');
 
 const spinning = ref(false)
 
@@ -29,9 +30,9 @@ const handleTabChange = (key) => {
     // 根据切换的标签 key 执行相应的操作，节流，节省请求次数。
     if (key === 'activity') {
         listEnrollmentByActivity();
-    } else if (key === 'type' || key === 'applying') {
+    } else if (key === 'type' || key === 'activity_applying') {
         listApplyingApplication()
-    }  else if (key === 'rejected') {
+    }  else if (key === 'activity_rejected') {
         listRejectedApplication();
     }
 };
@@ -459,7 +460,7 @@ const shouldRenderCloseEnrollButton = computed(() => {
                     </a-button>
                 </div>
             </a-card>
-            <a-tabs v-model:activeKey="activeKey2" @update:activeKey="handleTabChange">
+            <a-tabs v-model:activeKey="activeKey3" @update:activeKey="handleTabChange">
                 <a-tab-pane key="activity_applying" tab="申请中">
                     <a-descriptions-item v-if="currentApplicationData.length === 0">
                         <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
