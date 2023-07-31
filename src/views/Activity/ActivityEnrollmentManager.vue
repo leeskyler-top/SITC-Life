@@ -179,8 +179,8 @@ const showConfirm = (op, id) => {
 
 
 const agreeApplication = (id) => {
-    let {msg} = res.data;
     api.get("/activity/enrollment/agree/" + id).then(res => {
+        let {msg} = res.data;
         currentApplicationData.value = currentApplicationData.value.filter(item => item.id !== id);
         message.success(msg);
     }).catch(err => {
