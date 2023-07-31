@@ -28,13 +28,11 @@ const spinning = ref(false)
 const handleTabChange = (key) => {
     // 根据切换的标签 key 执行相应的操作，节流，节省请求次数。
     if (key === 'activity') {
-        listAssignmentActivities();
-    } else if (key === 'type') {
-        listApplyingActivities()
-    } else if (key === 'applying') {
-        listEndedActivities();
-    } else if (key === 'rejected') {
-        listRejectedActivities();
+        listEnrollmentByActivity();
+    } else if (key === 'type' || key === 'applying') {
+        listApplyingApplication()
+    }  else if (key === 'rejected') {
+        listRejectedApplication();
     }
 };
 
@@ -46,6 +44,22 @@ const currentActivity = ref();
 const currentApplicationData = ref([]);
 const currentRejectedData = ref([]);
 const current_activity_id = ref();
+
+const data_applying = ref([]);
+const data_rejected = ref([]);
+
+const currentRejectedPage = ref(1);
+const currentApplyingPage = ref(1);
+const currentRejectedPageData = computed(() => {
+    const startIdx = (currentRejectedPage.value - 1) * 5;
+    const endIdx = startIdx + 5;
+    return data_rejected.value.slice(startIdx, endIdx);
+});
+const currentApplyingPageData = computed(() => {
+    const startIdx = (currentRejectedPage.value - 1) * 5;
+    const endIdx = startIdx + 5;
+    return data_applying.value.slice(startIdx, endIdx);
+});
 const listEnrollmentByActivity = () => {
     spinning.value = true;
     api.get("/activity/enrollment/list").then((res) => {
@@ -68,6 +82,33 @@ const listEnrollmentByActivity = () => {
         message.error(msg);
     });
 }
+
+const listApplyingApplication = () => {
+    spinning.value = true;
+    api.get("/activity/enrollment/list/rejected").then((res) => {
+        let {data} = res.data;
+        data_rejected.value = data;
+        spinning.value = false;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        spinning.value = false;
+        message.error(msg);
+    });
+}
+
+const listRejectedApplication = () => {
+    spinning.value = true;
+    api.get("/activity/enrollment/list/rejected").then((res) => {
+        let {data} = res.data;
+        data_rejected.value = data;
+        spinning.value = false;
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        spinning.value = false;
+        message.error(msg);
+    });
+}
+
 const editableData = reactive({});
 const state = reactive({
     searchText: '',
@@ -349,7 +390,7 @@ const shouldRenderCloseEnrollButton = computed(() => {
                 </a-tab-pane>
                 <a-tab-pane key="type" tab="按类型分组">
                     <a-spin :spinning="spinning" tip="Loading...">
-                        <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
+                        <a-tabs v-model:activeKey="activeKey2" @update:activeKey="handleTabChange" type="card">
                             <a-tab-pane key="applying" tab="待审核">
                                 <a-spin :spinning="spinning" tip="Loading...">
                                     <a-descriptions-item v-if="data_applying.length === 0">
@@ -386,23 +427,11 @@ const shouldRenderCloseEnrollButton = computed(() => {
 
                                         <a-descriptions v-for="item in currentRejectedPageData" title="活动公告"
                                                         style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                                            <a-descriptions-item label="地点">校内8#影视中心</a-descriptions-item>
-                                            <a-descriptions-item label="需求">demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo</a-descriptions-item>
-                                            <a-descriptions-item label="开始时间">2023/05/14 14:45:00</a-descriptions-item>
-                                            <a-descriptions-item label="结束时间">2023/05/14 14:45:00</a-descriptions-item>
-                                            <a-descriptions-item label="申请时间">2023/05/14 14:45:00</a-descriptions-item>
-                                            <a-descriptions-item label="面向人员类型">面向全体和指派</a-descriptions-item>
-                                            <a-descriptions-item label="审批人学籍号">22100001</a-descriptions-item>
-                                            <a-descriptions-item label="审批人姓名">Demo</a-descriptions-item>
-                                            <a-descriptions-item label="驳回时间">2023/05/14 14:45:00</a-descriptions-item>
-                                            <a-descriptions-item label="操作">
-                                                <a-row>
-                                                    <a-col v-if="true">
-                                                        <a-button type="primary" @click="enroll(item.id)">再次报名</a-button>
-                                                    </a-col>
-                                                </a-row>
-                                            </a-descriptions-item>
-
+                                            <a-descriptions-item label="活动标题">校内8#影视中心</a-descriptions-item>
+                                            <a-descriptions-item label="负责人学籍号">demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo demo</a-descriptions-item>
+                                            <a-descriptions-item label="负责人姓名">2023/05/14 14:45:00</a-descriptions-item>
+                                            <a-descriptions-item label="报名者">2023/05/14 14:45:00</a-descriptions-item>
+                                            <a-descriptions-item label="报名时间">2023/05/14 14:45:00</a-descriptions-item>
                                         </a-descriptions>
                                         <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentRejectedPage" simple pageSize="5"
                                                       :total="data_rejected.length" v-if="data_rejected.length !== 0"/>
