@@ -23,13 +23,21 @@ function handleResize(event) {
     }
 }
 
-onMounted(() => {
-    handleResize();
-})
+const captchaImage = ref('');
+const refreshCaptcha = () => {
+    api.get('/captcha').then(res => {
+        captchaImage.value = res.data.img;
+        formState.captcha_key = res.data.key;
+    }).catch(err => {
+        message.error('验证码获取失败')
+    })
+}
 
 const formState = reactive({
     email: null,
     password: null,
+    captcha: null,
+    captcha_key: null,
 });
 
 const disabled = computed(() => {
@@ -41,6 +49,13 @@ const selectedKeys = ref(['1']);
 const token = ref(localStorage.token);
 let latestToken = token.value; // 中间变量存储最新的token值
 const is_admin = ref(localStorage.is_admin);
+
+onMounted(() => {
+    handleResize();
+    if (!token.value) {
+        refreshCaptcha();
+    }
+})
 
 api.interceptors.response.use(null, (error) => {
     if ((error.response.status === 401 && error.response.data.msg === '未授权') || (error.response.status === 401 && error.response.data.msg === '未授权: 非法角色!')) {
@@ -79,6 +94,8 @@ const login = () => {
         signin.value = false;
         formState.email = null;
         formState.password = null;
+        formState.captcha = null;
+        formState.captcha_key = null;
         let {data, msg} = res.data;
         token.value = data.token;
         name.value = data.name;
@@ -89,6 +106,7 @@ const login = () => {
         message.success(msg);
     }).catch((err) => {
         let {msg} = err.response.data;
+        refreshCaptcha();
         signin.value = false;
         message.error(msg);
     });
@@ -112,6 +130,11 @@ const logout = () => {
         localStorage.clear();
         message.warn("会话注销可能失败:" + msg);
     });
+    try {
+        refreshCaptcha();
+    } catch {
+        message.warn("验证码获取失败");
+    }
 }
 
 const logoLoading = ref('none')
@@ -152,6 +175,19 @@ const stopLoadingLogo = () => {
                         :rules="[{ required: true, message: '请输入密码!' }]"
                 >
                     <a-input-password v-model:value="formState.password"/>
+                </a-form-item>
+                <a-form-item label="图片">
+                    <img :src="captchaImage" @load="stopLoadingLogo" :style="{ display: logoLoading }" @click="refreshCaptcha"/>
+                    <a-spin :spinning="logoLoading === 'none'"></a-spin>
+                </a-form-item>
+                <a-form-item
+                        label="验证码"
+                        name="captcha"
+                        :rules="[{ required: true, message: '请输入验证码' }]"
+                >
+
+
+                    <a-input-password v-model:value="formState.captcha"/>
                 </a-form-item>
 
                 <div style="display: flex; align-items: center; justify-content: center; margin-top: 16px;">
@@ -303,7 +339,7 @@ const stopLoadingLogo = () => {
                                 <span @click="logout"><a>登出</a></span>
                             </div>
                             <div style="margin-right: 28px;" v-if="!isShow">
-                                <a-dropdown >
+                                <a-dropdown>
                                     <a class="ant-dropdown-link" @click.prevent>
                                         菜单
                                         <DownOutlined/>
