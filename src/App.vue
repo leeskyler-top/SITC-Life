@@ -176,18 +176,18 @@ const stopLoadingLogo = () => {
                 >
                     <a-input-password v-model:value="formState.password"/>
                 </a-form-item>
-                <a-form-item label="图片">
-                    <img :src="captchaImage" @load="stopLoadingLogo" :style="{ display: logoLoading }" @click="refreshCaptcha"/>
-                    <a-spin :spinning="logoLoading === 'none'"></a-spin>
-                </a-form-item>
                 <a-form-item
                         label="验证码"
                         name="captcha"
                         :rules="[{ required: true, message: '请输入验证码' }]"
                 >
-
-
-                    <a-input-password v-model:value="formState.captcha"/>
+                    <a-row>
+                        <a-input-password style="width: 35%" v-model:value="formState.captcha"/>
+                        <a-col :flex="1" style="padding-top: 2px; padding-left: 4px;">
+                            <img :src="captchaImage" @load="stopLoadingLogo" :style="{ display: logoLoading }" @click="refreshCaptcha"/>
+                            <a-spin :spinning="logoLoading === 'none'"></a-spin>
+                        </a-col>
+                    </a-row>
                 </a-form-item>
 
                 <div style="display: flex; align-items: center; justify-content: center; margin-top: 16px;">
