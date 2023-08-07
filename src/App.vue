@@ -59,6 +59,8 @@ onMounted(() => {
 
 api.interceptors.response.use(null, (error) => {
     if ((error.response.status === 401 && error.response.data.msg === '未授权') || (error.response.status === 401 && error.response.data.msg === '未授权: 非法角色!')) {
+        router.go('/');
+        refreshCaptcha();
         localStorage.clear();
         token.value = null;
         name.value = null;

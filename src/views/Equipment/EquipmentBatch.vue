@@ -75,7 +75,7 @@ const formItemLayout = {
         :style="{margin: '16px'}"
     >
         <h2>
-            用户批量添加
+            设备批量添加
         </h2>
         <a-row>
             <a-col :span="24" style="padding: 24px; background-color: #FFFFFF">
@@ -111,7 +111,7 @@ const formItemLayout = {
                 </a-form>
             </a-col>
         </a-row>
-        <a-modal v-model:visible="visibleEquipments" title="新增成功的用户">
+        <a-modal v-model:visible="visibleEquipments" title="新增成功的设备">
             <a-card v-for="item in newEquipments" style="margin-top: 4px;">
                 <p>设备ID：<span>{{ item.id }}</span></p>
                 <p>固定资产编号：<span>{{ item.fixed_assets_num }}</span></p>
