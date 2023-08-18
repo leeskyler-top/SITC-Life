@@ -1,7 +1,57 @@
 <script setup>
-import { ref } from 'vue';
+import {computed, onMounted, ref} from 'vue';
+import {message} from "ant-design-vue";
+import api from "@/api";
 const activeKey = ref([]);
-const text = `A dog is a type of domesticated animal.Known for its loyalty and faithfulness,it can be found as a welcome guest in many households across the world.`;
+const messages = ref([]);
+const spinning = ref(false)
+const getMyMsg = () => {
+    spinning.value = true;
+    api.get("/message").then(res => {
+        spinning.value = false;
+        let {data} = res.data
+        messages.value = data;
+    }).catch(err => {
+        let {msg} = err.response.data;
+        spinning.value = false;
+        message.error(msg);
+    })
+}
+
+const readAllMsg = () => {
+    api.get("/message/read/").then(res => {
+        let {msg} = res.data
+        messages.value.forEach(msg => {
+            msg.status = "read";
+        });
+        message.success(msg);
+    }).catch(err => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    })
+}
+
+const readMsg = (id) => {
+    if (messages.value.find(msg => msg.id === id) && messages.value.find(msg => msg.id === id).status === 'unread') {
+        api.get("/message/read/" + id).then(res => {
+            let updatedMsg = messages.value.find(msg => msg.id === id);
+            updatedMsg.status = "read";
+        }).catch(err => {
+            let {msg} = err.response.data;
+            message.error(msg);
+        })
+    }
+}
+
+const currentMsgPage = ref(1);
+const currentMsgPageData = computed(() => {
+    const startIdx = (currentMsgPage.value - 1) * 10;
+    const endIdx = startIdx + 10;
+    return messages.value.slice(startIdx, endIdx);
+});
+onMounted(() => {
+    getMyMsg()
+})
 </script>
 
 <template>
@@ -38,33 +88,21 @@ const text = `A dog is a type of domesticated animal.Known for its loyalty and f
         </a-row>
     </a-layout-content>
     <a-layout-content :style="{margin: '16px'}">
-        <h2>
-            通知
-        </h2>
         <a-row type="flex" justify="space-around" align="middle">
             <a-col :lg="{span: 24}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}">
-                <a-card title="活动招募" :lg="{margin: '16px', minHeight: '220px'}"
+                <a-card title="通知与公告" :lg="{margin: '16px', minHeight: '220px'}"
                         :md="{margin: '16px', minHeight: '220px'}" :sm="{margin: '0', minHeight: '220px'}"
                         :xs="{margin: '0', minHeight: '220px'}">
-                    <template #extra><router-link to="/activity/list">more</router-link></template>
-                    <a-collapse v-model:activeKey="activeKey">
-                        <a-collapse-panel key="1" header="This is panel header 1">
-                            <p>{{ text }}</p>
-                        </a-collapse-panel>
-                        <a-collapse-panel key="2" header="This is panel header 2">
-                            <p>{{ text }}</p>
-                        </a-collapse-panel>
-                        <a-collapse-panel key="3" header="This is panel header 3">
-                            <p>{{ text }}</p>
-                        </a-collapse-panel>
-                        <a-collapse-panel key="4" header="This is panel header 4">
-                            <p>{{ text }}</p>
-                        </a-collapse-panel>
-                        <a-collapse-panel key="5" header="This is panel header 5">
-                            <p>{{ text }}</p>
-                        </a-collapse-panel>
-                    </a-collapse>
-                    <a-pagination align="center" v-model:current="current" simple :total="50" pageSize="5"  style="margin-top: 16px;"/>
+                    <template #extra><a @click.prevent="readAllMsg">全部已读</a></template>
+                    <a-spin :spinning="spinning" tip="Loading...">
+                        <a-collapse v-model:activeKey="activeKey">
+                            <a-collapse-panel v-for="item in currentMsgPageData" :key="item.id" :header="item.title" :style="item.status === 'unread' ? { fontWeight: 'bold' } : {}" @click="readMsg(item.id)">
+                                <p>{{ item.msg }}</p>
+                            </a-collapse-panel>
+                        </a-collapse>
+                    </a-spin>
+                    <a-pagination align="center" v-model:current="currentMsgPage" simple :total="messages.length" pageSize="10"  style="margin-top: 16px;"/>
+
                 </a-card>
             </a-col>
         </a-row>
