@@ -1,6 +1,6 @@
 <script setup>
 import {computed, onMounted, ref} from 'vue';
-import {message} from "ant-design-vue";
+import {Empty, message} from "ant-design-vue";
 import api from "@/api";
 const activeKey = ref([]);
 const messages = ref([]);
@@ -95,13 +95,18 @@ onMounted(() => {
                         :xs="{margin: '0', minHeight: '220px'}">
                     <template #extra><a @click.prevent="readAllMsg">全部已读</a></template>
                     <a-spin :spinning="spinning" tip="Loading...">
+                        <a-descriptions-item v-if="messages.length === 0">
+                            <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                            </div>
+                        </a-descriptions-item>
                         <a-collapse v-model:activeKey="activeKey">
                             <a-collapse-panel v-for="item in currentMsgPageData" :key="item.id" :header="item.title" :style="item.status === 'unread' ? { fontWeight: 'bold' } : {}" @click="readMsg(item.id)">
                                 <p>{{ item.msg }}</p>
                             </a-collapse-panel>
                         </a-collapse>
                     </a-spin>
-                    <a-pagination align="center" v-model:current="currentMsgPage" simple :total="messages.length" pageSize="10"  style="margin-top: 16px;"/>
+                    <a-pagination align="center" v-model:current="currentMsgPage" simple :total="messages.length" pageSize="10" :disabled="messages.length === 0"  style="margin-top: 16px;"/>
 
                 </a-card>
             </a-col>
