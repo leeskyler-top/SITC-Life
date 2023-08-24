@@ -1,6 +1,6 @@
 <script setup>
-import {ref, createVNode, computed, onMounted} from "vue";
-import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
+import {ref, createVNode, computed, onMounted, reactive} from "vue";
+import {ExclamationCircleOutlined, UploadOutlined} from '@ant-design/icons-vue';
 import {Empty, message, Modal} from "ant-design-vue";
 import api from "@/api";
 
@@ -31,6 +31,10 @@ const currentEndedPageData = computed(() => {
 });
 
 const spinning = ref(false)
+
+const formState = reactive({
+    image_url: []
+})
 const listWaitingCheckIns = () => {
     spinning.value = true;
     api.get("/checkin/list/waiting").then((res) => {
@@ -46,9 +50,9 @@ const listWaitingCheckIns = () => {
 
 const listStartedCheckIns = () => {
     spinning.value = true;
-    api.get("/checkin/list/waiting").then((res) => {
+    api.get("/checkin/list/started").then((res) => {
         let {data} = res.data;
-        data_waiting.value = data;
+        data_started.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -92,6 +96,44 @@ const hideModal = () => {
 
 const loading = ref(false)
 
+const handleCancel = () => {
+    visible.value = false;
+}
+
+let config = {
+    headers: {
+        'Content-Type': 'multipart/form-data',
+    },
+};
+
+const checkin = (id) => {
+    visible.value = true;
+    current_id.value = id
+}
+
+const current_id = ref(null)
+
+const checkInNow = () => {
+    loading.value = true;
+    let formData = new FormData();
+    for (let item of formState.image_url) {
+        formData.append('image_url[]', item.originFileObj)
+    }
+    api.post("/checkin/now/" + current_id.value, formData, config).then(res => {
+        let {msg} = res.data;
+        loading.value = false;
+        visible.value = false;
+        data_started.value = data_started.value.filter(item => item.id !== current_id.value);
+        formState.image_url = [];
+        current_id.value = null;
+        message.success(msg);
+    }).catch(err => {
+        let {msg} = err.response.data;
+        loading.value = false;
+        message.error(msg);
+    });
+}
+
 </script>
 
 <template>
@@ -115,9 +157,10 @@ const loading = ref(false)
                             <a-descriptions-item label="活动地点">{{  item.activity_place  }}</a-descriptions-item>
                             <a-descriptions-item label="签到开始时间">{{ item.start_time }}</a-descriptions-item>
                             <a-descriptions-item label="签到结束时间">{{  item.end_time  }}</a-descriptions-item>
+                            <a-descriptions-item label="签到状态">{{  item.status  }}</a-descriptions-item>
                             <a-descriptions-item label="操作">
                                 <a-row>
-                                    <a-button type="primary" @click="checkin(item.id)">报名</a-button>
+                                    <a-button type="primary" @click="checkin(item.id)" :disabled="item.status !== 'unsigned'">签到</a-button>
                                 </a-row>
                             </a-descriptions-item>
 
@@ -173,22 +216,17 @@ const loading = ref(false)
 
 
     </a-layout-content>
-    <a-modal v-model:visible="visible" title="资料上传">
+    <a-modal v-model:visible="visible" title="打卡图片上传">
         <a-form
             :model="formState"
             name="validate_other"
-            v-bind="formItemLayout"
-            @finishFailed="onFinishFailed"
-            @finish="onFinish"
         >
 
-            <a-form-item name="upload" label="Upload" extra="至少上传一张图片，最多两张">
+            <a-form-item name="image_url" label="图片" extra="至少上传一张图片，最多两张" :rules="[{ required: true, message: '至少上传一张图片' }]">
                 <a-upload
-                    v-model:fileList="formState.upload"
-                    name="logo"
-                    action="/upload.do"
                     list-type="picture"
-                    before-upload="false" max-count="2"
+                    :before-upload="true" max-count="2"
+                    v-model:file-list="formState.image_url"
                 >
                     <a-button>
                         <template #icon><UploadOutlined /></template>
@@ -196,13 +234,10 @@ const loading = ref(false)
                     </a-button>
                 </a-upload>
             </a-form-item>
-
-            <a-form-item :wrapper-col="{ span: 12, offset: 6 }">
-                <a-button type="primary" html-type="submit">上传并签到</a-button>
-            </a-form-item>
         </a-form>
         <template #footer>
             <a-button type="primary" danger @click="handleCancel">取消</a-button>
+            <a-button type="primary" @click="checkInNow" :disabled="formState.image_url.length === 0" :loading="loading">上传并归还</a-button>
         </template>
     </a-modal>
 </template>
