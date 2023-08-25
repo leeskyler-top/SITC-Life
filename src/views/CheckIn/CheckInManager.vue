@@ -1,5 +1,5 @@
 <script setup>
-import {reactive, ref, onMounted, createVNode} from 'vue';
+import {reactive, ref, onMounted, createVNode, watch} from 'vue';
 import {cloneDeep} from 'lodash-es';
 import {
     CheckOutlined,
@@ -8,10 +8,12 @@ import {
     PlusOutlined,
     SearchOutlined
 } from '@ant-design/icons-vue';
-import {Modal} from "ant-design-vue";
+import {message, Modal} from "ant-design-vue";
+import api from "@/api";
 
 const isShow = ref(true);
-function handleResize (event) {
+
+function handleResize(event) {
     // 页面宽度小于525px时，不显示表格
     if (document.documentElement.clientWidth < 525) {
         isShow.value = false;
@@ -26,21 +28,6 @@ onMounted(() => {
 
 window.addEventListener('resize', handleResize);
 
-
-const data = [];
-for (let i = 0; i < 5; i++) {
-    data.push({
-        id: i,
-        name: "demo",
-        activity_title: `demo demo`,
-        start_datetime: "2023-05-31 11:11:30",
-        end_datetime: "2023-05-31 11:11:30",
-        status: "正在进行"
-    });
-}
-
-const dataSource = ref(data);
-const editableData = reactive({});
 const state = reactive({
     searchText: '',
     searchedColumn: '',
@@ -50,20 +37,20 @@ const searchInput = ref();
 
 const columns = [
     {
+        title: '签到名称',
+        dataIndex: 'title',
+        width: '25%',
+        customFilterDropdown: true,
+        onFilter: (value, record) =>
+            record.title.toString().toLowerCase().includes(value.toLowerCase()),
+    },
+    {
         title: '活动标题',
         dataIndex: 'activity_title',
         width: '25%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
-            record.uid.toString().toLowerCase().includes(value.toLowerCase()),
-    },
-    {
-        title: '签到名称',
-        dataIndex: 'name',
-        width: '25%',
-        customFilterDropdown: true,
-        onFilter: (value, record) =>
-            record.name.toString().toLowerCase().includes(value.toLowerCase()),
+            record.activity_title.toString().toLowerCase().includes(value.toLowerCase()),
     },
     {
         title: '状态',
@@ -71,23 +58,23 @@ const columns = [
         width: '8%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
-            record.role.toString().toLowerCase().includes(value.toLowerCase()),
+            record.status.toString().toLowerCase().includes(value.toLowerCase()),
     },
     {
         title: '开始时间',
-        dataIndex: 'start_datetime',
+        dataIndex: 'start_time',
         width: '12%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
-            record.role.toString().toLowerCase().includes(value.toLowerCase()),
+            record.start_time.toString().toLowerCase().includes(value.toLowerCase()),
     },
     {
         title: '结束时间',
-        dataIndex: 'end_datetime',
+        dataIndex: 'end_time',
         width: '12%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
-            record.role.toString().toLowerCase().includes(value.toLowerCase()),
+            record.end_time.toString().toLowerCase().includes(value.toLowerCase()),
     },
     {
         title: '操作',
@@ -102,18 +89,52 @@ const handleSearch = (selectedKeys, confirm, dataIndex) => {
 };
 
 const handleReset = clearFilters => {
-    clearFilters({ confirm: true });
+    clearFilters({confirm: true});
     state.searchText = '';
 };
-const deleteActivity = id => {
-    alert(id);
-};
-const save = key => {
-    Object.assign(dataSource.value.filter(item => key === item.key)[0], editableData[key]);
-    delete editableData[key];
-};
-const cancel = key => {
-    delete editableData[key];
+
+const data_checkins = ref([]);
+
+const spinning = ref(false);
+
+const listCheckIns = () => {
+    spinning.value = true;
+    api.get("/checkin").then(res => {
+        spinning.value = false;
+        let {data} = res.data
+        data = data.map(item => {
+            if (item.status === 'waiting') {
+                item.status = '未开始';
+            } else if (item.status === 'started') {
+                item.status = '正在进行';
+            } else if (item.status === 'ended') {
+                item.status = '已结束';
+            }
+            return item;
+        })
+        data_checkins.value = data;
+    }).catch(err => {
+        let {msg} = err.response.data;
+        spinning.value = false;
+        message.error(msg);
+    })
+}
+
+onMounted(() => {
+    listCheckIns();
+});
+const deleteCheckIns = id => {
+    spinning.value = true;
+    api.delete("/checkin/" + id).then(res => {
+        data_checkins.value = data_checkins.value.filter(item => item.id !== id);
+        spinning.value = false;
+        let {data, msg} = res.data;
+        message.success(msg);
+    }).catch(err => {
+        spinning.value = false;
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
 };
 
 const visibleInfo = ref(false);
@@ -139,6 +160,12 @@ const showAdd = () => {
     visibleAdd.value = true;
 }
 
+const visibleUsers = ref(false);
+
+const showUsers = () => {
+    visibleUsers.value = true;
+}
+
 const formState = reactive({
     checkIn: {
         activity_id: '',
@@ -153,13 +180,6 @@ const validateMessages = {
         email: '${label} 非法邮箱格式',
     },
 };
-const onFinish = values => {
-    console.log('Success:', values);
-};
-const onFinishFailed = errorInfo => {
-    console.log('Failed:', errorInfo);
-};
-
 const handleCancel = () => {
     visibleInfo.value = false;
 };
@@ -181,39 +201,93 @@ const showConfirm = (id) => {
     });
 }
 
+
+const treeData = [{
+    title: '活动用户',
+    key: '0-0',
+    children: [],
+}];
+const expandedKeys = ref(['0-0-0', '0-0-1']);
+const selectedKeys = ref(['0-0-0', '0-0-1']);
+const checkedKeys = ref(['0-0-0', '0-0-1']);
+watch(expandedKeys, () => {
+    console.log('expandedKeys', expandedKeys);
+});
+watch(selectedKeys, () => {
+    console.log('selectedKeys', selectedKeys);
+});
+watch(checkedKeys, () => {
+    console.log('checkedKeys', checkedKeys);
+});
+
 </script>
 <template>
     <a-layout-content
             :style="{margin: '16px'}"
     >
         <h2>签到管理</h2>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow" >
-            <a-row justify="end">
-                <a-button type="primary" style="margin: 8px; " ghost @click="showAdd">新建签到</a-button>
-            </a-row>
-            <a-table bordered :data-source="dataSource" :columns="columns">
-                <template #bodyCell="{ column, text, record }">
-                    <template v-if="column.dataIndex === 'operation'">
-                        <div class="editable-row-operations">
-                            <span>
-                              <a @click="edit(record.id)">编辑</a>
-                            </span>
-                            <span>
-                              <a @click="showInfo(record.id)">详情</a>
-                            </span>
-                            <span>
-                              <a-popconfirm
-                                      v-if="dataSource.length"
-                                      title="是否删除?"
-                                      @confirm="onDelete(record.key)"
-                              >
-                                <a style="color:red;">删除</a>
-                              </a-popconfirm>
-                        </span>
+        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow">
+            <a-spin :spinning="spinning" tip="Loading...">
+                <a-row justify="end">
+                    <a-button type="primary" style="margin: 8px; " ghost @click="showAdd">新建签到</a-button>
+                </a-row>
+                <a-table :columns="columns" :data-source="data_checkins" bordered>
+                    <template
+                        #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
+                    >
+                        <div style="padding: 8px">
+                            <a-input
+                                ref="searchInput"
+                                :placeholder="`Search ${column.dataIndex}`"
+                                :value="selectedKeys[0]"
+                                style="width: 188px; margin-bottom: 8px; display: block"
+                                @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
+                                @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
+                            />
+                            <a-button
+                                type="primary"
+                                size="small"
+                                style="width: 90px; margin-right: 8px"
+                                @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
+                            >
+                                <template #icon>
+                                    <search-outlined/>
+                                </template>
+                                Search
+                            </a-button>
+                            <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
+                                Reset
+                            </a-button>
                         </div>
                     </template>
-                </template>
-            </a-table>
+                    <template #bodyCell="{ column, text, record }">
+                        <template v-if="['uid', 'name', 'classname', 'department'].includes(column.dataIndex)">
+                            <div>
+                                {{ text }}
+                            </div>
+                        </template>
+
+                        <template v-else-if="column.dataIndex === 'operation'">
+                            <div class="editable-row-operations">
+                            <span>
+                                <a @click="edit(record.id)">编辑</a>
+                            </span>
+                                <span>
+                                <a @click="showInfo(record.id)">详情</a>
+                            </span>
+                                <span>
+                                <a-popconfirm
+                                    v-if="data_checkins.length"
+                                    title="是否删除?"
+                                    @confirm="deleteCheckIns(record.id)"
+                                ><a style="color:red;">删除</a>
+                                </a-popconfirm>
+                            </span>
+                            </div>
+                        </template>
+                    </template>
+                </a-table>
+            </a-spin>
         </div>
         <a-modal v-model:visible="visibleInfo" title="签到情况">
             <a-card>
@@ -223,8 +297,12 @@ const showConfirm = (id) => {
                     <a-descriptions-item label="签到时间">2023-06-03 21:09</a-descriptions-item>
                     <a-descriptions-item label="签到状态">demo</a-descriptions-item>
                     <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
-                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger @click="showConfirm(item.id)">驳回</a-button>
-                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 5px;" @click="showPhotos(item.id)">查看照片</a-button>
+                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
+                                  @click="showConfirm(item.id)">驳回
+                        </a-button>
+                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 5px;"
+                                  @click="showPhotos(item.id)">查看照片
+                        </a-button>
                     </a-descriptions-item>
                 </a-descriptions>
             </a-card>
@@ -232,20 +310,17 @@ const showConfirm = (id) => {
         <a-modal v-model:visible="visibleAdd" title="新建签到">
 
             <a-form
-                :model="formState.checkIn"
-                name="validate_other"
-                v-bind="formItemLayout"
-                :validate-messages="validateMessages"
-                @finishFailed="onFinishFailed"
-                @finish="onFinish"
-                style="max-width: 500px;"
+                    :model="formState.checkIn"
+                    name="validate_other"
+                    :validate-messages="validateMessages"
+                    style="max-width: 500px;"
 
             >
                 <a-form-item
-                    name="activity_id"
-                    label="选择活动"
-                    has-feedback
-                    :rules="[{ required: true, message: '请选择一个有效活动' }]"
+                        name="activity_id"
+                        label="选择活动"
+                        has-feedback
+                        :rules="[{ required: true, message: '请选择一个有效活动' }]"
                 >
                     <a-select v-model:value="formState.checkIn.activity_id" placeholder="选择需要绑定的活动">
                         <a-select-option value="1">Demo 1</a-select-option>
@@ -256,26 +331,31 @@ const showConfirm = (id) => {
                     <a-input v-model:value="formState.checkIn.name"/>
                 </a-form-item>
                 <a-form-item has-feedback
-                             :rules="[{ required: true, message: '请选择日期' }]" name="start_datetime" label="开始时间">
+                             :rules="[{ required: true, message: '请选择日期' }]" name="start_datetime"
+                             label="开始时间">
                     <a-date-picker
-                        v-model:value="formState.checkIn.start_datetime"
-                        show-time
-                        format="YYYY-MM-DD HH:mm:ss"
-                        value-format="YYYY-MM-DD HH:mm:ss"
-                        placeholder="不得早于当前时间"
+                            v-model:value="formState.checkIn.start_datetime"
+                            show-time
+                            format="YYYY-MM-DD HH:mm:ss"
+                            value-format="YYYY-MM-DD HH:mm:ss"
+                            placeholder="不得早于当前时间"
                     />
                 </a-form-item>
                 <a-form-item has-feedback
                              :rules="[{ required: true, message: '请选择日期' }]" name="end_datetime" label="结束时间">
                     <a-date-picker
-                        v-model:value="formState.checkIn.end_datetime"
-                        show-time
-                        format="YYYY-MM-DD HH:mm:ss"
-                        value-format="YYYY-MM-DD HH:mm:ss"
-                        placeholder="不得早于当前时间"
+                            v-model:value="formState.checkIn.end_datetime"
+                            show-time
+                            format="YYYY-MM-DD HH:mm:ss"
+                            value-format="YYYY-MM-DD HH:mm:ss"
+                            placeholder="不得早于当前时间"
                     />
                 </a-form-item>
-
+                <a-form-item label="签到用户">
+                    <a-button @click="showUsers">
+                        添加活动内的用户
+                    </a-button>
+                </a-form-item>
                 <template #footer>
                     <a-button type="primary" @click="handleCancel">关闭</a-button>
                     <a-button type="primary" danger>变更</a-button>
@@ -285,19 +365,16 @@ const showConfirm = (id) => {
         <a-modal v-model:visible="visibleEdit" title="编辑">
 
             <a-form
-                :model="formState.checkIn"
-                name="validate_other"
-                v-bind="formItemLayout"
-                :validate-messages="validateMessages"
-                @finishFailed="onFinishFailed"
-                @finish="onFinish"
-                style="max-width: 500px;"
+                    :model="formState.checkIn"
+                    name="validate_other"
+                    :validate-messages="validateMessages"
+                    style="max-width: 500px;"
 
             >
                 <a-form-item
-                    name="activity_id"
-                    label="已绑定的活动"
-                    has-feedback
+                        name="activity_id"
+                        label="已绑定的活动"
+                        has-feedback
                 >
                     <a-select v-model:value="formState.checkIn.activity_id" placeholder="绑定的活动" disabled>
                         <a-select-option value="1">Demo 1</a-select-option>
@@ -308,23 +385,24 @@ const showConfirm = (id) => {
                     <a-input v-model:value="formState.checkIn.name"/>
                 </a-form-item>
                 <a-form-item has-feedback
-                             :rules="[{ required: true, message: '请选择日期' }]" name="start_datetime" label="开始时间">
+                             :rules="[{ required: true, message: '请选择日期' }]" name="start_datetime"
+                             label="开始时间">
                     <a-date-picker
-                        v-model:value="formState.checkIn.start_datetime"
-                        show-time
-                        format="YYYY-MM-DD HH:mm:ss"
-                        value-format="YYYY-MM-DD HH:mm:ss"
-                        placeholder="不得早于当前时间"
+                            v-model:value="formState.checkIn.start_datetime"
+                            show-time
+                            format="YYYY-MM-DD HH:mm:ss"
+                            value-format="YYYY-MM-DD HH:mm:ss"
+                            placeholder="不得早于当前时间"
                     />
                 </a-form-item>
                 <a-form-item has-feedback
                              :rules="[{ required: true, message: '请选择日期' }]" name="end_datetime" label="结束时间">
                     <a-date-picker
-                        v-model:value="formState.checkIn.end_datetime"
-                        show-time
-                        format="YYYY-MM-DD HH:mm:ss"
-                        value-format="YYYY-MM-DD HH:mm:ss"
-                        placeholder="不得早于当前时间"
+                            v-model:value="formState.checkIn.end_datetime"
+                            show-time
+                            format="YYYY-MM-DD HH:mm:ss"
+                            value-format="YYYY-MM-DD HH:mm:ss"
+                            placeholder="不得早于当前时间"
                     />
                 </a-form-item>
 
@@ -334,16 +412,30 @@ const showConfirm = (id) => {
                 </template>
             </a-form>
         </a-modal>
-        <a-modal  v-model:visible="visiblePhotos" >
-            <a-image-preview-group >
-                <a-image :width="200" src="https://aliyuncdn.antdv.com/vue.png" />
-                <a-image :width="200" src="https://aliyuncdn.antdv.com/logo.png" />
+        <a-modal v-model:visible="visiblePhotos">
+            <a-image-preview-group>
+                <a-image :width="200" src="https://aliyuncdn.antdv.com/vue.png"/>
+                <a-image :width="200" src="https://aliyuncdn.antdv.com/logo.png"/>
             </a-image-preview-group>
             <template #footer>
                 <a-button type="primary" @click="handlePhotosCancel">OK</a-button>
             </template>
         </a-modal>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false" >
+        <a-modal title="活动用户列表" v-model:visible="visibleUsers">
+            <a-tree
+                v-model:expandedKeys="expandedKeys"
+                v-model:selectedKeys="selectedKeys"
+                v-model:checkedKeys="checkedKeys"
+                checkable
+                :tree-data="treeData"
+            >
+                <template #title="{ title, key }">
+                    <span v-if="key === '0-0-1-0'" style="color: #1890ff">{{ title }}</span>
+                    <template v-else>{{ title }}</template>
+                </template>
+            </a-tree>
+        </a-modal>
+        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false">
             管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
         </div>
 

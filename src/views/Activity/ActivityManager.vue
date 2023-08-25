@@ -234,9 +234,11 @@ const listActivities = () => {
 }
 
 const deleteActivity = id => {
+    spinning.value = true;
     api.delete("/activity/" + id).then((res) => {
         let {msg} = res.data;
         message.success(msg);
+        spinning.value = false;
         myData.value = myData.value.filter(activity => activity.id !== id);
     }).catch((err) => {
         let {msg} = err.response.data;

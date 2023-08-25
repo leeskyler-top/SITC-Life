@@ -19,7 +19,7 @@ const formState = reactive({
     activity: {
         title: null,
         note: null,
-        type: 'self-enrollment',
+        type: 'ase',
         place: null,
         start_time: null,
         end_time: null,
