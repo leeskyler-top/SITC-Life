@@ -4,7 +4,6 @@ import {cloneDeep, debounce} from 'lodash-es';
 import {ExclamationCircleOutlined, PlusOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import {Empty, message, Modal} from "ant-design-vue";
 import api from "@/api";
-
 const isShow = ref(true);
 
 function handleResize(event) {
@@ -115,12 +114,13 @@ const showInfo = id => {
 };
 
 const loading = ref(false);
-const visible = ref(false);
-const showModal = id => {
-    visible.value = true;
+const visibleCheckIn = ref(false);
+const showCheckIn = id => {
+    visibleCheckIn.value = true;
+    listCheckIns(id);
 };
 const handleCancel = () => {
-    visible.value = false;
+    visibleCheckIn.value = false;
     visibleInfo.value = false;
     visiblePhotos.value = false;
     visiblePeople.value = false;
@@ -193,6 +193,7 @@ let lastFetchId = 0;
 
 const spinning = ref(false)
 const users_spinning = ref(false)
+const checkIn_spinning = ref(false)
 
 const users = ref([]);
 const fetchUser = value => {
@@ -364,7 +365,7 @@ const showConfirm = (op, id) => {
             okText: '确认',
             cancelText: '取消',
             onOk() {
-
+                revokeCheckIn(id)
             }
         });
     } else if (op === "deleteCheckIn") {
@@ -375,7 +376,7 @@ const showConfirm = (op, id) => {
             okText: '确认',
             cancelText: '取消',
             onOk() {
-
+                deleteCheckIn(id)
             }
         });
     } else if (op === "deleteUser", id) {
@@ -427,6 +428,81 @@ const closeEnroll = () => {
     }).catch(err => {
         loading.value = false;
         let {msg} = err.response.data;
+        message.error(msg);
+    })
+}
+
+const data_checkins = ref([]);
+
+const currentCheckInPage = ref(1);
+
+const currentCheckInPageData = computed(() => {
+    const startIdx = (currentCheckInPage.value - 1) * 5;
+    const endIdx = startIdx + 5;
+    return data_checkins.value.slice(startIdx, endIdx);
+});
+const listCheckIns = (id) => {
+    checkIn_spinning.value = true;
+    api.get("/checkin/activity/" + id).then(res => {
+        checkIn_spinning.value = false;
+        let {data} = res.data
+        data = data.map(item => {
+            if (item.status === 'waiting') {
+                item.status = '未开始';
+            } else if (item.status === 'started') {
+                item.status = '正在进行';
+            } else if (item.status === 'ended') {
+                item.status = '已结束';
+            }
+            return item;
+        })
+        data_checkins.value = data;
+    }).catch(err => {
+        let {msg} = err.response.data;
+        checkIn_spinning.value = false;
+        message.error(msg);
+    })
+}
+
+const deleteCheckIn = id => {
+    spinning.value = true;
+    api.delete("/checkin/" + id).then(res => {
+        data_checkins.value = data_checkins.value.filter(item => item.id !== id);
+        spinning.value = false;
+        let {data, msg} = res.data;
+        message.success(msg);
+    }).catch(err => {
+        spinning.value = false;
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+};
+
+const revokeCheckIn = (id) => {
+    loading.value = true;
+    api.get("/checkin/revoke/" + id).then(res => {
+        let {msg} = res.data;
+        loading.value = false;
+        let checkInToUpdate = data_checkins.value
+            .find(item => item.id === id)
+            .checkInUsers.find(item => item.id === id);
+
+        if (checkInToUpdate) {
+            checkInToUpdate.status = 'unsigned';
+        }
+        data_checkins.value = data_checkins.value.sort((v1, v2) => {
+            if (v1.status === 'unsigned' && v2.status !== 'unsigned') {
+                return -1;
+            }
+            if (v1.status !== 'unsigned' && v2.status === 'unsigned') {
+                return 1;
+            }
+            return 0;
+        });
+        message.success(msg);
+    }).catch(err => {
+        let {msg} = err.response.data;
+        loading.value = false;
         message.error(msg);
     })
 }
@@ -489,7 +565,7 @@ const closeEnroll = () => {
                           <a @click="showPeople(record.id)">活动人员</a>
                       </span>
                                 <span>
-                          <a @click="showModal(record.id)">签到管理</a>
+                          <a @click="showCheckIn(record.id)">签到管理</a>
                       </span>
                                 <span>
                         <a-popconfirm title="Sure to delete?" @confirm="deleteActivity(record.id)"><a
@@ -504,42 +580,55 @@ const closeEnroll = () => {
         <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false">
             管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
         </div>
-        <a-modal v-model:visible="visible" title="签到管理">
+        <a-modal v-model:visible="visibleCheckIn" title="签到管理">
             <template #footer>
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
             </template>
-            <a-collapse v-model:activeKey="activeKey" accordion>
-                <a-collapse-panel key="1" header="demo demo">
-                    <a-card>
-                        <p>签到开始时间: 2023-06-02 21:42</p>
-                        <p>签到结束时间: 2023-06-02 21:50</p>
-                        <div>
-                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;">变更结束时间
-                            </a-button>
-                            <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
-                                      danger @click="showConfirm('deleteCheckIn')">删除签到
-                            </a-button>
-                        </div>
-                    </a-card>
-                    <a-card>
-                        <a-descriptions v-for="item in data" title="姓名"
-                                        layout="vertical">
+            <a-spin :spinning="checkIn_spinning" tip="Loading...">
+                <a-descriptions-item v-if="data_checkins.length === 0">
+                    <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                    </div>
+                </a-descriptions-item>
+                <a-collapse v-model:activeKey="activeKey" accordion>
+                    <a-collapse-panel v-for="item in currentCheckInPageData" :key="item.id" :header="item.title">
+                        <a-card>
+                            <p>签到开始时间: {{ item.start_time }}</p>
+                            <p>签到结束时间: {{ item.end_time }}</p>
+                            <p>当前状态: {{ item.status }}</p>
+                            <div>
+                                <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;">变更结束时间
+                                </a-button>
+                                <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
+                                          danger @click="showConfirm('deleteCheckIn', item.id)">删除签到
+                                </a-button>
+                            </div>
+                        </a-card>
+                        <a-card>
+                            <a-descriptions v-for="info in item.checkInUsers" :title="info.uid + '-' + info.department + '-' + info.name"
+                                            layout="vertical">
 
-                            <a-descriptions-item label="签到时间">2023-06-03 21:09</a-descriptions-item>
-                            <a-descriptions-item label="签到状态">demo</a-descriptions-item>
-                            <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
-                                <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
-                                          @click="showConfirm('refuse')">驳回
-                                </a-button>
-                                <a-button type="primary"
-                                          style="padding-top: 5px; box-sizing: border-box; margin-left: 5px;"
-                                          @click="showPhotos(item.id)">查看照片
-                                </a-button>
-                            </a-descriptions-item>
-                        </a-descriptions>
-                    </a-card>
-                </a-collapse-panel>
-            </a-collapse>
+                                <a-descriptions-item label="签到时间" v-if="info.status === 'signed'">{{
+                                        info.updated_at
+                                    }}
+                                </a-descriptions-item>
+                                <a-descriptions-item label="签到状态">{{ info.status }}</a-descriptions-item>
+                                <a-descriptions-item label="操作" style="display:flex; gap: 4px;" v-if="info.status === 'signed'">
+                                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
+                                              :loading="loading" @click="showConfirm('refuse',info.id)">驳回
+                                    </a-button>
+                                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 5px;"
+                                              @click="showPhotos(info.id)">查看照片
+                                    </a-button>
+                                </a-descriptions-item>
+                            </a-descriptions>
+                        </a-card>
+                    </a-collapse-panel>
+
+                </a-collapse>
+                <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentCheckInPage" simple pageSize="5"
+                              :total="data_checkins.length" :disabled="data_checkins.length === 0" v-if="data_checkins.length !== 0"/>
+            </a-spin>
         </a-modal>
         <a-modal v-model:visible="visibleInfo" title="变更活动信息">
 

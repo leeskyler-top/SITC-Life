@@ -8,7 +8,7 @@ import {
     PlusOutlined,
     SearchOutlined
 } from '@ant-design/icons-vue';
-import {message, Modal, Table} from "ant-design-vue";
+import {Empty, message, Modal, Table} from "ant-design-vue";
 import api from "@/api";
 import my_config from "@/my_config";
 
@@ -166,7 +166,7 @@ const listCheckIns = () => {
 onMounted(() => {
     listCheckIns();
 });
-const deleteCheckIns = id => {
+const deleteCheckIn = id => {
     spinning.value = true;
     api.delete("/checkin/" + id).then(res => {
         data_checkins.value = data_checkins.value.filter(item => item.id !== id);
@@ -400,7 +400,15 @@ const revokeCheckIn = (id) => {
         if (checkInToUpdate) {
             checkInToUpdate.status = 'unsigned';
         }
-        data_checkins.value = data_checkins.value.sort(v1 => v1.status === 'unsigned');
+        info.value = info.value.sort((v1, v2) => {
+            if (v1.status === 'unsigned' && v2.status !== 'unsigned') {
+                return -1;
+            }
+            if (v1.status !== 'unsigned' && v2.status === 'unsigned') {
+                return 1;
+            }
+            return 0;
+        });;
         message.success(msg);
     })
 }
@@ -464,7 +472,7 @@ const revokeCheckIn = (id) => {
                                 <a-popconfirm
                                         v-if="data_checkins.length"
                                         title="是否删除?"
-                                        @confirm="deleteCheckIns(record.id)"
+                                        @confirm="deleteCheckIn(record.id)"
                                 ><a style="color:red;">删除</a>
                                 </a-popconfirm>
                             </span>
@@ -475,6 +483,11 @@ const revokeCheckIn = (id) => {
             </a-spin>
         </div>
         <a-modal v-model:visible="visibleInfo" title="签到情况">
+            <a-descriptions-item v-if="info.length === 0">
+                <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                </div>
+            </a-descriptions-item>
             <a-card v-for="item in currentInfoPageData">
                 <a-descriptions :title="item.uid + '-' + item.department + '-' + item.name"
                                 layout="vertical">
@@ -496,7 +509,7 @@ const revokeCheckIn = (id) => {
             </a-card>
             <a-pagination align="center" style="margin-top: 8px;"
                           v-model:current="currentInfoPage" simple pageSize="5"
-                          :total="info.length" v-if="info.length !== 0"/>
+                          :total="info.length" :disabled="info.length === 0" v-if="info.length !== 0"/>
             <template #footer>
                 <a-button type="primary" @click="getCurrentCheckInInfo">导出文件</a-button>
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
@@ -525,7 +538,7 @@ const revokeCheckIn = (id) => {
                             </a-select-option>
                         </a-select>
                     </a-form-item>
-                    <a-form-item name="title" label="签到名称" :rules="[{ required: true }]">
+                    <a-form-item :name="['checkIn','title']" label="签到名称" :rules="[{ required: true }]">
                         <a-input v-model:value="formState.checkIn.title"/>
                     </a-form-item>
                     <a-form-item has-feedback
