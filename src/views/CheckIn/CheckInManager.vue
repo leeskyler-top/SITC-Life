@@ -408,7 +408,7 @@ const revokeCheckIn = (id) => {
                 return 1;
             }
             return 0;
-        });;
+        });
         message.success(msg);
     })
 }

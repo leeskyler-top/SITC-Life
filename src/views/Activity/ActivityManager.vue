@@ -484,7 +484,7 @@ const revokeCheckIn = (id) => {
         let {msg} = res.data;
         loading.value = false;
         let checkInToUpdate = data_checkins.value
-            .find(item => item.id === id)
+            .find(item => item.id === activeKey.value * 1)
             .checkInUsers.find(item => item.id === id);
 
         if (checkInToUpdate) {
