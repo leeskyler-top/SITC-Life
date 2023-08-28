@@ -5,15 +5,15 @@ import {UploadOutlined} from "@ant-design/icons-vue";
 import api from "@/api";
 import my_config from "@/my_config";
 
-const data_using = ref([]);
-const data_assigned = ref([]);
-const data_applying = ref([]);
-const data_delay_applying = ref([]);
-const data_delayed = ref([]);
-const data_reject = ref([]);
-const data_returned = ref([]);
-const data_missed = ref([]);
-const data_damaged = ref([]);
+const dataUsing = ref([]);
+const dataAssigned = ref([]);
+const dataApplying = ref([]);
+const dataDelayApplying = ref([]);
+const dataDelayed = ref([]);
+const dataRejected = ref([]);
+const dataReturned = ref([]);
+const dataMissed = ref([]);
+const dataDamaged = ref([]);
 
 const activeKey = ref('using');
 const activeKey2 = ref('all');
@@ -57,20 +57,20 @@ const validateMessages = {
     required: '${label} 必填!',
 };
 
-const current_rent_application_id = ref();
+const currentRentApplicationId = ref();
 
 const visibleReturn = ref(false);
 
 const showReturn = (id) => {
     visibleReturn.value = true;
-    current_rent_application_id.value = id;
+    currentRentApplicationId.value = id;
 }
 
 const visibleDelay = ref(false);
 
 const showDelay = (id) => {
     visibleDelay.value = true;
-    current_rent_application_id.value = id;
+    currentRentApplicationId.value = id;
 }
 
 const visibleReport = ref(false);
@@ -78,7 +78,7 @@ const visibleReport = ref(false);
 
 const showReport = (id) => {
     visibleReport.value = true;
-    current_rent_application_id.value = id;
+    currentRentApplicationId.value = id;
 }
 
 let config = {
@@ -99,18 +99,18 @@ const disabledDate = (date) => {
 
 const delayEquipment = () => {
     loading.value = true;
-    api.post("/equipment/delay-apply/" + current_rent_application_id.value, formState.delayForm).then(res => {
+    api.post("/equipment/delay-apply/" + currentRentApplicationId.value, formState.delayForm).then(res => {
         let {msg} = res.data;
         loading.value = false;
         visibleDelay.value = false;
         formState.delayForm.apply_time = '';
         formState.delayForm.reason = '';
-        current_rent_application_id.value = null;
-        let current_data = data_using.value.find(item => item.id === current_rent_application_id.value);
-        if (current_data && current_data.status === 'assigned') {
-            data_assigned.value = data_assigned.value.filter(item => item.id !== current_rent_application_id.value);
-        } else if (current_data && current_data.status === 'delayed') {
-            data_delayed.value = data_delayed.value.filter(item => item.id !== current_rent_application_id.value);
+        currentRentApplicationId.value = null;
+        let currentData = dataUsing.value.find(item => item.id === currentRentApplicationId.value);
+        if (currentData && currentData.status === 'assigned') {
+            dataAssigned.value = dataAssigned.value.filter(item => item.id !== currentRentApplicationId.value);
+        } else if (currentData && currentData.status === 'delayed') {
+            dataDelayed.value = dataDelayed.value.filter(item => item.id !== currentRentApplicationId.value);
         }
         message.success(msg);
     }).catch(err => {
@@ -126,21 +126,21 @@ const returnEquipment = () => {
     for (let item of formState.return_photos.returned_url) {
         formData.append('returned_url[]', item.originFileObj)
     }
-    api.post("/equipment/back/" + current_rent_application_id.value, formData, config).then(res => {
+    api.post("/equipment/back/" + currentRentApplicationId.value, formData, config).then(res => {
         let {msg} = res.data;
         loading.value = false;
         visibleReturn.value = false;
-        let current_data = data_using.value.find(item => item.id === current_rent_application_id.value);
-        if (current_data && current_data.status === 'assigned') {
-            data_assigned.value = data_assigned.value.filter(item => item.id !== current_rent_application_id.value);
-        } else if (current_data && current_data.status === 'delay-applying') {
-            data_delay_applying.value = data_delay_applying.value.filter(item => item.id !== current_rent_application_id.value);
-        } else if (current_data && current_data.status === 'delayed') {
-            data_delayed.value = data_delayed.value.filter(item => item.id !== current_rent_application_id.value);
+        let currentData = dataUsing.value.find(item => item.id === currentRentApplicationId.value);
+        if (currentData && currentData.status === 'assigned') {
+            dataAssigned.value = dataAssigned.value.filter(item => item.id !== currentRentApplicationId.value);
+        } else if (currentData && currentData.status === 'delay-applying') {
+            dataDelayApplying.value = dataDelayApplying.value.filter(item => item.id !== currentRentApplicationId.value);
+        } else if (currentData && currentData.status === 'delayed') {
+            dataDelayed.value = dataDelayed.value.filter(item => item.id !== currentRentApplicationId.value);
         }
-        data_using.value = data_using.value.filter(item => item.id !== current_rent_application_id.value);
+        dataUsing.value = dataUsing.value.filter(item => item.id !== currentRentApplicationId.value);
         formState.return_photos.returned_url = [];
-        current_rent_application_id.value = null;
+        currentRentApplicationId.value = null;
         message.success(msg);
     }).catch(err => {
         let {msg} = err.response.data;
@@ -158,21 +158,21 @@ const reportEquipment = () => {
             formData.append('damaged_url[]', item.originFileObj)
         }
     }
-    api.post("/equipment/report/" + current_rent_application_id.value, formData, config).then(res => {
+    api.post("/equipment/report/" + currentRentApplicationId.value, formData, config).then(res => {
         let {msg} = res.data;
         loading.value = false;
         visibleReport.value = false;
-        let current_data = data_using.value.find(item => item.id === current_rent_application_id.value);
-        if (current_data && current_data.status === 'assigned') {
-            data_assigned.value = data_assigned.value.filter(item => item.id !== current_rent_application_id.value);
-        } else if (current_data && current_data.status === 'delay-applying') {
-            data_delay_applying.value = data_delay_applying.value.filter(item => item.id !== current_rent_application_id.value);
-        } else if (current_data && current_data.status === 'delayed') {
-            data_delayed.value = data_delayed.value.filter(item => item.id !== current_rent_application_id.value);
+        let currentData = dataUsing.value.find(item => item.id === currentRentApplicationId.value);
+        if (currentData && currentData.status === 'assigned') {
+            dataAssigned.value = dataAssigned.value.filter(item => item.id !== currentRentApplicationId.value);
+        } else if (currentData && currentData.status === 'delay-applying') {
+            dataDelayApplying.value = dataDelayApplying.value.filter(item => item.id !== currentRentApplicationId.value);
+        } else if (currentData && currentData.status === 'delayed') {
+            dataDelayed.value = dataDelayed.value.filter(item => item.id !== currentRentApplicationId.value);
         }
-        data_using.value = data_using.value.filter(item => item.id !== current_rent_application_id.value);
+        dataUsing.value = dataUsing.value.filter(item => item.id !== currentRentApplicationId.value);
         formState.report.damaged_url = [];
-        current_rent_application_id.value = null;
+        currentRentApplicationId.value = null;
         message.success(msg);
     }).catch(err => {
         let {msg} = err.response.data;
@@ -186,9 +186,9 @@ const images = ref();
 const showPhotos = (id, key) => {
     visiblePhotos.value = true;
     if (key === 'returned') {
-        images.value = JSON.parse(data_returned.value.find(i => i.id === id).returned_url);
+        images.value = JSON.parse(dataReturned.value.find(i => i.id === id).returned_url);
     } else if (key === 'damaged') {
-        images.value = JSON.parse(data_damaged.value.find(i => i.id === id).damaged_url);
+        images.value = JSON.parse(dataDamaged.value.find(i => i.id === id).damaged_url);
     }
 };
 const image_base_url = my_config.images_user_base_url;
@@ -207,7 +207,7 @@ const listUsingApplications = () => {
     spinning.value = true;
     api.get("/equipment/my/using").then((res) => {
         let {data} = res.data;
-        data_using.value = data;
+        dataUsing.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -220,7 +220,7 @@ const listAssignedApplications = () => {
     spinning.value = true;
     api.get("/equipment/my/assigned").then((res) => {
         let {data} = res.data;
-        data_assigned.value = data;
+        dataAssigned.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -233,7 +233,7 @@ const listRejectedApplications = () => {
     spinning.value = true;
     api.get("/equipment/my/rejected").then((res) => {
         let {data} = res.data;
-        data_returned.value = data;
+        dataReturned.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -246,7 +246,7 @@ const listApplyingApplications = () => {
     spinning.value = true;
     api.get("/equipment/my/applying").then((res) => {
         let {data} = res.data;
-        data_applying.value = data;
+        dataApplying.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -259,7 +259,7 @@ const listDelayApplyingApplications = () => {
     spinning.value = true;
     api.get("/equipment/my/delay-applying").then((res) => {
         let {data} = res.data;
-        data_delay_applying.value = data;
+        dataDelayApplying.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -272,7 +272,7 @@ const listDelayedApplications = () => {
     spinning.value = true;
     api.get("/equipment/my/delayed").then((res) => {
         let {data} = res.data;
-        data_delayed.value = data;
+        dataDelayed.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -285,7 +285,7 @@ const listReturnedApplications = () => {
     spinning.value = true;
     api.get("/equipment/my/returned").then((res) => {
         let {data} = res.data;
-        data_returned.value = data;
+        dataReturned.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -298,7 +298,7 @@ const listMissedApplications = () => {
     spinning.value = true;
     api.get("/equipment/my/missed").then((res) => {
         let {data} = res.data;
-        data_missed.value = data;
+        dataMissed.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -311,7 +311,7 @@ const listDamagedApplications = () => {
     spinning.value = true;
     api.get("/equipment/my/damaged").then((res) => {
         let {data} = res.data;
-        data_damaged.value = data;
+        dataDamaged.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -347,55 +347,55 @@ const handleTabChange = (key) => {
 const currentUsingPageData = computed(() => {
     const startIdx = (currentUsingPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_using.value.slice(startIdx, endIdx);
+    return dataUsing.value.slice(startIdx, endIdx);
 });
 
 const currentAssignedPageData = computed(() => {
     const startIdx = (currentAssignedPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_assigned.value.slice(startIdx, endIdx);
+    return dataAssigned.value.slice(startIdx, endIdx);
 });
 
 const currentDelayApplyingPageData = computed(() => {
     const startIdx = (currentDelayApplyingPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_delay_applying.value.slice(startIdx, endIdx);
+    return dataDelayApplying.value.slice(startIdx, endIdx);
 });
 
 const currentDelayedPageData = computed(() => {
     const startIdx = (currentDelayedPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_delayed.value.slice(startIdx, endIdx);
+    return dataDelayed.value.slice(startIdx, endIdx);
 });
 
 const currentApplyingPageData = computed(() => {
     const startIdx = (currentApplyingPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_applying.value.slice(startIdx, endIdx);
+    return dataApplying.value.slice(startIdx, endIdx);
 });
 
 const currentRejectedPageData = computed(() => {
     const startIdx = (currentRejectedPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_reject.value.slice(startIdx, endIdx);
+    return dataRejected.value.slice(startIdx, endIdx);
 });
 
 const currentReturnedPageData = computed(() => {
     const startIdx = (currentReturnedPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_returned.value.slice(startIdx, endIdx);
+    return dataReturned.value.slice(startIdx, endIdx);
 });
 
 const currentDamagedPageData = computed(() => {
     const startIdx = (currentDamagedPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_damaged.value.slice(startIdx, endIdx);
+    return dataDamaged.value.slice(startIdx, endIdx);
 });
 
 const currentMissedPageData = computed(() => {
     const startIdx = (currentMissedPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_missed.value.slice(startIdx, endIdx);
+    return dataMissed.value.slice(startIdx, endIdx);
 });
 
 
@@ -416,7 +416,7 @@ const token = ref(localStorage.token);
                 <a-tabs v-model:activeKey="activeKey2" @update:activeKey="handleTabChange" type="card" >
                     <a-tab-pane key="all" tab="全部">
                         <a-spin :spinning="spinning" tip="Loading...">
-                            <a-descriptions-item v-if="data_using.length === 0">
+                            <a-descriptions-item v-if="dataUsing.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                                 </div>
@@ -450,13 +450,13 @@ const token = ref(localStorage.token);
 
                                 </a-descriptions>
                                 <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentUsingPage" simple pageSize="5"
-                                              :total="data_using.length" v-if="data_using.length !== 0"/>
+                                              :total="dataUsing.length" v-if="dataUsing.length !== 0"/>
                             </a-space>
                         </a-spin>
                     </a-tab-pane>
                     <a-tab-pane key="assigned" tab="正常使用">
                         <a-spin :spinning="spinning" tip="Loading...">
-                            <a-descriptions-item v-if="data_assigned.length === 0">
+                            <a-descriptions-item v-if="dataAssigned.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                                 </div>
@@ -490,13 +490,13 @@ const token = ref(localStorage.token);
 
                                 </a-descriptions>
                                 <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentAssignedPage" simple pageSize="5"
-                                              :total="data_assigned.length" v-if="data_assigned.length !== 0"/>
+                                              :total="dataAssigned.length" v-if="dataAssigned.length !== 0"/>
                             </a-space>
                         </a-spin>
                     </a-tab-pane>
                     <a-tab-pane key="delay-applying" tab="申请延期中">
                         <a-spin :spinning="spinning" tip="Loading...">
-                            <a-descriptions-item v-if="data_delay_applying.length === 0">
+                            <a-descriptions-item v-if="dataDelayApplying.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                                 </div>
@@ -527,13 +527,13 @@ const token = ref(localStorage.token);
 
                                 </a-descriptions>
                                 <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentDelayApplyingPage" simple pageSize="5"
-                                              :total="data_delay_applying.length" v-if="data_delay_applying.length !== 0"/>
+                                              :total="dataDelayApplying.length" v-if="dataDelayApplying.length !== 0"/>
                             </a-space>
                         </a-spin>
                     </a-tab-pane>
                     <a-tab-pane key="delayed" tab="已延期">
                         <a-spin :spinning="spinning" tip="Loading...">
-                            <a-descriptions-item v-if="data_delayed.length === 0">
+                            <a-descriptions-item v-if="dataDelayed.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                                 </div>
@@ -567,7 +567,7 @@ const token = ref(localStorage.token);
 
                                 </a-descriptions>
                                 <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentDelayedPage" simple pageSize="5"
-                                              :total="data_delayed.length" v-if="data_delayed.length !== 0"/>
+                                              :total="dataDelayed.length" v-if="dataDelayed.length !== 0"/>
                             </a-space>
                         </a-spin>
                     </a-tab-pane>
@@ -575,7 +575,7 @@ const token = ref(localStorage.token);
             </a-tab-pane>
             <a-tab-pane key="applying" tab="待审核">
                 <a-spin :spinning="spinning" tip="Loading...">
-                    <a-descriptions-item v-if="data_applying.length === 0">
+                    <a-descriptions-item v-if="dataApplying.length === 0">
                         <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                             <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                         </div>
@@ -593,13 +593,13 @@ const token = ref(localStorage.token);
 
                         </a-descriptions>
                         <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentApplyingPage" simple pageSize="5"
-                                      :total="data_applying.length" v-if="data_applying.length !== 0"/>
+                                      :total="dataApplying.length" v-if="dataApplying.length !== 0"/>
                     </a-space>
                 </a-spin>
             </a-tab-pane>
             <a-tab-pane key="rejected" tab="已驳回">
                 <a-spin :spinning="spinning" tip="Loading...">
-                    <a-descriptions-item v-if="data_reject.length === 0">
+                    <a-descriptions-item v-if="dataRejected.length === 0">
                         <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                             <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                         </div>
@@ -620,13 +620,13 @@ const token = ref(localStorage.token);
 
                         </a-descriptions>
                         <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentRejectedPage" simple pageSize="5"
-                                      :total="data_reject.length" v-if="data_reject.length !== 0"/>
+                                      :total="dataRejected.length" v-if="dataRejected.length !== 0"/>
                     </a-space>
                 </a-spin>
             </a-tab-pane>
             <a-tab-pane key="returned" tab="已归还">
                 <a-spin :spinning="spinning" tip="Loading...">
-                    <a-descriptions-item v-if="data_returned.length === 0">
+                    <a-descriptions-item v-if="dataReturned.length === 0">
                         <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                             <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                         </div>
@@ -653,7 +653,7 @@ const token = ref(localStorage.token);
                             </a-descriptions-item>
                         </a-descriptions>
                         <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentReturnedPage" simple pageSize="5"
-                                      :total="data_returned.length" v-if="data_returned.length !== 0"/>
+                                      :total="dataReturned.length" v-if="dataReturned.length !== 0"/>
                     </a-space>
                 </a-spin>
             </a-tab-pane>
@@ -661,7 +661,7 @@ const token = ref(localStorage.token);
                 <a-tabs  v-model:activeKey="activeKey3" @update:activeKey="handleTabChange" type="card">
                     <a-tab-pane key="damaged" tab="报损坏">
                         <a-spin :spinning="spinning" tip="Loading...">
-                            <a-descriptions-item v-if="data_damaged.length === 0">
+                            <a-descriptions-item v-if="dataDamaged.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                                 </div>
@@ -690,13 +690,13 @@ const token = ref(localStorage.token);
 
                                 </a-descriptions>
                                 <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentDamagedPage" simple pageSize="5"
-                                              :total="data_damaged.length" v-if="data_damaged.length !== 0"/>
+                                              :total="dataDamaged.length" v-if="dataDamaged.length !== 0"/>
                             </a-space>
                         </a-spin>
                     </a-tab-pane>
                     <a-tab-pane key="missed" tab="报丢失">
                         <a-spin :spinning="spinning" tip="Loading...">
-                            <a-descriptions-item v-if="data_missed.length === 0">
+                            <a-descriptions-item v-if="dataMissed.length === 0">
                                 <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                     <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                                 </div>
@@ -716,7 +716,7 @@ const token = ref(localStorage.token);
 
                                 </a-descriptions>
                                 <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentMissedPage" simple pageSize="5"
-                                              :total="data_missed.length" v-if="data_missed.length !== 0"/>
+                                              :total="dataMissed.length" v-if="dataMissed.length !== 0"/>
                             </a-space>
                         </a-spin>
                     </a-tab-pane>

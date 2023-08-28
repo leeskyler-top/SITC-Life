@@ -44,22 +44,22 @@ const activityData = ref([]);
 const currentActivity = ref();
 const currentApplicationData = ref([]);
 const currentRejectedData = ref([]);
-const current_activity_id = ref();
+const currentActivityId = ref();
 
-const data_applying = ref([]);
-const data_rejected = ref([]);
+const dataApplying = ref([]);
+const dataRejected = ref([]);
 
 const currentRejectedPage = ref(1);
 const currentApplyingPage = ref(1);
 const currentRejectedPageData = computed(() => {
     const startIdx = (currentRejectedPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_rejected.value.slice(startIdx, endIdx);
+    return dataRejected.value.slice(startIdx, endIdx);
 });
 const currentApplyingPageData = computed(() => {
     const startIdx = (currentRejectedPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_applying.value.slice(startIdx, endIdx);
+    return dataApplying.value.slice(startIdx, endIdx);
 });
 const listEnrollmentByActivity = () => {
     spinning.value = true;
@@ -88,7 +88,7 @@ const listApplyingApplication = () => {
     spinning.value = true;
     api.get("/activity/enrollment/list/applying").then((res) => {
         let {data} = res.data;
-        data_applying.value = data;
+        dataApplying.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -101,7 +101,7 @@ const listRejectedApplication = () => {
     spinning.value = true;
     api.get("/activity/enrollment/list/rejected").then((res) => {
         let {data} = res.data;
-        data_rejected.value = data;
+        dataRejected.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -224,7 +224,7 @@ const agreeApplication = (id) => {
     api.get("/activity/enrollment/agree/" + id).then(res => {
         let {msg} = res.data;
         currentApplicationData.value = currentApplicationData.value.filter(item => item.id !== id);
-        data_applying.value = data_applying.value.filter(item => item.id !== id);
+        dataApplying.value = dataApplying.value.filter(item => item.id !== id);
         message.success(msg);
     }).catch(err => {
         let {msg} = err.response.data;
@@ -236,7 +236,7 @@ const rejectApplication = (id) => {
     api.get("/activity/enrollment/reject/" + id).then(res => {
         let {msg} = res.data;
         currentRejectedData.value.push(currentApplicationData.value.find(item => item.id === id));
-        data_applying.value = data_applying.value.filter(item => item.id !== id);
+        dataApplying.value = dataApplying.value.filter(item => item.id !== id);
         currentApplicationData.value = currentApplicationData.value.filter(item => item.id !== id);
         message.success(msg);
     }).catch(err => {
@@ -246,7 +246,7 @@ const rejectApplication = (id) => {
 }
 const showModal = id => {
     visible.value = true;
-    current_activity_id.value = id;
+    currentActivityId.value = id;
     currentActivity.value = activityData.value.find(item => item.id === id);
     currentApplicationData.value = currentActivity.value.activity_audits.filter(item => item.status === 'applying');
     currentRejectedData.value = currentActivity.value.activity_audits.filter(item => item.status === 'rejected');
@@ -276,12 +276,12 @@ const countDown = () => {
 const loading = ref(false);
 const openEnroll = () => {
     loading.value = true;
-    api.patch("/activity/" + current_activity_id.value, {
+    api.patch("/activity/" + currentActivityId.value, {
         'is_enrolling': '1'
     }).then(res => {
         loading.value = false;
         const currentActivityIndex = activityData.value.findIndex(
-            (activity) => activity.id === current_activity_id.value
+            (activity) => activity.id === currentActivityId.value
         );
         if (currentActivityIndex !== -1) {
             activityData.value[currentActivityIndex].is_enrolling = '1';
@@ -295,12 +295,12 @@ const openEnroll = () => {
 }
 const closeEnroll = () => {
     loading.value = true;
-    api.patch("/activity/" + current_activity_id.value, {
+    api.patch("/activity/" + currentActivityId.value, {
         'is_enrolling': '0'
     }).then(res => {
         loading.value = false;
         const currentActivityIndex = activityData.value.findIndex(
-            (activity) => activity.id === current_activity_id.value
+            (activity) => activity.id === currentActivityId.value
         );
         if (currentActivityIndex !== -1) {
             activityData.value[currentActivityIndex].is_enrolling = '0';
@@ -316,7 +316,7 @@ const closeEnroll = () => {
 const shouldRenderOpenEnrollButton = computed(() => {
     // 获取当前活动的类型
     const currentActivity = activityData.value.find(
-        (activity) => activity.id === current_activity_id.value
+        (activity) => activity.id === currentActivityId.value
     );
     return currentActivity.type !== "仅分配" && currentActivity.is_enrolling === '0';
 });
@@ -324,7 +324,7 @@ const shouldRenderOpenEnrollButton = computed(() => {
 const shouldRenderCloseEnrollButton = computed(() => {
     // 获取当前活动的类型
     const currentActivity = activityData.value.find(
-        (activity) => activity.id === current_activity_id.value
+        (activity) => activity.id === currentActivityId.value
     );
     return currentActivity.type !== "仅分配" && currentActivity.is_enrolling === '1';
 });
@@ -395,7 +395,7 @@ const shouldRenderCloseEnrollButton = computed(() => {
                     <a-tabs v-model:activeKey="activeKey2" @update:activeKey="handleTabChange" type="card">
                         <a-tab-pane key="applying" tab="待审核">
                             <a-spin :spinning="spinning" tip="Loading...">
-                                <a-descriptions-item v-if="data_applying.length === 0">
+                                <a-descriptions-item v-if="dataApplying.length === 0">
                                     <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                         <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                                     </div>
@@ -422,14 +422,14 @@ const shouldRenderCloseEnrollButton = computed(() => {
                                         </a-descriptions-item>
                                     </a-descriptions>
                                     <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentApplyingPage" simple pageSize="5"
-                                                  :total="data_applying.length" v-if="data_applying.length !== 0"/>
+                                                  :total="dataApplying.length" v-if="dataApplying.length !== 0"/>
 
                                 </a-space>
                             </a-spin>
                         </a-tab-pane>
                         <a-tab-pane key="rejected" tab="曾驳回">
                             <a-spin :spinning="spinning" tip="Loading...">
-                                <a-descriptions-item v-if="data_rejected.length === 0">
+                                <a-descriptions-item v-if="dataRejected.length === 0">
                                     <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                         <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                                     </div>
@@ -448,7 +448,7 @@ const shouldRenderCloseEnrollButton = computed(() => {
                                         <a-descriptions-item label="报名时间">{{  item.created_at  }}</a-descriptions-item>
                                     </a-descriptions>
                                     <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentRejectedPage" simple pageSize="5"
-                                                  :total="data_rejected.length" v-if="data_rejected.length !== 0"/>
+                                                  :total="dataRejected.length" v-if="dataRejected.length !== 0"/>
                                 </a-space>
                             </a-spin>
                         </a-tab-pane>

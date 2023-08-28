@@ -169,27 +169,27 @@ const users = ref([]);
 const count = computed(() => myData.value.length + 1);
 const visibleInfo = ref(false);
 
-const current_equipment_id = ref();
+const currentEquipmentId = ref();
 const showInfo = id => {
     visibleInfo.value = true;
-    current_equipment_id.value = id;
-    let current_equipment = myData.value.find(item => item.id === current_equipment_id.value)
-    formState.equipment.fixed_assets_num = current_equipment.fixed_assets_num;
-    formState.equipment.name = current_equipment.name;
-    formState.equipment.model = current_equipment.model;
-    if (current_equipment.status === '空闲') {
+    currentEquipmentId.value = id;
+    let currentEquipment = myData.value.find(item => item.id === currentEquipmentId.value)
+    formState.equipment.fixed_assets_num = currentEquipment.fixed_assets_num;
+    formState.equipment.name = currentEquipment.name;
+    formState.equipment.model = currentEquipment.model;
+    if (currentEquipment.status === '空闲') {
         formState.equipment.status = 'unassigned';
         assignedStatusDisable.value = false;
-    } else if (current_equipment.status === '出借') {
+    } else if (currentEquipment.status === '出借') {
         formState.equipment.status = 'assigned';
         assignedStatusDisable.value = true;
-    } else if (current_equipment.status === '报废') {
+    } else if (currentEquipment.status === '报废') {
         formState.equipment.status = 'scrapped';
         assignedStatusDisable.value = false;
-    } else if (current_equipment.status === '损坏') {
+    } else if (currentEquipment.status === '损坏') {
         formState.equipment.status = 'damaged';
         assignedStatusDisable.value = false;
-    } else if (current_equipment.status === '丢失') {
+    } else if (currentEquipment.status === '丢失') {
         formState.equipment.status = 'missed';
         assignedStatusDisable.value = false;
     }
@@ -213,9 +213,9 @@ const deleteEquipment = id => {
 
 const changeEquipment = () => {
     loading.value = true;
-    api.patch("/equipment/" + current_equipment_id.value, formState.equipment).then((res) => {
+    api.patch("/equipment/" + currentEquipmentId.value, formState.equipment).then((res) => {
         let {msg} = res.data;
-        let current_equipment = myData.value.find(item => item.id === current_equipment_id.value)
+        let currentEquipment = myData.value.find(item => item.id === currentEquipmentId.value)
         if (formState.equipment.status === 'unassigned') {
             formState.equipment.status = '空闲';
         } else if (formState.equipment.status === 'assigned') {
@@ -228,7 +228,7 @@ const changeEquipment = () => {
             formState.equipment.status = '丢失';
         }
         loading.value = false;
-        Object.assign(current_equipment, formState.equipment);
+        Object.assign(currentEquipment, formState.equipment);
         visibleInfo.value = false;
         message.success(msg);
     }).catch((err) => {

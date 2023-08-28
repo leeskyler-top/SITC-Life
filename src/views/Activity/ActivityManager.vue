@@ -4,8 +4,9 @@ import {cloneDeep, debounce} from 'lodash-es';
 import {ExclamationCircleOutlined, PlusOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import {Empty, message, Modal} from "ant-design-vue";
 import api from "@/api";
+import my_config from "@/my_config";
 const isShow = ref(true);
-
+const token = ref(localStorage.token);
 function handleResize(event) {
     // 页面宽度小于525px时，不显示表格
     if (document.documentElement.clientWidth < 525) {
@@ -101,16 +102,16 @@ const handleReset = clearFilters => {
 const visibleInfo = ref(false);
 const showInfo = id => {
     visibleInfo.value = true;
-    current_activity_id.value = id;
-    let current_activity = myData.value.find(item => item.id === current_activity_id.value)
-    formState.activity.title = current_activity.title;
-    formState.activity.type = current_activity.type;
-    formState.activity.place = current_activity.place;
-    formState.activity.note = current_activity.note;
-    formState.activity.start_time = current_activity.start_time;
-    formState.activity.end_time = current_activity.end_time;
-    formState.activity.type = current_activity.type;
-    formState.activity.is_enrolling = current_activity.is_enrolling;
+    currentActivityId.value = id;
+    let currentActivity = myData.value.find(item => item.id === currentActivityId.value)
+    formState.activity.title = currentActivity.title;
+    formState.activity.type = currentActivity.type;
+    formState.activity.place = currentActivity.place;
+    formState.activity.note = currentActivity.note;
+    formState.activity.start_time = currentActivity.start_time;
+    formState.activity.end_time = currentActivity.end_time;
+    formState.activity.type = currentActivity.type;
+    formState.activity.is_enrolling = currentActivity.is_enrolling;
 };
 
 const loading = ref(false);
@@ -134,34 +135,54 @@ const handleCancelAddUser = () => {
 const visiblePhotos = ref(false)
 const showPhotos = id => {
     visiblePhotos.value = true;
+    images.value = JSON.parse(dataCheckIns.value.find(item => item.id === activeKey.value * 1).checkInUsers.find(item => item.id === id).image_url);
 };
+
+const handleCancelPhotos = () => {
+    visiblePhotos.value = false;
+    images.value = [];
+};
+
 const visiblePeople = ref(false);
 
 const activityUsers = ref([]);
 const showPeople = id => {
     activityUsers.value = [];
     visiblePeople.value = true;
-    current_activity_id.value = id;
-    users_spinning.value = true;
+    currentActivityId.value = id;
+    usersSpinning.value = true;
     api.get("/activity/" + id).then(res => {
-        users_spinning.value = false;
+        usersSpinning.value = false;
         let {msg, data} = res.data;
         activityUsers.value = data.users;
         message.success(msg);
     }).catch((err) => {
         let {msg} = err.response.data;
-        users_spinning.value = false;
+        usersSpinning.value = false;
         message.error(msg);
     });
-}
-const hidePhotos = () => {
-    visiblePhotos.value = false;
 }
 
 const visibleAddUsers = ref(false);
 const showAddUsers = id => {
     visibleAddUsers.value = true;
-}
+};
+
+const visibleEdit = ref(false);
+const currentCheckInId = ref();
+const showEdit = (id) => {
+    visibleEdit.value = true;
+    currentCheckInId.value = id;
+    formState.checkIn.start_time = dataCheckIns.value.find(item => item.id === activeKey.value * 1).start_time;
+    formState.checkIn.end_time = dataCheckIns.value.find(item => item.id === activeKey.value * 1).end_time;
+};
+
+const handleCancelEdit = () => {
+    visibleEdit.value = false;
+    currentCheckInId.value = null;
+    formState.checkIn.start_time = null;
+    formState.checkIn.end_time = null;
+};
 
 const formItemLayout = {
     labelCol: {
@@ -182,6 +203,10 @@ const formState = reactive({
         end_time: null,
         is_enrolling: '1'
     },
+    checkIn: {
+        start_time: null,
+        end_time: null
+    }
 });
 const validateMessages = {
     required: '${label} 必填!',
@@ -192,12 +217,13 @@ const validateMessages = {
 let lastFetchId = 0;
 
 const spinning = ref(false)
-const users_spinning = ref(false)
-const checkIn_spinning = ref(false)
+const usersSpinning = ref(false)
+const checkInsSpinning = ref(false)
 
 const users = ref([]);
+const images = ref([]);
 const fetchUser = value => {
-    api.post("/activity/search/users/" + current_activity_id.value, {
+    api.post("/activity/search/users/" + currentActivityId.value, {
         info: value
     }).then(res => {
         let {data} = res.data;
@@ -247,12 +273,12 @@ const deleteActivity = id => {
     });
 }
 
-const current_activity_id = ref();
+const currentActivityId = ref();
 const changeActivityInfo = () => {
     loading.value = true;
-    api.patch("/activity/" + current_activity_id.value, formState.activity).then((res) => {
+    api.patch("/activity/" + currentActivityId.value, formState.activity).then((res) => {
         let {msg} = res.data;
-        let current_activity = myData.value.find(item => item.id === current_activity_id.value)
+        let currentActivity = myData.value.find(item => item.id === currentActivityId.value)
         if (formState.activity.type === 'assignment') {
             formState.activity.type = '指派';
         } else if (formState.activity.type === 'self-enrollment') {
@@ -261,7 +287,7 @@ const changeActivityInfo = () => {
             formState.activity.type = '自主报名与指派';
         }
         loading.value = false;
-        Object.assign(current_activity, formState.activity);
+        Object.assign(currentActivity, formState.activity);
         visibleInfo.value = false;
         message.success(msg);
     }).catch((err) => {
@@ -272,7 +298,7 @@ const changeActivityInfo = () => {
 }
 
 const changeActivityUser = () => {
-    users_spinning.value = true;
+    usersSpinning.value = true;
     loading.value = true;
     visibleAddUsers.value = false;
      let formData = {
@@ -281,23 +307,23 @@ const changeActivityUser = () => {
     for (let item of state.value) {
         formData.user_id.push(item.value)
     }
-    api.patch("/activity/" + current_activity_id.value, formData).then((res) => {
+    api.patch("/activity/" + currentActivityId.value, formData).then((res) => {
         let {msg, data} = res.data;
         visibleInfo.value = false;
         activityUsers.value = data.users
-        users_spinning.value = false
+        usersSpinning.value = false
         loading.value = false;
         message.success(msg);
     }).catch((err) => {
         let {msg} = err.response.data;
-        users_spinning.value = false;
+        usersSpinning.value = false;
         loading.value = false;
         message.error(msg);
     });
 }
 
 const removeUser = (user_id) => {
-    api.delete("/activity/remove/" + current_activity_id.value + '/' + user_id).then((res) => {
+    api.delete("/activity/remove/" + currentActivityId.value + '/' + user_id).then((res) => {
         let {msg} = res.data;
         message.success(msg);
         activityUsers.value = activityUsers.value.filter(user => user.id !== user_id);
@@ -319,7 +345,7 @@ watch(state.value, () => {
 const shouldRenderOpenEnrollButton = computed(() => {
     // 获取当前活动的类型
     const currentActivity = myData.value.find(
-        (activity) => activity.id === current_activity_id.value
+        (activity) => activity.id === currentActivityId.value
     );
     return currentActivity.type !== "仅分配" && currentActivity.is_enrolling === '0';
 });
@@ -327,7 +353,7 @@ const shouldRenderOpenEnrollButton = computed(() => {
 const shouldRenderCloseEnrollButton = computed(() => {
     // 获取当前活动的类型
     const currentActivity = myData.value.find(
-        (activity) => activity.id === current_activity_id.value
+        (activity) => activity.id === currentActivityId.value
     );
     return currentActivity.type !== "仅分配" && currentActivity.is_enrolling === '1';
 });
@@ -335,7 +361,7 @@ const shouldRenderCloseEnrollButton = computed(() => {
 const shouldDisableEnrollButton = computed(() => {
     // 获取当前活动的类型
     const currentActivity = myData.value.find(
-        (activity) => activity.id === current_activity_id.value
+        (activity) => activity.id === currentActivityId.value
     );
     return currentActivity.type === "仅分配" || currentActivity.status !== 'waiting';
 });
@@ -343,7 +369,7 @@ const shouldDisableEnrollButton = computed(() => {
 const shouldRenderAddUserButton = computed(() => {
     // 获取当前活动的类型
     const currentActivity = myData.value.find(
-        (activity) => activity.id === current_activity_id.value
+        (activity) => activity.id === currentActivityId.value
     );
     return currentActivity.type !== "仅自主报名";
 });
@@ -351,7 +377,7 @@ const shouldRenderAddUserButton = computed(() => {
 const shouldRenderEnrollSelection = computed(() => {
     // 获取当前活动的类型
     const currentActivity = myData.value.find(
-        (activity) => activity.id === current_activity_id.value
+        (activity) => activity.id === currentActivityId.value
     );
     return currentActivity.type === "仅分配" || currentActivity.status !== 'waiting';
 });
@@ -394,12 +420,12 @@ const showConfirm = (op, id) => {
 }
 const openEnroll = () => {
     loading.value = true;
-    api.patch("/activity/" + current_activity_id.value, {
+    api.patch("/activity/" + currentActivityId.value, {
         'is_enrolling': '1'
     }).then(res => {
         loading.value = false;
         const currentActivityIndex = myData.value.findIndex(
-            (activity) => activity.id === current_activity_id.value
+            (activity) => activity.id === currentActivityId.value
         );
         if (currentActivityIndex !== -1) {
             myData.value[currentActivityIndex].is_enrolling = '1';
@@ -414,12 +440,12 @@ const openEnroll = () => {
 
 const closeEnroll = () => {
     loading.value = true;
-    api.patch("/activity/" + current_activity_id.value, {
+    api.patch("/activity/" + currentActivityId.value, {
         'is_enrolling': '0'
     }).then(res => {
         loading.value = false;
         const currentActivityIndex = myData.value.findIndex(
-            (activity) => activity.id === current_activity_id.value
+            (activity) => activity.id === currentActivityId.value
         );
         if (currentActivityIndex !== -1) {
             myData.value[currentActivityIndex].is_enrolling = '0';
@@ -432,19 +458,19 @@ const closeEnroll = () => {
     })
 }
 
-const data_checkins = ref([]);
+const dataCheckIns = ref([]);
 
 const currentCheckInPage = ref(1);
 
 const currentCheckInPageData = computed(() => {
     const startIdx = (currentCheckInPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return data_checkins.value.slice(startIdx, endIdx);
+    return dataCheckIns.value.slice(startIdx, endIdx);
 });
 const listCheckIns = (id) => {
-    checkIn_spinning.value = true;
+    checkInsSpinning.value = true;
     api.get("/checkin/activity/" + id).then(res => {
-        checkIn_spinning.value = false;
+        checkInsSpinning.value = false;
         let {data} = res.data
         data = data.map(item => {
             if (item.status === 'waiting') {
@@ -456,10 +482,10 @@ const listCheckIns = (id) => {
             }
             return item;
         })
-        data_checkins.value = data;
+        dataCheckIns.value = data;
     }).catch(err => {
         let {msg} = err.response.data;
-        checkIn_spinning.value = false;
+        checkInsSpinning.value = false;
         message.error(msg);
     })
 }
@@ -467,7 +493,7 @@ const listCheckIns = (id) => {
 const deleteCheckIn = id => {
     spinning.value = true;
     api.delete("/checkin/" + id).then(res => {
-        data_checkins.value = data_checkins.value.filter(item => item.id !== id);
+        dataCheckIns.value = dataCheckIns.value.filter(item => item.id !== id);
         spinning.value = false;
         let {data, msg} = res.data;
         message.success(msg);
@@ -483,14 +509,14 @@ const revokeCheckIn = (id) => {
     api.get("/checkin/revoke/" + id).then(res => {
         let {msg} = res.data;
         loading.value = false;
-        let checkInToUpdate = data_checkins.value
+        let checkInToUpdate = dataCheckIns.value
             .find(item => item.id === activeKey.value * 1)
             .checkInUsers.find(item => item.id === id);
 
         if (checkInToUpdate) {
             checkInToUpdate.status = 'unsigned';
         }
-        data_checkins.value = data_checkins.value.sort((v1, v2) => {
+        dataCheckIns.value = dataCheckIns.value.sort((v1, v2) => {
             if (v1.status === 'unsigned' && v2.status !== 'unsigned') {
                 return -1;
             }
@@ -504,6 +530,24 @@ const revokeCheckIn = (id) => {
         let {msg} = err.response.data;
         loading.value = false;
         message.error(msg);
+    })
+}
+
+const changeCheckIn = () => {
+    loading.value = true;
+    api.patch("/checkin/" + currentCheckInId.value, formState.checkIn).then(res => {
+        let {msg} = res.data;
+        let current_checkins = dataCheckIns.value.find(item => item.id === currentCheckInId.value)
+        loading.value = false;
+        visibleEdit.value = false;
+        Object.assign(current_checkins, formState.checkIn);
+        formState.checkIn.start_time = null;
+        formState.checkIn.end_time = null;
+        message.success(msg)
+    }).catch(err => {
+        let {msg} = err.response.data;
+        loading.value = false;
+        message.error(msg)
     })
 }
 
@@ -584,8 +628,8 @@ const revokeCheckIn = (id) => {
             <template #footer>
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
             </template>
-            <a-spin :spinning="checkIn_spinning" tip="Loading...">
-                <a-descriptions-item v-if="data_checkins.length === 0">
+            <a-spin :spinning="checkInsSpinning" tip="Loading...">
+                <a-descriptions-item v-if="dataCheckIns.length === 0">
                     <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                     </div>
@@ -597,7 +641,7 @@ const revokeCheckIn = (id) => {
                             <p>签到结束时间: {{ item.end_time }}</p>
                             <p>当前状态: {{ item.status }}</p>
                             <div>
-                                <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;">变更结束时间
+                                <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showEdit(item.id)">变更结束时间
                                 </a-button>
                                 <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
                                           danger @click="showConfirm('deleteCheckIn', item.id)">删除签到
@@ -627,7 +671,7 @@ const revokeCheckIn = (id) => {
 
                 </a-collapse>
                 <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentCheckInPage" simple pageSize="5"
-                              :total="data_checkins.length" :disabled="data_checkins.length === 0" v-if="data_checkins.length !== 0"/>
+                              :total="dataCheckIns.length" :disabled="dataCheckIns.length === 0" v-if="dataCheckIns.length !== 0"/>
             </a-spin>
         </a-modal>
         <a-modal v-model:visible="visibleInfo" title="变更活动信息">
@@ -707,7 +751,7 @@ const revokeCheckIn = (id) => {
             </template>
         </a-modal>
         <a-modal v-model:visible="visiblePeople" title="活动人员">
-            <a-spin :spinning="users_spinning" tip="Loading...">
+            <a-spin :spinning="usersSpinning" tip="Loading...">
                 <a-card>
                     <div>
                         <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;"
@@ -744,15 +788,6 @@ const revokeCheckIn = (id) => {
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
             </template>
         </a-modal>
-        <a-modal v-model:visible="visiblePhotos">
-            <a-image-preview-group>
-                <a-image :width="200" src="https://aliyuncdn.antdv.com/vue.png"/>
-                <a-image :width="200" src="https://aliyuncdn.antdv.com/logo.png"/>
-            </a-image-preview-group>
-            <template #footer>
-                <a-button type="primary" @click="hidePhotos">关闭</a-button>
-            </template>
-        </a-modal>
         <a-modal v-model:visible="visibleAddUsers" title="指派人员">
             <a-select
                     v-model:value="state.value"
@@ -772,6 +807,53 @@ const revokeCheckIn = (id) => {
             <template #footer>
                 <a-button type="primary" @click="handleCancelAddUser">关闭</a-button>
                 <a-button type="primary" @click="changeActivityUser" html-type="submit" danger>变更</a-button>
+            </template>
+        </a-modal>
+        <a-modal v-model:visible="visibleEdit" title="签到时间控制">
+
+            <a-form
+                :model="formState"
+                name="validate_other"
+                :validate-messages="validateMessages"
+                style="max-width: 100%;"
+
+            >
+                <a-form-item has-feedback
+                             :rules="[{ required: true, message: '请选择日期' }]" :name="['checkIn','start_time']"
+                             label="开始时间">
+                    <a-date-picker
+                        v-model:value="formState.checkIn.start_time"
+                        show-time
+                        format="YYYY-MM-DD HH:mm:ss"
+                        value-format="YYYY-MM-DD HH:mm:ss"
+                        placeholder="不得早于当前时间"
+                    />
+                </a-form-item>
+                <a-form-item has-feedback
+                             :rules="[{ required: true, message: '请选择日期' }]" :name="['checkIn','end_time']"
+                             label="结束时间">
+                    <a-date-picker
+                        v-model:value="formState.checkIn.end_time"
+                        show-time
+                        format="YYYY-MM-DD HH:mm:ss"
+                        value-format="YYYY-MM-DD HH:mm:ss"
+                        placeholder="不得早于当前时间"
+                    />
+                </a-form-item>
+            </a-form>
+            <template #footer>
+                <a-button type="primary" @click="handleCancelEdit">关闭</a-button>
+                <a-button type="primary" danger :loading="loading" @click="changeCheckIn">变更</a-button>
+            </template>
+        </a-modal>
+        <a-modal v-model:visible="visiblePhotos" title="查看打卡图片">
+            <a-image-preview-group>
+                <a-image v-for="item in images" :width="200"
+                         fallback="data:image/png;base64,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"
+                         :src="my_config.images_admin_base_url + item + '?token=' + token"/>
+            </a-image-preview-group>
+            <template #footer>
+                <a-button type="primary" @click="handleCancelPhotos">OK</a-button>
             </template>
         </a-modal>
     </a-layout-content>

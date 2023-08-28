@@ -109,11 +109,11 @@
         </a-modal>
         <a-modal v-model:visible="visiblePassword" title="重置密码">
             <a-card>
-                <p>用户id：<span>{{ current_user.id }}</span></p>
-                <p>学籍号：<span>{{ current_user.uid }}</span></p>
-                <p>姓名：<span>{{ current_user.name }}</span></p>
-                <p>班级：<span>{{ current_user.classname }}</span></p>
-                <p>系部：<span>{{ current_user.department }}</span></p>
+                <p>用户id：<span>{{ currentUser.id }}</span></p>
+                <p>学籍号：<span>{{ currentUser.uid }}</span></p>
+                <p>姓名：<span>{{ currentUser.name }}</span></p>
+                <p>班级：<span>{{ currentUser.classname }}</span></p>
+                <p>系部：<span>{{ currentUser.department }}</span></p>
             </a-card>
             <a-card>
                 <p>密码已重置，密码为: {{ new_password }}</p>
@@ -174,15 +174,15 @@ const listUsers = () => {
 }
 
 const changeUser = () => {
-    api.patch("/user/" + current_id.value, formState).then((res) => {
+    api.patch("/user/" + currentId.value, formState).then((res) => {
         let {msg} = res.data;
-        let current_user = myData.value.find(item => item.id === current_id.value)
+        let currentUser = myData.value.find(item => item.id === currentId.value)
         if (formState.is_admin === '1') {
             formState.is_admin = "管理员";
         } else {
             formState.is_admin = "用户";
         }
-        Object.assign(current_user, formState);
+        Object.assign(currentUser, formState);
         visible.value = false;
         message.success(msg);
     }).catch((err) => {
@@ -279,11 +279,11 @@ const deleteUser = id => {
 const visible = ref(false);
 const visiblePassword = ref(false);
 
-const current_id = ref();
+const currentId = ref();
 
 const showModal = id => {
     let user = myData.value.find(i => i.id === id);
-    current_id.value = id;
+    currentId.value = id;
     if (user) {
         if (user.is_admin === "管理员") {
             formState.is_admin = '1';
@@ -310,10 +310,10 @@ const resetPwd = id => {
         message.error(msg);
     });
 }
-const current_user = ref();
+const currentUser = ref();
 const showPassword = id => {
     let user = myData.value.find(i => i.id === id);
-    current_user.value = user;
+    currentUser.value = user;
     visiblePassword.value = true;
 }
 

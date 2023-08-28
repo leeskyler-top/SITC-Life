@@ -237,7 +237,7 @@ const checkInNow = () => {
         </a-form>
         <template #footer>
             <a-button type="primary" danger @click="handleCancel">取消</a-button>
-            <a-button type="primary" @click="checkInNow" :disabled="formState.image_url.length === 0" :loading="loading">上传并归还</a-button>
+            <a-button type="primary" @click="checkInNow" :disabled="formState.image_url.length === 0" :loading="loading">上传并签到</a-button>
         </template>
     </a-modal>
 </template>

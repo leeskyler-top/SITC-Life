@@ -25,7 +25,7 @@ window.addEventListener('resize', handleResize);
 
 
 const myData = ref([]);
-const delayed_data = ref([]);
+const delayedData = ref([]);
 const state = reactive({
     searchText: '',
     searchedColumn: '',
@@ -50,7 +50,7 @@ const listDelayApplicationsByERID = id => {
     spinning.value = true;
     api.get("/equipment/list/delay-application/search/" + id).then((res) => {
         let {data} = res.data;
-        delayed_data.value = data;
+        delayedData.value = data;
         spinning.value = false;
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -64,7 +64,7 @@ const currentDelayedApplicationsPage = ref(1);
 const currentDelayedApplicationsPageData = computed(() => {
     const startIdx = (currentDelayedApplicationsPage.value - 1) * 5;
     const endIdx = startIdx + 5;
-    return delayed_data.value.slice(startIdx, endIdx);
+    return delayedData.value.slice(startIdx, endIdx);
 });
 
 const searchInput = ref('');
@@ -284,7 +284,7 @@ const handleCancel = () => {
         </a-modal>
         <a-modal v-model:visible="visibleDelayedHistory" title="查看延期历史">
             <a-spin :spinning="spinning" style="width: 100%;">
-                <a-descriptions-item v-if="delayed_data.length === 0">
+                <a-descriptions-item v-if="delayedData.length === 0">
                     <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                     </div>
@@ -321,7 +321,7 @@ const handleCancel = () => {
                     </a-descriptions>
                     <a-pagination align="center" style="margin-top: 8px;"
                                   v-model:current="currentDelayedApplicationsPage" simple pageSize="5"
-                                  :total="delayed_data.length" v-if="delayed_data.length !== 0"/>
+                                  :total="delayedData.length" v-if="delayedData.length !== 0"/>
                 </a-space>
             </a-spin>
 
