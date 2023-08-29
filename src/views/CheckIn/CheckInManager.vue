@@ -1,5 +1,5 @@
 <script setup>
-import {reactive, ref, unref, onMounted, createVNode, computed} from 'vue';
+import {reactive, ref, unref, onMounted, createVNode, computed, watch} from 'vue';
 import {cloneDeep} from 'lodash-es';
 import {
     CheckOutlined,
@@ -66,6 +66,9 @@ const getCurrentCheckInInfo = () => {
 const state = reactive({
     searchText: '',
     searchedColumn: '',
+    data: [],
+    value: [],
+    fetching: false
 });
 
 const searchInput = ref();
@@ -135,7 +138,7 @@ const handleCloseUser = (op) => {
     }
 }
 
-const data_checkins = ref([]);
+const dataCheckIns = ref([]);
 
 const spinning = ref(false);
 const loading = ref(false);
@@ -155,7 +158,7 @@ const listCheckIns = () => {
             }
             return item;
         })
-        data_checkins.value = data;
+        dataCheckIns.value = data;
     }).catch(err => {
         let {msg} = err.response.data;
         spinning.value = false;
@@ -169,7 +172,7 @@ onMounted(() => {
 const deleteCheckIn = id => {
     spinning.value = true;
     api.delete("/checkin/" + id).then(res => {
-        data_checkins.value = data_checkins.value.filter(item => item.id !== id);
+        dataCheckIns.value = dataCheckIns.value.filter(item => item.id !== id);
         spinning.value = false;
         let {data, msg} = res.data;
         message.success(msg);
@@ -187,7 +190,7 @@ const currentCheckInInfoId = ref();
 const showInfo = id => {
     visibleInfo.value = true;
     currentCheckInInfoId.value = id;
-    info.value = data_checkins.value.find(item => item.id === id).checkInUsers;
+    info.value = dataCheckIns.value.find(item => item.id === id).checkInUsers;
     info.value.sort(v1 => v1.status === 'unsigned');
 }
 
@@ -201,7 +204,7 @@ const currentInfoPageData = computed(() => {
 
 const visibleEdit = ref(false);
 const edit = id => {
-    let currentCheckIn = data_checkins.value.find(item => item.id === id);
+    let currentCheckIn = dataCheckIns.value.find(item => item.id === id);
     formState.checkIn.activity_id = currentCheckIn.activity_id;
     formState.checkIn.title = currentCheckIn.title;
     formState.checkIn.start_time = currentCheckIn.start_time;
@@ -215,7 +218,7 @@ const visiblePhotos = ref(false);
 const images = ref([]);
 const showPhotos = id => {
     visiblePhotos.value = true;
-    images.value = JSON.parse(data_checkins.value.find(item => item.id === currentCheckInInfoId.value).checkInUsers.find(item => item.id === id).image_url);
+    images.value = JSON.parse(dataCheckIns.value.find(item => item.id === currentCheckInInfoId.value).checkInUsers.find(item => item.id === id).image_url);
 }
 
 const visibleAdd = ref(false);
@@ -257,17 +260,30 @@ const handlePhotosCancel = () => {
     visiblePhotos.value = false;
 }
 
-const showConfirm = (id) => {
-    Modal.confirm({
-        title: '确认操作',
-        icon: createVNode(ExclamationCircleOutlined),
-        content: '是否判定此签到无效并驳回？',
-        okText: '确认',
-        cancelText: '取消',
-        onOk() {
-            revokeCheckIn(id)
-        }
-    });
+const showConfirm = (id, op) => {
+    if (op === 'revokeUser') {
+        Modal.confirm({
+            title: '确认操作',
+            icon: createVNode(ExclamationCircleOutlined),
+            content: '是否判定此签到无效并驳回？',
+            okText: '确认',
+            cancelText: '取消',
+            onOk() {
+                revokeCheckIn(id)
+            }
+        });
+    } else if (op === 'removeUser') {
+        Modal.confirm({
+            title: '确认操作',
+            icon: createVNode(ExclamationCircleOutlined),
+            content: '是否判定此签到无效并驳回？',
+            okText: '确认',
+            cancelText: '取消',
+            onOk() {
+                removeUser(id)
+            }
+        });
+    }
 }
 
 const columns_2 = [
@@ -353,7 +369,7 @@ const addCheckIn = () => {
         let {msg} = res.data;
         message.success(msg);
         loading.value = false;
-        data_checkins.value.push(formState.checkIn);
+        dataCheckIns.value.push(formState.checkIn);
         formState.checkIn.activity_id = null;
         formState.checkIn.title = null;
         formState.checkIn.start_time = null;
@@ -371,7 +387,7 @@ const changeCheckIn = () => {
     loading.value = true;
     api.patch("/checkin/" + currentCheckInId.value, formState.checkIn).then(res => {
         let {msg} = res.data;
-        let current_checkins = data_checkins.value.find(item => item.id === currentCheckInId.value)
+        let current_checkins = dataCheckIns.value.find(item => item.id === currentCheckInId.value)
         loading.value = false;
         visibleEdit.value = false;
         Object.assign(current_checkins, formState.checkIn);
@@ -393,7 +409,7 @@ const revokeCheckIn = (id) => {
     api.get("/checkin/revoke/" + id).then(res => {
         let {msg} = res.data;
         loading.value = false;
-        let checkInToUpdate = data_checkins.value
+        let checkInToUpdate = dataCheckIns.value
             .find(item => item.id === currentCheckInInfoId.value)
             .checkInUsers.find(item => item.id === id);
 
@@ -413,6 +429,111 @@ const revokeCheckIn = (id) => {
     })
 }
 
+
+watch(state.value, () => {
+    state.data = [];
+    state.fetching = false;
+});
+
+const usersSpinning = ref(false)
+const searchUsersList = ref([])
+const fetchUser = value => {
+    api.post("/checkin/search/users/" + currentCheckInId.value, {
+        info: value
+    }).then(res => {
+        let {data} = res.data;
+        searchUsersList.value = data.map(i => ({
+            label: `${i.user.uid} - ${i.user.name}`,
+            value: `${i.user.id}`,
+        }));
+    }).catch(err => {
+        let {msg} = err.response.data;
+        message.error(msg);
+    });
+}
+
+const visiblePeople = ref(false);
+
+const checkInUsersList = ref([]);
+const currentCheckInUserPage = ref(1);
+const currentCheckInUserPageData = computed(() => {
+    const startIdx = (currentCheckInUserPage.value - 1) * 5;
+    const endIdx = startIdx + 5;
+    return checkInUsersList.value.slice(startIdx, endIdx);
+});
+const showPeople = () => {
+    checkInUsersList.value = [];
+    visiblePeople.value = true;
+    usersSpinning.value = true;
+    api.get("/checkin/" + currentCheckInId.value).then(res => {
+        usersSpinning.value = false;
+        let {msg, data} = res.data;
+        checkInUsersList.value = data.checkInUsers;
+        message.success(msg);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        usersSpinning.value = false;
+        message.error(msg);
+    });
+}
+
+const handleCancelPeople = () => {
+    visiblePeople.value = false;
+}
+
+const removeUser = (user_id) => {
+    usersSpinning.value = true;
+    usersRemoveLoading.value = true;
+    api.delete("/checkin/user/" + user_id).then((res) => {
+        let {msg} = res.data;
+        usersSpinning.value = false;
+        usersRemoveLoading.value = false;
+        message.success(msg);
+        checkInUsersList.value = checkInUsersList.value.filter(user => user.id !== user_id);
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        usersSpinning.value = false;
+        usersRemoveLoading.value = false;
+        message.error(msg);
+    });
+}
+
+const visibleAddUsers = ref(false);
+const showAddUsers = id => {
+    visibleAddUsers.value = true;
+};
+
+const handleCancelAddUser = () => {
+    visibleAddUsers.value = false;
+};
+
+const usersAddLoading = ref(false)
+const usersRemoveLoading = ref(false)
+const changeCheckInUsers = () => {
+    usersSpinning.value = true;
+    usersAddLoading.value = true;
+    visibleAddUsers.value = false;
+    let formData = {
+        user_id: []
+    }
+    for (let item of state.value) {
+        formData.user_id.push(item.value)
+    }
+    api.post("/checkin/user/" + currentCheckInId.value, formData).then((res) => {
+        let {msg} = res.data;
+        visibleInfo.value = false;
+        usersSpinning.value = false;
+        usersAddLoading.value = false;
+        message.success(msg);
+        showPeople();
+    }).catch((err) => {
+        let {msg} = err.response.data;
+        usersSpinning.value = false;
+        usersAddLoading.value = false;
+        message.error(msg);
+    });
+}
+
 </script>
 <template>
     <a-layout-content
@@ -424,7 +545,7 @@ const revokeCheckIn = (id) => {
                 <a-row justify="end">
                     <a-button type="primary" style="margin: 8px; " ghost @click="showAdd">新建签到</a-button>
                 </a-row>
-                <a-table :columns="columns" :data-source="data_checkins" bordered>
+                <a-table :columns="columns" :data-source="dataCheckIns" bordered>
                     <template
                             #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
                     >
@@ -470,7 +591,7 @@ const revokeCheckIn = (id) => {
                             </span>
                                 <span>
                                 <a-popconfirm
-                                        v-if="data_checkins.length"
+                                        v-if="dataCheckIns.length"
                                         title="是否删除?"
                                         @confirm="deleteCheckIn(record.id)"
                                 ><a style="color:red;">删除</a>
@@ -499,7 +620,7 @@ const revokeCheckIn = (id) => {
                     <a-descriptions-item label="签到状态">{{ item.status }}</a-descriptions-item>
                     <a-descriptions-item label="操作" style="display:flex; gap: 4px;" v-if="item.status === 'signed'">
                         <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
-                                  :loading="loading" @click="showConfirm(item.id)">驳回
+                                  :loading="loading" @click="showConfirm(item.id, 'revokeUser')">驳回
                         </a-button>
                         <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 5px;"
                                   @click="showPhotos(item.id)">查看照片
@@ -530,9 +651,9 @@ const revokeCheckIn = (id) => {
                             has-feedback
                             :rules="[{ required: true, message: '请选择一个有效活动' }]"
                     >
-                        <a-select v-model:value="formState.checkIn.activity_id" v-for="item in activitiesData"
+                        <a-select v-model:value="formState.checkIn.activity_id"
                                   placeholder="绑定活动">
-                            <a-select-option :value="item.id">{{ item.place }} - {{ item.title }} - {{
+                            <a-select-option v-for="item in activitiesData" :value="item.id">{{ item.place }} - {{ item.title }} - {{
                                 item.admin_name
                                 }}
                             </a-select-option>
@@ -590,8 +711,8 @@ const revokeCheckIn = (id) => {
                         has-feedback
                 >
                     <a-select v-model:value="formState.checkIn.activity_id" placeholder="绑定的活动"
-                              v-for="item in activitiesData" disabled>
-                        <a-select-option :value="item.id">{{ item.place }} - {{ item.title }} - {{
+                              disabled>
+                        <a-select-option  v-for="item in activitiesData" :value="item.id">{{ item.place }} - {{ item.title }} - {{
                             item.admin_name
                             }}
                         </a-select-option>
@@ -621,6 +742,9 @@ const revokeCheckIn = (id) => {
                             value-format="YYYY-MM-DD HH:mm:ss"
                             placeholder="不得早于当前时间"
                     />
+                </a-form-item>
+                <a-form-item label="签到组用户">
+                    <a-button @click="showPeople">编辑用户</a-button>
                 </a-form-item>
             </a-form>
             <template #footer>
@@ -688,7 +812,58 @@ const revokeCheckIn = (id) => {
         </div>
 
     </a-layout-content>
+    <a-modal v-model:visible="visiblePeople" title="签到组人员">
+        <a-spin :spinning="usersSpinning" tip="Loading...">
+            <a-card>
+                <div>
+                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showAddUsers(1)">新增人员
+                    </a-button>
+                </div>
+            </a-card>
+            <a-descriptions-item v-if="checkInUsersList.length === 0">
+                <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+                </div>
+            </a-descriptions-item>
+            <a-card v-for="item in currentCheckInUserPageData">
+                <a-descriptions
+                    :title="item.uid + '-' + item.department + '-' + item.name"
+                    layout="vertical" style="padding-top: 6px;">
 
+                    <a-descriptions-item style="display:flex; gap: 4px;">
+                        <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
+                                  :loading="usersRemoveLoading" @click="showConfirm(item.id,'removeUser')">移除并通知
+                        </a-button>
+                    </a-descriptions-item>
+                </a-descriptions>
+            </a-card>
+            <a-pagination style="margin-top: 8px;" simple align="center" :total="checkInUsersList.length" :disabled="checkInUsersList.length === 0" pageSize="5" v-model:current="currentCheckInUserPage"></a-pagination>
+        </a-spin>
+        <template #footer>
+            <a-button type="primary" @click="handleCancelPeople">关闭</a-button>
+        </template>
+    </a-modal>
+    <a-modal v-model:visible="visibleAddUsers" title="指派人员">
+        <a-select
+            v-model:value="state.value"
+            mode="multiple"
+            label-in-value
+            placeholder="搜索用户，输入*获取所有"
+            style="width: 100%"
+            :filter-option="false"
+            :not-found-content="state.fetching ? undefined : null"
+            :options="searchUsersList"
+            @search="fetchUser"
+        >
+        </a-select>
+        <template v-if="state.fetching" #notFoundContent>
+            <a-spin size="small" />
+        </template>
+        <template #footer>
+            <a-button type="primary" @click="handleCancelAddUser">关闭</a-button>
+            <a-button type="primary" @click="changeCheckInUsers" html-type="submit" danger>变更</a-button>
+        </template>
+    </a-modal>
 </template>
 
 <style scoped>

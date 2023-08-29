@@ -297,7 +297,7 @@ const changeActivityInfo = () => {
     });
 }
 
-const changeActivityUser = () => {
+const changeActivityUsers = () => {
     usersSpinning.value = true;
     loading.value = true;
     visibleAddUsers.value = false;
@@ -806,7 +806,7 @@ const changeCheckIn = () => {
             </template>
             <template #footer>
                 <a-button type="primary" @click="handleCancelAddUser">关闭</a-button>
-                <a-button type="primary" @click="changeActivityUser" html-type="submit" danger>变更</a-button>
+                <a-button type="primary" @click="changeActivityUsers" html-type="submit" danger>变更</a-button>
             </template>
         </a-modal>
         <a-modal v-model:visible="visibleEdit" title="签到时间控制">

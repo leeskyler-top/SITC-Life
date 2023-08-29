@@ -1,9 +1,9 @@
 <script setup>
 import {reactive, ref, computed, onMounted} from "vue";
-import {MinusCircleOutlined, PlusOutlined} from "@ant-design/icons-vue";
+import {MinusCircleOutlined, PlusOutlined, SearchOutlined} from "@ant-design/icons-vue";
 import {debounce} from 'lodash-es';
 import api from "@/api";
-import {message} from "ant-design-vue";
+import {message, Table} from "ant-design-vue";
 
 
 const formItemLayout = {
@@ -28,6 +28,7 @@ const formState = reactive({
         name: null,
         start_time: null,
         end_time: null,
+        user_id: []
     }
 });
 
@@ -40,7 +41,6 @@ const validateMessages = {
 
 const state = reactive({
     data: [],
-    value: [],
 });
 
 const checkInSwitcher = ref(false);
@@ -53,10 +53,10 @@ const listUsers = () => {
     api.get("/user").then((res) => {
         spinning.value = false;
         let {data} = res.data;
-        users.value = data.map(i => ({
-            label: `${i.uid} - ${i.name}`,
-            value: `${i.id}`,
-        }));
+        users.value = data.map(user => {
+            user.key = user.id; // Adding 'key' field for each user
+            return user;
+        });
     }).catch((err) => {
         let {msg} = err.response.data;
         message.error(msg);
@@ -71,12 +71,12 @@ const loading = ref(false);
 const addActivity = () => {
     loading.value = true;
     let formData = formState.activity;
-    if (formState.activity.type !== 'self-enrollment') {
-        formData.user_id = []
-        for (let item of state.value) {
-            formData.user_id.push(item.value)
-        }
-    }
+    // if (formState.activity.type !== 'self-enrollment') {
+    //     formData.user_id = []
+    //     // for (let item of state.value) {
+    //     //     formData.user_id.push(item.value)
+    //     // }
+    // }
     api.post("/activity", formData).then((res) => {
         loading.value = false;
         let {msg} = res.data;
@@ -86,7 +86,7 @@ const addActivity = () => {
         formState.activity.place = null;
         formState.activity.start_time = null;
         formState.activity.end_time = null;
-        state.value = [];
+        // state.value = [];
     }).catch((err) => {
         let {msg} = err.response.data;
         loading.value = false;
@@ -102,6 +102,78 @@ const now = new Date();
 const disabledDate = (date) => {
     return date && date.valueOf() < now.valueOf();
 };
+
+const handleSearch = (selectedKeys, confirm, dataIndex) => {
+    confirm();
+    state.searchText = selectedKeys[0];
+    state.searchedColumn = dataIndex;
+};
+
+const handleReset = clearFilters => {
+    clearFilters({confirm: true});
+    state.searchText = '';
+};
+
+const visibleUsers = ref(false);
+
+const showUsers = () => {
+    visibleUsers.value = true;
+}
+
+const columns = [
+    {
+        title: '学籍号',
+        dataIndex: 'uid',
+        width: '25%',
+        customFilterDropdown: true,
+        onFilter: (value, record) =>
+            record.uid.toString().toLowerCase().includes(value.toLowerCase()),
+    },
+    {
+        title: '系部',
+        dataIndex: 'department',
+        width: '25%',
+        customFilterDropdown: true,
+        onFilter: (value, record) =>
+            record.department.toString().toLowerCase().includes(value.toLowerCase()),
+    },
+    {
+        title: '班级',
+        dataIndex: 'classname',
+        width: '25%',
+        customFilterDropdown: true,
+        onFilter: (value, record) =>
+            record.classname.toString().toLowerCase().includes(value.toLowerCase()),
+    },
+    {
+        title: '姓名',
+        dataIndex: 'name',
+        width: '25%',
+        customFilterDropdown: true,
+        onFilter: (value, record) =>
+            record.name.toString().toLowerCase().includes(value.toLowerCase()),
+    },
+];
+
+const handleCloseUser = (op) => {
+    visibleUsers.value = false;
+    if (op === 'F') {
+        formState.activity.user_id = [];
+    }
+}
+
+const onSelectChange = changableRowKeys => {
+    formState.activity.user_id = changableRowKeys;
+};
+
+const rowSelection = computed(() => {
+    return {
+        selectedRowKeys: formState.activity.user_id,
+        onChange: onSelectChange,
+        hideDefaultSelections: true,
+        selections: [Table.SELECTION_ALL, Table.SELECTION_INVERT, Table.SELECTION_NONE],
+    };
+});
 
 </script>
 
@@ -144,15 +216,7 @@ const disabledDate = (date) => {
                         </a-select>
                     </a-form-item>
                     <a-form-item v-if="formState.activity.type === 'assignment' || formState.activity.type === 'ase'" label="指派用户" >
-                        <a-select
-                                v-model:value="state.value"
-                                mode="multiple"
-                                label-in-value
-                                placeholder="选择用户"
-                                :filter-option="false"
-                                :options="users"
-                        >
-                        </a-select>
+                        <a-button @click="showUsers">选择用户</a-button>
                     </a-form-item>
                     <a-form-item has-feedback
                                  :rules="[{ required: true, message: '请选择日期' }]"
@@ -234,6 +298,51 @@ const disabledDate = (date) => {
             </a-col>
         </a-row>
     </a-layout-content>
+    <a-modal title="活动用户列表" v-model:visible="visibleUsers">
+        <a-card>
+            <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>
+            <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>
+        </a-card>
+        <a-table :row-selection="rowSelection" :columns="columns" :data-source="users">
+            <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
+                <div style="padding: 8px">
+                    <a-input
+                        ref="searchInput"
+                        :placeholder="`Search ${column.dataIndex}`"
+                        :value="selectedKeys[0]"
+                        style="width: 188px; margin-bottom: 8px; display: block"
+                        @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
+                        @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
+                    />
+                    <a-button
+                        type="primary"
+                        size="small"
+                        style="width: 90px; margin-right: 8px"
+                        @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
+                    >
+                        <template #icon>
+                            <search-outlined/>
+                        </template>
+                        Search
+                    </a-button>
+                    <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
+                        Reset
+                    </a-button>
+                </div>
+            </template>
+            <template #bodyCell="{ column, text, record }">
+                <template v-if="['uid', 'name', 'classname', 'department'].includes(column.dataIndex)">
+                    <div>
+                        {{ text }}
+                    </div>
+                </template>
+            </template>
+        </a-table>
+        <template #footer>
+            <a-button type="primary" danger @click="handleCloseUser('F')">放弃选择</a-button>
+            <a-button type="primary" @click="handleCloseUser('T')">保存</a-button>
+        </template>
+    </a-modal>
 </template>
 
 <style scoped>
