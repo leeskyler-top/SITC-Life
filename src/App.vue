@@ -22,6 +22,7 @@ function handleResize(event) {
         isShow.value = true;
     }
 }
+window.addEventListener('resize', handleResize);
 
 const captchaImage = ref('');
 const refreshCaptcha = () => {

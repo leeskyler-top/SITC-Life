@@ -5,8 +5,10 @@ import {ExclamationCircleOutlined, PlusOutlined, SearchOutlined} from '@ant-desi
 import {Empty, message, Modal} from "ant-design-vue";
 import api from "@/api";
 import my_config from "@/my_config";
+
 const isShow = ref(true);
 const token = ref(localStorage.token);
+
 function handleResize(event) {
     // 页面宽度小于525px时，不显示表格
     if (document.documentElement.clientWidth < 525) {
@@ -124,14 +126,15 @@ const handleCancel = () => {
     visibleCheckIn.value = false;
     visibleInfo.value = false;
     visiblePhotos.value = false;
-    visiblePeople.value = false;
-    visibleAddUsers.value = false;
 };
 
 const handleCancelAddUser = () => {
     visibleAddUsers.value = false;
 };
 
+const handleCancelUsers = () => {
+    visiblePeople.value = false;
+}
 const visiblePhotos = ref(false)
 const showPhotos = id => {
     visiblePhotos.value = true;
@@ -146,12 +149,11 @@ const handleCancelPhotos = () => {
 const visiblePeople = ref(false);
 
 const activityUsers = ref([]);
-const showPeople = id => {
+const showPeople = () => {
     activityUsers.value = [];
     visiblePeople.value = true;
-    currentActivityId.value = id;
     usersSpinning.value = true;
-    api.get("/activity/" + id).then(res => {
+    api.get("/activity/" + currentActivityId.value).then(res => {
         usersSpinning.value = false;
         let {msg, data} = res.data;
         activityUsers.value = data.users;
@@ -301,9 +303,9 @@ const changeActivityUsers = () => {
     usersSpinning.value = true;
     loading.value = true;
     visibleAddUsers.value = false;
-     let formData = {
-         user_id: []
-     }
+    let formData = {
+        user_id: []
+    }
     for (let item of state.value) {
         formData.user_id.push(item.value)
     }
@@ -602,19 +604,16 @@ const changeCheckIn = () => {
                         </template>
                         <template v-else-if="column.dataIndex === 'operation'">
                             <div class="editable-row-operations">
-                      <span>
-                          <a @click="showInfo(record.id)">编辑</a>
-                      </span>
                                 <span>
-                          <a @click="showPeople(record.id)">活动人员</a>
-                      </span>
+                                    <a @click="showInfo(record.id)">编辑</a>
+                                </span>
                                 <span>
-                          <a @click="showCheckIn(record.id)">签到管理</a>
-                      </span>
+                                    <a @click="showCheckIn(record.id)">签到管理</a>
+                                </span>
                                 <span>
-                        <a-popconfirm title="Sure to delete?" @confirm="deleteActivity(record.id)"><a
-                                style="color: red">删除</a></a-popconfirm>
-                      </span>
+                                  <a-popconfirm title="Sure to delete?" @confirm="deleteActivity(record.id)"><a
+                                          style="color: red">删除</a></a-popconfirm>
+                                </span>
                             </div>
                         </template>
                     </template>
@@ -641,27 +640,32 @@ const changeCheckIn = () => {
                             <p>签到结束时间: {{ item.end_time }}</p>
                             <p>当前状态: {{ item.status }}</p>
                             <div>
-                                <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" @click="showEdit(item.id)">变更结束时间
+                                <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;"
+                                          @click="showEdit(item.id)">变更结束时间
                                 </a-button>
-                                <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
+                                <a-button type="primary"
+                                          style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
                                           danger @click="showConfirm('deleteCheckIn', item.id)">删除签到
                                 </a-button>
                             </div>
                         </a-card>
                         <a-card>
-                            <a-descriptions v-for="info in item.checkInUsers" :title="info.uid + '-' + info.department + '-' + info.name"
+                            <a-descriptions v-for="info in item.checkInUsers"
+                                            :title="info.uid + '-' + info.department + '-' + info.name"
                                             layout="vertical">
 
                                 <a-descriptions-item label="签到时间" v-if="info.status === 'signed'">{{
-                                        info.updated_at
+                                    info.updated_at
                                     }}
                                 </a-descriptions-item>
                                 <a-descriptions-item label="签到状态">{{ info.status }}</a-descriptions-item>
-                                <a-descriptions-item label="操作" style="display:flex; gap: 4px;" v-if="info.status === 'signed'">
+                                <a-descriptions-item label="操作" style="display:flex; gap: 4px;"
+                                                     v-if="info.status === 'signed'">
                                     <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
                                               :loading="loading" @click="showConfirm('refuse',info.id)">驳回
                                     </a-button>
-                                    <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 5px;"
+                                    <a-button type="primary"
+                                              style="padding-top: 5px; box-sizing: border-box; margin-left: 5px;"
                                               @click="showPhotos(info.id)">查看照片
                                     </a-button>
                                 </a-descriptions-item>
@@ -670,8 +674,10 @@ const changeCheckIn = () => {
                     </a-collapse-panel>
 
                 </a-collapse>
-                <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentCheckInPage" simple pageSize="5"
-                              :total="dataCheckIns.length" :disabled="dataCheckIns.length === 0" v-if="dataCheckIns.length !== 0"/>
+                <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentCheckInPage" simple
+                              pageSize="5"
+                              :total="dataCheckIns.length" :disabled="dataCheckIns.length === 0"
+                              v-if="dataCheckIns.length !== 0"/>
             </a-spin>
         </a-modal>
         <a-modal v-model:visible="visibleInfo" title="变更活动信息">
@@ -731,12 +737,12 @@ const changeCheckIn = () => {
                     />
                 </a-form-item>
                 <a-form-item
-                    :name="['activity', 'is_enrolling']"
-                    label="是否开启报名"
-                    has-feedback
-                    :rules="[{ required: true, message: '请选择是否开启报名' }]"
+                        :name="['activity', 'is_enrolling']"
+                        label="是否开启报名"
+                        has-feedback
+                        :rules="[{ required: true, message: '请选择是否开启报名' }]"
                 >
-                    <a-select v-model:value="formState.activity.is_enrolling"  placeholder="选择一个状态"
+                    <a-select v-model:value="formState.activity.is_enrolling" placeholder="选择一个状态"
                               value="1"
                               :disabled="shouldRenderEnrollSelection"
                     >
@@ -744,10 +750,14 @@ const changeCheckIn = () => {
                         <a-select-option value="0">关闭</a-select-option>
                     </a-select>
                 </a-form-item>
+                <a-form-item label="活动组用户">
+                    <a-button @click="showPeople">编辑用户</a-button>
+                </a-form-item>
             </a-form>
             <template #footer>
                 <a-button type="primary" @click="handleCancel">关闭</a-button>
-                <a-button type="primary" @click="changeActivityInfo" :loading="loading" html-type="submit" danger>变更</a-button>
+                <a-button type="primary" @click="changeActivityInfo" :loading="loading" html-type="submit" danger>变更
+                </a-button>
             </template>
         </a-modal>
         <a-modal v-model:visible="visiblePeople" title="活动人员">
@@ -758,10 +768,12 @@ const changeCheckIn = () => {
                                   v-if="shouldRenderAddUserButton" @click="showAddUsers(1)">新增人员
                         </a-button>
                         <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
-                                  @click="closeEnroll" v-if="shouldRenderCloseEnrollButton" :loading="loading" :disabled="shouldDisableEnrollButton" danger>关闭报名
+                                  @click="closeEnroll" v-if="shouldRenderCloseEnrollButton" :loading="loading"
+                                  :disabled="shouldDisableEnrollButton" danger>关闭报名
                         </a-button>
                         <a-button type="primary" style="padding-top: 5px; box-sizing: border-box; margin-left: 4px;"
-                                  @click="openEnroll" v-if="shouldRenderOpenEnrollButton" :loading="loading" :disabled="shouldDisableEnrollButton">打开报名
+                                  @click="openEnroll" v-if="shouldRenderOpenEnrollButton" :loading="loading"
+                                  :disabled="shouldDisableEnrollButton">打开报名
                         </a-button>
                     </div>
                 </a-card>
@@ -772,8 +784,8 @@ const changeCheckIn = () => {
                 </a-descriptions-item>
                 <a-card v-for="item in activityUsers">
                     <a-descriptions
-                                    :title="item.uid + '-' + item.department + '-' + item.name"
-                                    layout="vertical" style="padding-top: 6px;">
+                            :title="item.uid + '-' + item.department + '-' + item.name"
+                            layout="vertical" style="padding-top: 6px;">
 
                         <a-descriptions-item label="报名（指派）时间">2023-06-03 21:09</a-descriptions-item>
                         <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
@@ -785,7 +797,7 @@ const changeCheckIn = () => {
                 </a-card>
             </a-spin>
             <template #footer>
-                <a-button type="primary" @click="handleCancel">关闭</a-button>
+                <a-button type="primary" @click="handleCancelUsers">关闭</a-button>
             </template>
         </a-modal>
         <a-modal v-model:visible="visibleAddUsers" title="指派人员">
@@ -802,7 +814,7 @@ const changeCheckIn = () => {
             >
             </a-select>
             <template v-if="state.fetching" #notFoundContent>
-                <a-spin size="small" />
+                <a-spin size="small"/>
             </template>
             <template #footer>
                 <a-button type="primary" @click="handleCancelAddUser">关闭</a-button>
@@ -812,32 +824,32 @@ const changeCheckIn = () => {
         <a-modal v-model:visible="visibleEdit" title="签到时间控制">
 
             <a-form
-                :model="formState"
-                name="validate_other"
-                :validate-messages="validateMessages"
-                style="max-width: 100%;"
+                    :model="formState"
+                    name="validate_other"
+                    :validate-messages="validateMessages"
+                    style="max-width: 100%;"
 
             >
                 <a-form-item has-feedback
                              :rules="[{ required: true, message: '请选择日期' }]" :name="['checkIn','start_time']"
                              label="开始时间">
                     <a-date-picker
-                        v-model:value="formState.checkIn.start_time"
-                        show-time
-                        format="YYYY-MM-DD HH:mm:ss"
-                        value-format="YYYY-MM-DD HH:mm:ss"
-                        placeholder="不得早于当前时间"
+                            v-model:value="formState.checkIn.start_time"
+                            show-time
+                            format="YYYY-MM-DD HH:mm:ss"
+                            value-format="YYYY-MM-DD HH:mm:ss"
+                            placeholder="不得早于当前时间"
                     />
                 </a-form-item>
                 <a-form-item has-feedback
                              :rules="[{ required: true, message: '请选择日期' }]" :name="['checkIn','end_time']"
                              label="结束时间">
                     <a-date-picker
-                        v-model:value="formState.checkIn.end_time"
-                        show-time
-                        format="YYYY-MM-DD HH:mm:ss"
-                        value-format="YYYY-MM-DD HH:mm:ss"
-                        placeholder="不得早于当前时间"
+                            v-model:value="formState.checkIn.end_time"
+                            show-time
+                            format="YYYY-MM-DD HH:mm:ss"
+                            value-format="YYYY-MM-DD HH:mm:ss"
+                            placeholder="不得早于当前时间"
                     />
                 </a-form-item>
             </a-form>
