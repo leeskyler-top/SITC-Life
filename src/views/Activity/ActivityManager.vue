@@ -165,6 +165,13 @@ const showPeople = () => {
     });
 }
 
+const currentActivityUserPage = ref(1);
+const currentActivityUserPageData = computed(() => {
+    const startIdx = (currentActivityUserPage.value - 1) * 5;
+    const endIdx = startIdx + 5;
+    return activityUsers.value.slice(startIdx, endIdx);
+});
+
 const visibleAddUsers = ref(false);
 const showAddUsers = id => {
     visibleAddUsers.value = true;
@@ -203,11 +210,12 @@ const formState = reactive({
         type: null,
         start_time: null,
         end_time: null,
-        is_enrolling: '1'
+        is_enrolling: '1',
+        add_to_checkin: null
     },
     checkIn: {
         start_time: null,
-        end_time: null
+        end_time: null,
     }
 });
 const validateMessages = {
@@ -298,23 +306,26 @@ const changeActivityInfo = () => {
         message.error(msg);
     });
 }
-
 const changeActivityUsers = () => {
     usersSpinning.value = true;
     loading.value = true;
     visibleAddUsers.value = false;
     let formData = {
-        user_id: []
+        user_id: [],
+        add_to_checkin: null
     }
     for (let item of state.value) {
         formData.user_id.push(item.value)
     }
+    formData.add_to_checkin = formState.activity.add_to_checkin;
+    console.log(formData)
     api.patch("/activity/" + currentActivityId.value, formData).then((res) => {
         let {msg, data} = res.data;
         visibleInfo.value = false;
         activityUsers.value = data.users
         usersSpinning.value = false
         loading.value = false;
+        formState.activity.add_to_checkin = null;
         message.success(msg);
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -325,12 +336,15 @@ const changeActivityUsers = () => {
 }
 
 const removeUser = (user_id) => {
+    usersSpinning.value = true;
     api.delete("/activity/remove/" + currentActivityId.value + '/' + user_id).then((res) => {
         let {msg} = res.data;
+        usersSpinning.value = false;
         message.success(msg);
         activityUsers.value = activityUsers.value.filter(user => user.id !== user_id);
     }).catch((err) => {
         let {msg} = err.response.data;
+        usersSpinning.value = false;
         message.error(msg);
     });
 }
@@ -782,37 +796,56 @@ const changeCheckIn = () => {
                         <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
                     </div>
                 </a-descriptions-item>
-                <a-card v-for="item in activityUsers">
+                <a-card v-for="item in currentActivityUserPageData">
                     <a-descriptions
                             :title="item.uid + '-' + item.department + '-' + item.name"
                             layout="vertical" style="padding-top: 6px;">
 
-                        <a-descriptions-item label="报名（指派）时间">2023-06-03 21:09</a-descriptions-item>
-                        <a-descriptions-item label="操作" style="display:flex; gap: 4px;">
+                        <a-descriptions-item label="" style="display:flex; gap: 4px;">
                             <a-button type="primary" style="padding-top: 5px; box-sizing: border-box;" danger
                                       :loading="loading" @click="showConfirm('deleteUser', item.id)">移除并通知
                             </a-button>
                         </a-descriptions-item>
                     </a-descriptions>
                 </a-card>
+                <a-pagination style="margin-top: 8px;" simple align="center" :total="activityUsers.length"
+                              :disabled="activityUsers.length === 0" pageSize="5"
+                              v-model:current="currentActivityUserPage"></a-pagination>
             </a-spin>
             <template #footer>
                 <a-button type="primary" @click="handleCancelUsers">关闭</a-button>
             </template>
         </a-modal>
         <a-modal v-model:visible="visibleAddUsers" title="指派人员">
-            <a-select
-                    v-model:value="state.value"
-                    mode="multiple"
-                    label-in-value
-                    placeholder="搜索用户，输入*获取所有"
-                    style="width: 100%"
-                    :filter-option="false"
-                    :not-found-content="state.fetching ? undefined : null"
-                    :options="users"
-                    @search="fetchUser"
+            <a-form
+                :model="formState"
+                :validate-messages="validateMessages"
             >
-            </a-select>
+                <a-form-item label="签到组设置" :name="['activity', 'add_to_checkin']">
+                    <a-select
+                            v-model:value="formState.activity.add_to_checkin"
+                            placeholder="签到设置"
+                            style="width: 100%"
+                    >
+                        <a-select-option :value="0">忽略新添加的用户</a-select-option>
+                        <a-select-option :value="1">将用户添加至未开始的签到组</a-select-option>
+                    </a-select>
+                </a-form-item>
+                <a-form-item label="搜索与选择用户">
+                    <a-select
+                            v-model:value="state.value"
+                            mode="multiple"
+                            label-in-value
+                            placeholder="搜索用户，输入*获取所有"
+                            style="width: 100%"
+                            :filter-option="false"
+                            :not-found-content="state.fetching ? undefined : null"
+                            :options="users"
+                            @search="fetchUser"
+                    >
+                    </a-select>
+                </a-form-item>
+            </a-form>
             <template v-if="state.fetching" #notFoundContent>
                 <a-spin size="small"/>
             </template>

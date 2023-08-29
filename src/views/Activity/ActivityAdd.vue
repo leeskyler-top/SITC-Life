@@ -23,12 +23,13 @@ const formState = reactive({
         place: null,
         start_time: null,
         end_time: null,
+        user_id: [],
     },
     checkIn: {
-        name: null,
+        activity_id: null,
+        title: null,
         start_time: null,
         end_time: null,
-        user_id: []
     }
 });
 
@@ -70,31 +71,47 @@ onMounted(() => {
 const loading = ref(false);
 const addActivity = () => {
     loading.value = true;
-    let formData = formState.activity;
-    // if (formState.activity.type !== 'self-enrollment') {
-    //     formData.user_id = []
-    //     // for (let item of state.value) {
-    //     //     formData.user_id.push(item.value)
-    //     // }
-    // }
-    api.post("/activity", formData).then((res) => {
-        loading.value = false;
-        let {msg} = res.data;
+    api.post("/activity", formState.activity).then((res) => {
+        let {msg, data} = res.data;
         message.success(msg);
+        if (checkInSwitcher.value) {
+            let currentUsers = formState.activity.user_id;
+            let activity_id = data.id;
+            addCheckIn(currentUsers, activity_id);
+        }
+        loading.value = false;
         formState.activity.title = null;
         formState.activity.note = null;
         formState.activity.place = null;
         formState.activity.start_time = null;
         formState.activity.end_time = null;
+        formState.activity.user_id = [];
         // state.value = [];
     }).catch((err) => {
         let {msg} = err.response.data;
         loading.value = false;
         message.error(msg);
     });
-    if (checkInSwitcher.value) {
+}
 
-    }
+const addCheckIn = (currentUsers, activity_id) => {
+    message.info("正在尝试生成签到")
+    formState.checkIn.user_id = currentUsers;
+    formState.checkIn.activity_id = activity_id;
+    api.post("/checkin", formState.checkIn).then(res => {
+        let {msg} = res.data;
+        formState.checkIn.user_id = [];
+        formState.checkIn.activity_id = null;
+        formState.checkIn.title = null;
+        formState.checkIn.start_time = null;
+        formState.checkIn.end_time = null;
+        checkInSwitcher.value = false;
+        message.success(msg);
+    }).catch(err => {
+        let {msg} = err.response.data;
+        checkInSwitcher.value = false;
+        message.error(msg);
+    })
 }
 
 const now = new Date();
@@ -244,8 +261,8 @@ const rowSelection = computed(() => {
                                 placeholder="不得早于当前时间"
                         />
                     </a-form-item>
-                    <a-form-item name="switch" label="生成签到">
-                        <a-switch v-model:checked="checkInSwitcher"/>
+                    <a-form-item name="switch" label="尝试生成签到">
+                        <a-switch :disabled="formState.activity.type === 'self-enrollment' || formState.activity.user_id.length === 0" v-model:checked="checkInSwitcher"/>
                     </a-form-item>
 
 
@@ -259,13 +276,14 @@ const rowSelection = computed(() => {
                             style="max-width: 500px;"
 
                     >
-                        <a-form-item :name="['checkIn','name']" label="签到名称" :rules="[{ required: true }]">
-                            <a-input v-model:value="formState.checkIn.name"/>
+                        <a-form-item :name="['checkIn','title']" label="签到名称" :rules="[{ required: true }]">
+                            <a-input v-model:value="formState.checkIn.title"/>
                         </a-form-item>
                         <a-form-item has-feedback
                                      :rules="[{ required: true, message: '请选择日期' }]"
                                      label="签到开始时间"
                                      :name="['checkIn','start_time']"
+                                     :disabled="checkInSwitcher === false || formState.activity.type === 'self-enrollment'"
                         >
 
                             <a-date-picker
@@ -274,6 +292,7 @@ const rowSelection = computed(() => {
                                     format="YYYY-MM-DD HH:mm:ss"
                                     value-format="YYYY-MM-DD HH:mm:ss"
                                     placeholder="不得早于当前时间"
+                                    :disabled="checkInSwitcher === false || formState.activity.type === 'self-enrollment'"
                             />
                         </a-form-item>
                         <a-form-item has-feedback
@@ -287,13 +306,14 @@ const rowSelection = computed(() => {
                                     format="YYYY-MM-DD HH:mm:ss"
                                     value-format="YYYY-MM-DD HH:mm:ss"
                                     placeholder="不得早于当前时间"
+                                    :disabled="checkInSwitcher === false || formState.activity.type === 'self-enrollment'"
                             />
                         </a-form-item>
 
                     </a-form>
                 </div>
                 <a-form-item :wrapper-col="{ span: 12, offset: 2 }">
-                    <a-button type="primary" :loading="loading" @click="addActivity" :disabled="!formState.activity.title || !formState.activity.start_time ||  !formState.activity.end_time || !formState.activity.place">提交</a-button>
+                    <a-button type="primary" :loading="loading" @click="addActivity" :disabled="!formState.activity.title || !formState.activity.start_time ||  !formState.activity.end_time || !formState.activity.place || (checkInSwitcher && !formState.checkIn.title) || (checkInSwitcher && !formState.checkIn.start_time) || (checkInSwitcher && !formState.checkIn.end_time)">提交</a-button>
                 </a-form-item>
             </a-col>
         </a-row>
