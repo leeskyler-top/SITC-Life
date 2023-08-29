@@ -245,6 +245,7 @@ const handleCancel = () => {
                                 <span v-else-if="text === 'rejected'">被拒</span>
                                 <span v-else-if="text === 'returned'">已归还</span>
                                 <span v-else-if="text === 'damaged'">已损毁</span>
+                                <span v-else-if="text === 'missed'">已丢失</span>
                                 <span v-else-if="text === 'delay-applying'">已申请延期</span>
                                 <span v-else-if="text === 'delay-applying'">已延期</span>
                         </template>

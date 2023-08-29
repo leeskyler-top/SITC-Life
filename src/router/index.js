@@ -106,6 +106,11 @@ const router = createRouter({
             meta: {...admin}
         },
         {
+            path: '/security/history',
+            component: () => import("@/views/Security/SecurityHistory.vue"),
+            meta: {...admin}
+        },
+        {
             path: '/:pathMatch(.*)',
             component: () => import("@/views/NotFound.vue"),
             meta: {...user}

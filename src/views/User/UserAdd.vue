@@ -88,7 +88,7 @@ const addUser = () => {
                     <a-form-item name="email" label="账户(邮箱)" :rules="[{ required: true, type: 'email' }]">
                         <a-input v-model:value="formState.email"/>
                     </a-form-item>
-                    <a-form-item name="email" label="密码" :rules="[{ required: true, type: 'email' }]">
+                    <a-form-item name="email" label="密码" :rules="[{ required: true }]">
                         <a-input v-model:value="formState.password" type="password"/>
                     </a-form-item>
                     <a-form-item name="department" label="系部" :rules="[{ required: true }]">

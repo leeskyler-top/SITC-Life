@@ -5,7 +5,8 @@ import {
     ToolOutlined,
     UserOutlined,
     CarryOutOutlined,
-    DownOutlined
+    DownOutlined,
+    AlertOutlined
 } from '@ant-design/icons-vue';
 import {message, legacyLogicalPropertiesTransformer} from "ant-design-vue";
 import {ref, computed, reactive, watch, onMounted} from 'vue';
@@ -219,7 +220,7 @@ const stopLoadingLogo = () => {
                             <dashboard-outlined/>
                             <span>工作台</span>
                         </a-menu-item>
-                        <a-sub-menu key="sub4">
+                        <a-sub-menu key="checkIn">
                             <template #title>
                                 <carry-out-outlined/>
                                 <span>签到</span>
@@ -231,7 +232,7 @@ const stopLoadingLogo = () => {
                                 <RouterLink to="/checkin/manager">签到管理</RouterLink>
                             </a-menu-item>
                         </a-sub-menu>
-                        <a-sub-menu key="sub1">
+                        <a-sub-menu key="user">
                             <template #title>
                           <span>
                             <user-outlined/>
@@ -254,7 +255,7 @@ const stopLoadingLogo = () => {
                             </div>
 
                         </a-sub-menu>
-                        <a-sub-menu key="sub2">
+                        <a-sub-menu key="equipment">
                             <template #title>
                           <span>
                             <tool-outlined/>
@@ -299,7 +300,7 @@ const stopLoadingLogo = () => {
                                 </a-menu-item>
                             </div>
                         </a-sub-menu>
-                        <a-sub-menu key="sub3">
+                        <a-sub-menu key="activity">
                             <template #title>
                           <span>
                             <calendar-outlined/>
@@ -329,6 +330,10 @@ const stopLoadingLogo = () => {
                                 </a-menu-item>
                             </div>
                         </a-sub-menu>
+                        <a-menu-item key="home" @click.prevent="$router.push('/security/history')">
+                            <alert-outlined />
+                            <span>安全审计记录</span>
+                        </a-menu-item>
                     </a-menu>
                 </a-layout-sider>
                 <a-layout>
@@ -349,11 +354,11 @@ const stopLoadingLogo = () => {
                                     </a>
                                     <template #overlay>
                                         <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
-                                            <a-menu-item key="1" @click.prevent="$router.push('/')">
+                                            <a-menu-item key="home" @click.prevent="$router.push('/')">
                                                 <dashboard-outlined/>
                                                 <span>工作台</span>
                                             </a-menu-item>
-                                            <a-sub-menu key="sub4">
+                                            <a-sub-menu key="checkIn">
                                                 <template #title>
                                                     <carry-out-outlined/>
                                                     <span>签到</span>
@@ -365,7 +370,7 @@ const stopLoadingLogo = () => {
                                                     <RouterLink to="/checkin/manager">签到管理</RouterLink>
                                                 </a-menu-item>
                                             </a-sub-menu>
-                                            <a-sub-menu key="sub1">
+                                            <a-sub-menu key="user">
                                                 <template #title>
                                           <span>
                                             <user-outlined/>
@@ -388,7 +393,7 @@ const stopLoadingLogo = () => {
                                                 </div>
 
                                             </a-sub-menu>
-                                            <a-sub-menu key="sub2">
+                                            <a-sub-menu key="equipment">
                                                 <template #title>
                                           <span>
                                             <tool-outlined/>
@@ -433,7 +438,7 @@ const stopLoadingLogo = () => {
                                                     </a-menu-item>
                                                 </div>
                                             </a-sub-menu>
-                                            <a-sub-menu key="sub3">
+                                            <a-sub-menu key="activity">
                                                 <template #title>
                                           <span>
                                             <calendar-outlined/>
@@ -463,6 +468,10 @@ const stopLoadingLogo = () => {
                                                     </a-menu-item>
                                                 </div>
                                             </a-sub-menu>
+                                            <a-menu-item key="home" @click.prevent="$router.push('/security/history')">
+                                                <alert-outlined />
+                                                <span>安全历史</span>
+                                            </a-menu-item>
                                         </a-menu>
                                     </template>
                                 </a-dropdown>
