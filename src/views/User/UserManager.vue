@@ -3,7 +3,7 @@
             :style="{margin: '16px'}"
     >
         <h2>用户管理</h2>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow">
+        <div style="padding: 8px; background-color: #FFFFFF">
             <a-spin :spinning="spinning" tip="Loading...">
                 <a-row justify="end">
                     <router-link to="/user/add">
@@ -11,7 +11,7 @@
                     </router-link>
                 </a-row>
 
-                <a-table :columns="columns" :data-source="dataSource" bordered>
+                <a-table :columns="columns" :data-source="dataSource" :scroll="scroll" bordered>
                     <template
                             #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
                     >
@@ -64,9 +64,6 @@
                     </template>
                 </a-table>
             </a-spin>
-        </div>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false">
-            管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
         </div>
         <a-modal v-model:visible="visible" title="修改用户信息">
             <a-form
@@ -126,7 +123,7 @@
 
 </template>
 <script setup>
-import {reactive, ref, onMounted, createVNode} from 'vue';
+import {reactive, ref, onMounted, createVNode, computed} from 'vue';
 import {ExclamationCircleOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import {message, Modal} from "ant-design-vue";
 import api from "@/api";
@@ -135,7 +132,7 @@ const isShow = ref(true);
 
 function handleResize(event) {
     // 页面宽度小于525px时，不显示表格
-    if (document.documentElement.clientWidth < 525) {
+    if (document.documentElement.clientWidth < 979) {
         isShow.value = false;
     } else {
         isShow.value = true;
@@ -204,7 +201,7 @@ const columns = [
     {
         title: '学籍号',
         dataIndex: 'uid',
-        width: '20%',
+        width: '5%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
             record.uid.toString().toLowerCase().includes(value.toLowerCase()),
@@ -212,7 +209,7 @@ const columns = [
     {
         title: '姓名',
         dataIndex: 'name',
-        width: '20%',
+        width: '8%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
             record.name.toString().toLowerCase().includes(value.toLowerCase()),
@@ -228,7 +225,7 @@ const columns = [
     {
         title: '系部',
         dataIndex: 'department',
-        width: '10%',
+        width: '8%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
             record.department.toString().toLowerCase().includes(value.toLowerCase())
@@ -236,7 +233,7 @@ const columns = [
     {
         title: '角色',
         dataIndex: 'is_admin',
-        width: '7%',
+        width: '5%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
             record.is_admin.toString().toLowerCase().includes(value.toLowerCase())
@@ -244,14 +241,16 @@ const columns = [
     {
         title: '创建时间',
         dataIndex: 'created_at',
-        width: '20%',
+        width: '10%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
             record.created_at.toString().toLowerCase().includes(value.toLowerCase())
     },
     {
         title: '操作',
+        width: '7%',
         dataIndex: 'operation',
+        fixed: 'right'
     }
 ];
 
@@ -350,6 +349,14 @@ const handleCancel = () => {
     visible.value = false;
     visiblePassword.value = false;
 };
+
+const scroll = computed(() => {
+    if (isShow.value === true) {
+        return false
+    } else {
+        return { x: 1500 }
+    }
+})
 
 </script>
 <style scoped>

@@ -11,7 +11,7 @@ const token = ref(localStorage.token);
 
 function handleResize(event) {
     // 页面宽度小于525px时，不显示表格
-    if (document.documentElement.clientWidth < 525) {
+    if (document.documentElement.clientWidth < 994) {
         isShow.value = false;
     } else {
         isShow.value = true;
@@ -81,7 +81,9 @@ const columns = [
     },
     {
         title: '操作',
+        width: '12%',
         dataIndex: 'operation',
+        fixed: 'right'
     }
 ];
 
@@ -567,20 +569,28 @@ const changeCheckIn = () => {
     })
 }
 
+const scroll = computed(() => {
+    if (isShow.value === true) {
+        return false
+    } else {
+        return { x: 1500 }
+    }
+})
+
 </script>
 <template>
     <a-layout-content
             :style="{margin: '16px'}"
     >
         <h2>活动管理</h2>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow">
+        <div style="padding: 8px; background-color: #FFFFFF">
             <a-spin :spinning="spinning" tip="Loading...">
                 <a-row justify="end">
                     <router-link to="/activity/add">
                         <a-button type="primary" style="margin: 8px; " ghost>添加活动</a-button>
                     </router-link>
                 </a-row>
-                <a-table :columns="columns" :data-source="myData" bordered>
+                <a-table :columns="columns" :data-source="myData" :scroll="scroll" bordered>
                     <template
                             #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
                     >
@@ -633,9 +643,6 @@ const changeCheckIn = () => {
                     </template>
                 </a-table>
             </a-spin>
-        </div>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false">
-            管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
         </div>
         <a-modal v-model:visible="visibleCheckIn" title="签到管理">
             <template #footer>

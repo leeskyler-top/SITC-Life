@@ -177,7 +177,9 @@ const columns = [
     },
     {
         title: '操作',
+        width: '6%',
         dataIndex: 'operation',
+        fixed: 'right'
     }
 ];
 
@@ -329,6 +331,14 @@ const shouldRenderCloseEnrollButton = computed(() => {
     return currentActivity.type !== "仅分配" && currentActivity.is_enrolling === '1';
 });
 
+const scroll = computed(() => {
+    if (isShow.value === true) {
+        return false
+    } else {
+        return { x: 1500 }
+    }
+})
+
 
 </script>
 <template>
@@ -336,11 +346,11 @@ const shouldRenderCloseEnrollButton = computed(() => {
             :style="{margin: '16px'}"
     >
         <h2>审核列表</h2>
-        <div style="padding: 8px;" v-if="isShow" >
+        <div style="padding: 8px;" >
             <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
                 <a-tab-pane key="activity" tab="按活动分组">
                     <a-spin :spinning="spinning" tip="Loading...">
-                        <a-table style="background-color: #FFFFFF;" :columns="columns" :data-source="activityData" bordered>
+                        <a-table style="background-color: #FFFFFF;" :columns="columns" :scroll="scroll" :data-source="activityData" bordered>
                             <template
                                 #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
                             >
@@ -456,10 +466,6 @@ const shouldRenderCloseEnrollButton = computed(() => {
 
                 </a-tab-pane>
             </a-tabs>
-
-        </div>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false" >
-            管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
         </div>
         <a-modal v-model:visible="visible" title="报名管理">
             <a-card>

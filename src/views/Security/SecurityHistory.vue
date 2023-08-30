@@ -10,7 +10,7 @@ const isShow = ref(true);
 
 function handleResize(event) {
     // 页面宽度小于525px时，不显示表格
-    if (document.documentElement.clientWidth < 525) {
+    if (document.documentElement.clientWidth < 1180) {
         isShow.value = false;
     } else {
         isShow.value = true;
@@ -132,6 +132,14 @@ const listApiHistories = () => {
         message.error(msg);
     });
 }
+
+const scroll = computed(() => {
+    if (isShow.value === true) {
+        return false
+    } else {
+        return { x: 1500 }
+    }
+})
 </script>
 
 <template>
@@ -139,9 +147,10 @@ const listApiHistories = () => {
             :style="{margin: '16px'}"
     >
         <h2>安全审计-接口访问历史</h2>
-        <a-spin :spinning="spinning">
-            <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow">
-                <a-table bordered :data-source="apiData" :columns="columns">
+
+        <div style="padding: 8px; background-color: #FFFFFF">
+            <a-spin :spinning="spinning" tip="Loading...">
+                <a-table bordered :data-source="apiData" :columns="columns" :scroll="scroll">
                     <template
                             #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
                     >
@@ -171,18 +180,12 @@ const listApiHistories = () => {
                         </div>
                     </template>
                     <template #bodyCell="{ column, text, record }">
-                        <template
-                                v-if="['id' ,'user_id' ,'email' ,'uid' ,'department' ,'classname' ,'name' ,'request_url' ,'created_at'].includes(column.dataIndex)">
-                            <div>
-                                {{ text }}
-                            </div>
-                        </template>
+                        <div>
+                            {{ text }}
+                        </div>
                     </template>
                 </a-table>
-            </div>
-        </a-spin>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false">
-            管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
+            </a-spin>
         </div>
 
     </a-layout-content>

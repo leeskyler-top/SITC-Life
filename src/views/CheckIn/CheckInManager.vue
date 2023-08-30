@@ -19,7 +19,7 @@ const isShow = ref(true);
 
 function handleResize(event) {
     // 页面宽度小于525px时，不显示表格
-    if (document.documentElement.clientWidth < 525) {
+    if (document.documentElement.clientWidth < 768) {
         isShow.value = false;
     } else {
         isShow.value = true;
@@ -77,7 +77,7 @@ const columns = [
     {
         title: '签到名称',
         dataIndex: 'title',
-        width: '25%',
+        width: '20%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
             record.title.toString().toLowerCase().includes(value.toLowerCase()),
@@ -85,7 +85,7 @@ const columns = [
     {
         title: '活动标题',
         dataIndex: 'activity_title',
-        width: '25%',
+        width: '20%',
         customFilterDropdown: true,
         onFilter: (value, record) =>
             record.activity_title.toString().toLowerCase().includes(value.toLowerCase()),
@@ -116,7 +116,9 @@ const columns = [
     },
     {
         title: '操作',
+        width: '10%',
         dataIndex: 'operation',
+        fixed: 'right'
     }
 ];
 
@@ -534,18 +536,27 @@ const changeCheckInUsers = () => {
     });
 }
 
+const scroll = computed(() => {
+    if (isShow.value === true) {
+        return false
+    } else {
+        return { x: 1500 }
+    }
+})
+
+
 </script>
 <template>
     <a-layout-content
             :style="{margin: '16px'}"
     >
         <h2>签到管理</h2>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow">
+        <div style="padding: 8px; background-color: #FFFFFF">
             <a-spin :spinning="spinning" tip="Loading...">
                 <a-row justify="end">
                     <a-button type="primary" style="margin: 8px; " ghost @click="showAdd">新建签到</a-button>
                 </a-row>
-                <a-table :columns="columns" :data-source="dataCheckIns" bordered>
+                <a-table :columns="columns" :data-source="dataCheckIns" :scroll="scroll" bordered>
                     <template
                             #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
                     >
@@ -807,9 +818,6 @@ const changeCheckInUsers = () => {
                 <a-button type="primary" @click="handleCloseUser('T')">保存</a-button>
             </template>
         </a-modal>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false">
-            管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
-        </div>
 
     </a-layout-content>
     <a-modal v-model:visible="visiblePeople" title="签到组人员">
