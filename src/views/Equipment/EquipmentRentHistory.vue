@@ -153,8 +153,9 @@ const columns = [
     },
     {
         title: '操作',
-        dataIndex: 'operation',
         width: '12%',
+        dataIndex: 'operation',
+        fixed: 'right'
     },
 ];
 
@@ -194,6 +195,15 @@ const handleCancel = () => {
     visiblePhotos.value = false;
     visibleDelayedHistory.value = false;
 };
+
+const scroll = computed(() => {
+    if (isShow.value === true) {
+        return false
+    } else {
+        return { x: 1500 }
+    }
+})
+
 </script>
 <template>
     <a-layout-content
@@ -201,8 +211,8 @@ const handleCancel = () => {
     >
         <h2>所有设备出借历史</h2>
         <a-spin :spinning="spinning">
-            <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow">
-                <a-table bordered :data-source="myData" :columns="columns">
+            <div style="padding: 8px; background-color: #FFFFFF">
+                <a-table bordered :data-source="myData" :scroll="scroll" :columns="columns">
                     <template
                             #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
                     >
@@ -263,9 +273,6 @@ const handleCancel = () => {
                 </a-table>
             </div>
         </a-spin>
-        <div style="padding: 8px; background-color: #FFFFFF" v-if="isShow === false">
-            管理员相关功能不支持宽度小于525px的设备显示，建议使用电脑端操作。
-        </div>
         <a-modal v-model:visible="visiblePhotos" title="查看图片">
             <a-spin :spinning="spinning">
                 <a-descriptions-item v-if="!images">
