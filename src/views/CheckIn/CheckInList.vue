@@ -1,6 +1,6 @@
 <script setup>
 import {ref, createVNode, computed, onMounted, reactive} from "vue";
-import {ExclamationCircleOutlined, UploadOutlined} from '@ant-design/icons-vue';
+import {ExclamationCircleOutlined, UploadOutlined, HomeOutlined} from '@ant-design/icons-vue';
 import {Empty, message, Modal} from "ant-design-vue";
 import api from "@/api";
 
@@ -138,8 +138,8 @@ const checkInNow = () => {
 
 <template>
     <a-layout-content :style="{margin: '16px', height: '100%'}">
-        <h2>
-            我的签到
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>签到列表</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
         </h2>
         <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
             <a-tab-pane key="started" tab="正在进行">

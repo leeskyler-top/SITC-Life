@@ -1,6 +1,6 @@
 <script setup>
 import {ref} from "vue";
-import {InboxOutlined} from "@ant-design/icons-vue";
+import {InboxOutlined, HomeOutlined} from "@ant-design/icons-vue";
 import api from "@/api";
 import {message} from "ant-design-vue";
 
@@ -68,8 +68,8 @@ const formItemLayout = {
     <a-layout-content
             :style="{margin: '16px'}"
     >
-        <h2>
-            用户批量添加
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>用户批量添加</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
         </h2>
         <a-row>
             <a-col :span="24" style="padding: 24px; background-color: #FFFFFF">

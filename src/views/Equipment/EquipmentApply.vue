@@ -1,6 +1,6 @@
 <script setup>
 import {onMounted, reactive, ref} from "vue";
-import {UploadOutlined} from "@ant-design/icons-vue";
+import {HomeOutlined, UploadOutlined} from "@ant-design/icons-vue";
 import api from "@/api";
 import {message} from "ant-design-vue";
 
@@ -83,8 +83,8 @@ onMounted(() => {
     <a-layout-content
             :style="{margin: '16px'}"
     >
-        <h2>
-            设备借用
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>设备借用申请</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
         </h2>
         <a-spin :spinning="spinning" tip="Loading...">
             <a-row>

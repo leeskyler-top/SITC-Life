@@ -2,7 +2,8 @@
 import {onMounted, reactive, ref} from 'vue';
 import {
     InfoCircleOutlined,
-    LockOutlined
+    LockOutlined,
+    HomeOutlined
 } from '@ant-design/icons-vue';
 import api from "@/api";
 import {message} from "ant-design-vue";
@@ -94,9 +95,8 @@ onMounted(() => {
     <a-layout-content
             :style="{margin: '16px'}"
     >
-        <h2>
-            我的资料
-
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>我的资料</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
         </h2>
         <a-row :style="{ background: '#fff', padding: '24px'}">
 

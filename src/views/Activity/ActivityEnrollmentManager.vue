@@ -1,7 +1,7 @@
 <script setup>
 import {reactive, ref, onMounted, createVNode, computed} from 'vue';
 import {cloneDeep} from 'lodash-es';
-import {ExclamationCircleOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import {ExclamationCircleOutlined, HomeOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import {Empty, message, Modal} from "ant-design-vue";
 import api from "@/api";
 
@@ -345,7 +345,9 @@ const scroll = computed(() => {
     <a-layout-content
             :style="{margin: '16px'}"
     >
-        <h2>审核列表</h2>
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>审核列表</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
+        </h2>
         <div style="padding: 8px;" >
             <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
                 <a-tab-pane key="activity" tab="按活动分组">

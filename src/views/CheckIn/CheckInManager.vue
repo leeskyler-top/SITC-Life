@@ -6,7 +6,8 @@ import {
     EditOutlined,
     ExclamationCircleOutlined,
     PlusOutlined,
-    SearchOutlined
+    SearchOutlined,
+    HomeOutlined
 } from '@ant-design/icons-vue';
 import {Empty, message, Modal, Table} from "ant-design-vue";
 import api from "@/api";
@@ -550,7 +551,9 @@ const scroll = computed(() => {
     <a-layout-content
             :style="{margin: '16px'}"
     >
-        <h2>签到管理</h2>
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>签到管理</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
+        </h2>
         <div style="padding: 8px; background-color: #FFFFFF">
             <a-spin :spinning="spinning" tip="Loading...">
                 <a-row justify="end">

@@ -1,6 +1,6 @@
 <script setup>
 import {reactive, ref, onMounted, computed} from 'vue';
-import {SearchOutlined} from '@ant-design/icons-vue';
+import {SearchOutlined, HomeOutlined} from '@ant-design/icons-vue';
 import {Empty, message} from "ant-design-vue";
 import api from "@/api";
 import my_config from "@/my_config";
@@ -9,7 +9,7 @@ const isShow = ref(true);
 
 function handleResize(event) {
     // 页面宽度小于525px时，不显示表格
-    if (document.documentElement.clientWidth < 525) {
+    if (document.documentElement.clientWidth < 1123) {
         isShow.value = false;
     } else {
         isShow.value = true;
@@ -153,7 +153,7 @@ const columns = [
     },
     {
         title: '操作',
-        width: '12%',
+        width: '7%',
         dataIndex: 'operation',
         fixed: 'right'
     },
@@ -209,7 +209,9 @@ const scroll = computed(() => {
     <a-layout-content
             :style="{margin: '16px'}"
     >
-        <h2>所有设备出借历史</h2>
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>设备借用申请历史记录</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
+        </h2>
         <a-spin :spinning="spinning">
             <div style="padding: 8px; background-color: #FFFFFF">
                 <a-table bordered :data-source="myData" :scroll="scroll" :columns="columns">
@@ -260,13 +262,11 @@ const scroll = computed(() => {
                                 <span v-else-if="text === 'delay-applying'">已延期</span>
                         </template>
                         <template v-else-if="column.dataIndex === 'operation'">
-                            <div class="editable-row-operations">
-                             <span>
+                            <div>
                                <a @click="showPhotos(record.id, record.status)">查看图片</a>
-                            </span>
-                                <span>
+                            </div>
+                            <div>
                                <a @click="showDelayedHistory(record.id)">延期历史</a>
-                            </span>
                             </div>
                         </template>
                     </template>

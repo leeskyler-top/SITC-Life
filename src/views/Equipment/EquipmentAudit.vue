@@ -2,7 +2,7 @@
 import {createVNode, onMounted, ref, computed} from "vue";
 import {message, Modal} from "ant-design-vue";
 import {Empty} from "ant-design-vue";
-import {ExclamationCircleOutlined} from "@ant-design/icons-vue";
+import {ExclamationCircleOutlined, HomeOutlined} from "@ant-design/icons-vue";
 import my_config from "@/my_config";
 import api from "@/api";
 
@@ -306,8 +306,8 @@ const token = ref(localStorage.token);
 
 <template>
     <a-layout-content :style="{margin: '16px', height: '100%'}">
-        <h2>
-            设备申请审核
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>设备申请审核</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
         </h2>
         <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
             <a-tab-pane key="application" tab="设备申请">

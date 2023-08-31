@@ -1,130 +1,6 @@
-<template>
-    <a-layout-content
-            :style="{margin: '16px'}"
-    >
-        <h2>用户管理</h2>
-        <div style="padding: 8px; background-color: #FFFFFF">
-            <a-spin :spinning="spinning" tip="Loading...">
-                <a-row justify="end">
-                    <router-link to="/user/add">
-                        <a-button type="primary" style="margin: 8px; " ghost>添加用户</a-button>
-                    </router-link>
-                </a-row>
-
-                <a-table :columns="columns" :data-source="dataSource" :scroll="scroll" bordered>
-                    <template
-                            #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
-                    >
-                        <div style="padding: 8px">
-                            <a-input
-                                    ref="searchInput"
-                                    :placeholder="`Search ${column.dataIndex}`"
-                                    :value="selectedKeys[0]"
-                                    style="width: 188px; margin-bottom: 8px; display: block"
-                                    @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
-                                    @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
-                            />
-                            <a-button
-                                    type="primary"
-                                    size="small"
-                                    style="width: 90px; margin-right: 8px"
-                                    @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
-                            >
-                                <template #icon>
-                                    <search-outlined/>
-                                </template>
-                                Search
-                            </a-button>
-                            <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
-                                Reset
-                            </a-button>
-                        </div>
-                    </template>
-                    <template #bodyCell="{ column, text, record }">
-                        <template v-if="['uid', 'name', 'classname', 'department'].includes(column.dataIndex)">
-                            <div>
-                                {{ text }}
-                            </div>
-                        </template>
-
-                        <template v-else-if="column.dataIndex === 'operation'">
-                            <div class="editable-row-operations">
-                      <span>
-                          <a @click="showModal(record.id)">编辑</a>
-                      </span>
-                                <span>
-                          <a @click="showConfirm(record.id)">重置密码</a>
-                      </span>
-                                <span>
-                        <a-popconfirm title="确定删除此用户？" @confirm="deleteUser(record.id)"><a
-                                style="color: red">删除</a></a-popconfirm>
-                      </span>
-                            </div>
-                        </template>
-                    </template>
-                </a-table>
-            </a-spin>
-        </div>
-        <a-modal v-model:visible="visible" title="修改用户信息">
-            <a-form
-                    :model="formState"
-                    name="validate_other"
-                    v-bind="formItemLayout"
-            >
-                <a-form-item name="uid" label="学籍号" :rules="[{ required: true }]">
-                    <a-input v-model:value="formState.uid"/>
-                </a-form-item>
-                <a-form-item name="name" label="姓名" :rules="[{ required: true }]">
-                    <a-input v-model:value="formState.name"/>
-                </a-form-item>
-                <a-form-item name="department" label="系部" :rules="[{ required: true }]">
-                    <a-input v-model:value="formState.department"/>
-                </a-form-item>
-                <a-form-item name="classname" label="班级" :rules="[{ required: true }]">
-                    <a-input v-model:value="formState.classname"/>
-                </a-form-item>
-                <a-form-item
-                        name="is_admin"
-                        label="角色"
-                        has-feedback
-                        :rules="[{ required: true, message: '请选择角色' }]"
-                        style="padding-top: 8px;"
-                >
-                    <a-select v-model:value="formState.is_admin" placeholder="选择角色">
-                        <a-select-option value="0">普通用户</a-select-option>
-                        <a-select-option value="1">管理员</a-select-option>
-                    </a-select>
-                </a-form-item>
-                <a-form-item name="note" label="备注">
-                    <a-textarea v-model:value="formState.note"/>
-                </a-form-item>
-            </a-form>
-            <template #footer>
-                <a-button type="primary" @click="handleCancel">关闭</a-button>
-                <a-button type="primary" danger @click="changeUser">变更</a-button>
-            </template>
-        </a-modal>
-        <a-modal v-model:visible="visiblePassword" title="重置密码">
-            <a-card>
-                <p>用户id：<span>{{ currentUser.id }}</span></p>
-                <p>学籍号：<span>{{ currentUser.uid }}</span></p>
-                <p>姓名：<span>{{ currentUser.name }}</span></p>
-                <p>班级：<span>{{ currentUser.classname }}</span></p>
-                <p>系部：<span>{{ currentUser.department }}</span></p>
-            </a-card>
-            <a-card>
-                <p>密码已重置，密码为: {{ new_password }}</p>
-            </a-card>
-            <template #footer>
-                <a-button type="primary" @click="handleCancel">关闭</a-button>
-            </template>
-        </a-modal>
-    </a-layout-content>
-
-</template>
 <script setup>
 import {reactive, ref, onMounted, createVNode, computed} from 'vue';
-import {ExclamationCircleOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import {ExclamationCircleOutlined, SearchOutlined, HomeOutlined} from '@ant-design/icons-vue';
 import {message, Modal} from "ant-design-vue";
 import api from "@/api";
 
@@ -359,6 +235,134 @@ const scroll = computed(() => {
 })
 
 </script>
+
+<template>
+    <a-layout-content
+            :style="{margin: '16px'}"
+    >
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>用户管理</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
+        </h2>
+        <div style="padding: 8px; background-color: #FFFFFF">
+            <a-spin :spinning="spinning" tip="Loading...">
+                <a-row justify="end">
+                    <router-link to="/user/add">
+                        <a-button type="primary" style="margin: 8px; " ghost>添加用户</a-button>
+                    </router-link>
+                </a-row>
+
+                <a-table :columns="columns" :data-source="dataSource" :scroll="scroll" bordered>
+                    <template
+                            #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
+                    >
+                        <div style="padding: 8px">
+                            <a-input
+                                    ref="searchInput"
+                                    :placeholder="`Search ${column.dataIndex}`"
+                                    :value="selectedKeys[0]"
+                                    style="width: 188px; margin-bottom: 8px; display: block"
+                                    @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
+                                    @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
+                            />
+                            <a-button
+                                    type="primary"
+                                    size="small"
+                                    style="width: 90px; margin-right: 8px"
+                                    @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
+                            >
+                                <template #icon>
+                                    <search-outlined/>
+                                </template>
+                                Search
+                            </a-button>
+                            <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
+                                Reset
+                            </a-button>
+                        </div>
+                    </template>
+                    <template #bodyCell="{ column, text, record }">
+                        <template v-if="['uid', 'name', 'classname', 'department'].includes(column.dataIndex)">
+                            <div>
+                                {{ text }}
+                            </div>
+                        </template>
+
+                        <template v-else-if="column.dataIndex === 'operation'">
+                            <div class="editable-row-operations">
+                      <span>
+                          <a @click="showModal(record.id)">编辑</a>
+                      </span>
+                                <span>
+                          <a @click="showConfirm(record.id)">重置密码</a>
+                      </span>
+                                <span>
+                        <a-popconfirm title="确定删除此用户？" @confirm="deleteUser(record.id)"><a
+                                style="color: red">删除</a></a-popconfirm>
+                      </span>
+                            </div>
+                        </template>
+                    </template>
+                </a-table>
+            </a-spin>
+        </div>
+        <a-modal v-model:visible="visible" title="修改用户信息">
+            <a-form
+                    :model="formState"
+                    name="validate_other"
+                    v-bind="formItemLayout"
+            >
+                <a-form-item name="uid" label="学籍号" :rules="[{ required: true }]">
+                    <a-input v-model:value="formState.uid"/>
+                </a-form-item>
+                <a-form-item name="name" label="姓名" :rules="[{ required: true }]">
+                    <a-input v-model:value="formState.name"/>
+                </a-form-item>
+                <a-form-item name="department" label="系部" :rules="[{ required: true }]">
+                    <a-input v-model:value="formState.department"/>
+                </a-form-item>
+                <a-form-item name="classname" label="班级" :rules="[{ required: true }]">
+                    <a-input v-model:value="formState.classname"/>
+                </a-form-item>
+                <a-form-item
+                        name="is_admin"
+                        label="角色"
+                        has-feedback
+                        :rules="[{ required: true, message: '请选择角色' }]"
+                        style="padding-top: 8px;"
+                >
+                    <a-select v-model:value="formState.is_admin" placeholder="选择角色">
+                        <a-select-option value="0">普通用户</a-select-option>
+                        <a-select-option value="1">管理员</a-select-option>
+                    </a-select>
+                </a-form-item>
+                <a-form-item name="note" label="备注">
+                    <a-textarea v-model:value="formState.note"/>
+                </a-form-item>
+            </a-form>
+            <template #footer>
+                <a-button type="primary" @click="handleCancel">关闭</a-button>
+                <a-button type="primary" danger @click="changeUser">变更</a-button>
+            </template>
+        </a-modal>
+        <a-modal v-model:visible="visiblePassword" title="重置密码">
+            <a-card>
+                <p>用户id：<span>{{ currentUser.id }}</span></p>
+                <p>学籍号：<span>{{ currentUser.uid }}</span></p>
+                <p>姓名：<span>{{ currentUser.name }}</span></p>
+                <p>班级：<span>{{ currentUser.classname }}</span></p>
+                <p>系部：<span>{{ currentUser.department }}</span></p>
+            </a-card>
+            <a-card>
+                <p>密码已重置，密码为: {{ new_password }}</p>
+            </a-card>
+            <template #footer>
+                <a-button type="primary" @click="handleCancel">关闭</a-button>
+            </template>
+        </a-modal>
+    </a-layout-content>
+
+</template>
+
 <style scoped>
 .editable-row-operations a {
     margin-right: 8px;

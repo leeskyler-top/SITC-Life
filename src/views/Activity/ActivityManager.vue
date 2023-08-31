@@ -1,7 +1,7 @@
 <script setup>
 import {reactive, ref, onMounted, watch, computed, createVNode} from 'vue';
 import {cloneDeep, debounce} from 'lodash-es';
-import {ExclamationCircleOutlined, PlusOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import {ExclamationCircleOutlined, HomeOutlined, PlusOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import {Empty, message, Modal} from "ant-design-vue";
 import api from "@/api";
 import my_config from "@/my_config";
@@ -582,7 +582,9 @@ const scroll = computed(() => {
     <a-layout-content
             :style="{margin: '16px'}"
     >
-        <h2>活动管理</h2>
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>活动管理</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
+        </h2>
         <div style="padding: 8px; background-color: #FFFFFF">
             <a-spin :spinning="spinning" tip="Loading...">
                 <a-row justify="end">

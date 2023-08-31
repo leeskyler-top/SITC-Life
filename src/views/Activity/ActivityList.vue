@@ -1,6 +1,6 @@
 <script setup>
 import {ref, createVNode, computed, onMounted} from "vue";
-import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
+import {ExclamationCircleOutlined, HomeOutlined} from '@ant-design/icons-vue';
 import {Empty, message, Modal} from "ant-design-vue";
 import api from "@/api";
 
@@ -229,8 +229,8 @@ const countDown = (id) => {
 
 <template>
     <a-layout-content :style="{margin: '16px', height: '100%'}">
-        <h2>
-            活动列表
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>活动列表</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
         </h2>
         <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
             <a-tab-pane key="assignment" tab="已分配">

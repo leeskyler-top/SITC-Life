@@ -1,7 +1,7 @@
 <script setup>
 
 import {reactive, ref, onMounted, computed} from 'vue';
-import {SearchOutlined} from '@ant-design/icons-vue';
+import {HomeOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import {Empty, message} from "ant-design-vue";
 import api from "@/api";
 import my_config from "@/my_config";
@@ -146,7 +146,9 @@ const scroll = computed(() => {
     <a-layout-content
             :style="{margin: '16px'}"
     >
-        <h2>安全审计-接口访问历史</h2>
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>安全审计-接口访问历史</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
+        </h2>
 
         <div style="padding: 8px; background-color: #FFFFFF">
             <a-spin :spinning="spinning" tip="Loading...">

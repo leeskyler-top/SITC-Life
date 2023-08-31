@@ -1,6 +1,13 @@
 <script setup>
 import {computed, defineComponent, onMounted, reactive, ref} from 'vue';
-import {CheckOutlined, EditOutlined, PlusOutlined, SearchOutlined, UploadOutlined} from '@ant-design/icons-vue';
+import {
+    CheckOutlined,
+    EditOutlined,
+    HomeOutlined,
+    PlusOutlined,
+    SearchOutlined,
+    UploadOutlined
+} from '@ant-design/icons-vue';
 import {cloneDeep} from 'lodash-es';
 import api from "@/api";
 import {message} from "ant-design-vue";
@@ -260,7 +267,9 @@ const scroll = computed(() => {
     <a-layout-content
             :style="{margin: '16px'}"
     >
-        <h2>设备管理</h2>
+        <h2 style="display: flex; justify-content: space-between;">
+            <span>设备管理</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
+        </h2>
         <div style="padding: 8px; background-color: #FFFFFF">
             <a-spin :spinning="spinning" tip="Loading...">
                 <a-row justify="end">
