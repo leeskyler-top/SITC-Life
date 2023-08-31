@@ -48,14 +48,16 @@ const jsonToCsv = (jsonData, name) => {
     }
 
     let csvContent = csvRows.join('\n'); // Join rows with newline character
+    let universalBOM = "\uFEFF";
+    // let encoder = new TextEncoder('windows-1252'); // ANSI encoding (Windows-1252)
+    // let csvData = encoder.encode(csvContent);
 
-    let urlObject = window.URL || window.webkitURL || window;
-    let export_blob = new Blob([csvContent], { type: 'text/csv' }); // Specify content type
-    let save_link = document.createElementNS("http://www.w3.org/1999/xhtml", "a");
-    save_link.href = urlObject.createObjectURL(export_blob);
+    const blob = new Blob([universalBOM+csvContent], { type: 'text/csv;charset=windows-1252;' });
+    const urlObject = window.URL || window.webkitURL || window;
+    const save_link = document.createElementNS("http://www.w3.org/1999/xhtml", "a");
+    save_link.href = urlObject.createObjectURL(blob);
     save_link.download = name;
     save_link.click();
-
     return csvRows;
 };
 

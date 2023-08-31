@@ -151,6 +151,7 @@ const handleCancelPhotos = () => {
 const visiblePeople = ref(false);
 
 const activityUsers = ref([]);
+const currentActivityTitle = ref(null);
 const showPeople = () => {
     activityUsers.value = [];
     visiblePeople.value = true;
@@ -159,6 +160,7 @@ const showPeople = () => {
         usersSpinning.value = false;
         let {msg, data} = res.data;
         activityUsers.value = data.users;
+        currentActivityTitle.value = data.title;
         message.success(msg);
     }).catch((err) => {
         let {msg} = err.response.data;
@@ -577,6 +579,44 @@ const scroll = computed(() => {
     }
 })
 
+const jsonToCsv = (jsonData, name) => {
+    let csvRows = [];
+    let headers = Object.keys(jsonData[0]);
+    csvRows.push(headers.join(','));
+
+    for (let row of jsonData) {
+        let values = headers.map(header => {
+            let escapeQuotes = ('' + row[header]).replace(/"/g, '\\"');
+            return `"${escapeQuotes}"`;
+        });
+        csvRows.push(values.join(','));
+    }
+
+    let csvContent = csvRows.join('\n'); // Join rows with newline character
+    let universalBOM = "\uFEFF";
+
+    // let encoder = new TextEncoder('windows-1252'); // ANSI encoding (Windows-1252)
+    // let csvData = encoder.encode(csvContent);
+
+    const blob = new Blob([universalBOM+csvContent], { type: 'text/csv;charset=utf-8;' });
+    const urlObject = window.URL || window.webkitURL || window;
+    const save_link = document.createElementNS("http://www.w3.org/1999/xhtml", "a");
+    save_link.href = urlObject.createObjectURL(blob);
+    save_link.download = name;
+    save_link.click();
+    return csvRows;
+};
+
+const getCurrentActivityUsersInfo = () => {
+    let date = new Date();
+    jsonToCsv(activityUsers.value, date.toString() + currentActivityTitle.value.toString() + '参与活动用户.csv')
+}
+
+const getCurrentCheckInInfo = (info, title) => {
+    let date = new Date();
+    jsonToCsv(info, date.toString() + title.toString() + '签到情况.csv')
+}
+
 </script>
 <template>
     <a-layout-content
@@ -672,8 +712,8 @@ const scroll = computed(() => {
                                 </a-button>
                             </div>
                         </a-card>
-                        <a-card>
-                            <a-descriptions v-for="info in item.checkInUsers"
+                        <a-card v-for="info in item.checkInUsers">
+                            <a-descriptions
                                             :title="info.uid + '-' + info.department + '-' + info.name"
                                             layout="vertical">
 
@@ -693,6 +733,10 @@ const scroll = computed(() => {
                                     </a-button>
                                 </a-descriptions-item>
                             </a-descriptions>
+
+                        </a-card>
+                        <a-card>
+                            <a-button @click="getCurrentCheckInInfo(item.checkInUsers, item.title)" type="primary">导出签到情况</a-button>
                         </a-card>
                     </a-collapse-panel>
 
@@ -822,6 +866,7 @@ const scroll = computed(() => {
                               v-model:current="currentActivityUserPage"></a-pagination>
             </a-spin>
             <template #footer>
+                <a-button type="primary" :disabled="activityUsers.length === 0" @click="getCurrentActivityUsersInfo">导出文件</a-button>
                 <a-button type="primary" @click="handleCancelUsers">关闭</a-button>
             </template>
         </a-modal>
