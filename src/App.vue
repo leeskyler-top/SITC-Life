@@ -330,7 +330,7 @@ const stopLoadingLogo = () => {
                                 </a-menu-item>
                             </div>
                         </a-sub-menu>
-                        <a-menu-item key="home" @click.prevent="$router.push('/security/history')">
+                        <a-menu-item key="security-history" v-if="is_admin === '1'" @click.prevent="$router.push('/security/history')">
                             <alert-outlined />
                             <span>安全审计记录</span>
                         </a-menu-item>
@@ -468,7 +468,7 @@ const stopLoadingLogo = () => {
                                                     </a-menu-item>
                                                 </div>
                                             </a-sub-menu>
-                                            <a-menu-item key="home" @click.prevent="$router.push('/security/history')">
+                                            <a-menu-item key="security-history" v-if="is_admin === '1'" @click.prevent="$router.push('/security/history')">
                                                 <alert-outlined />
                                                 <span>安全历史</span>
                                             </a-menu-item>

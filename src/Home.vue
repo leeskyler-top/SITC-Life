@@ -1,13 +1,15 @@
 <script setup>
 import {computed, onMounted, ref} from 'vue';
 import {Empty, message} from "ant-design-vue";
-import {AuditOutlined, AppstoreAddOutlined, OrderedListOutlined, UnorderedListOutlined, SettingOutlined, ProfileOutlined, ContainerOutlined, CloudUploadOutlined, UserAddOutlined, InfoCircleOutlined} from '@ant-design/icons-vue';
+import {AuditOutlined, AppstoreAddOutlined, OrderedListOutlined, UnorderedListOutlined, SettingOutlined, ProfileOutlined, ContainerOutlined, CloudUploadOutlined, UserAddOutlined, InfoCircleOutlined, HistoryOutlined} from '@ant-design/icons-vue';
 import api from "@/api";
 
 const activeKey = ref([]);
 const messages = ref([]);
 const spinning = ref(false)
 const isShow = ref(true);
+
+const is_admin = ref(localStorage.is_admin);
 
 function handleResize(event) {
     // 页面宽度小于525px时，不显示表格
@@ -118,7 +120,7 @@ onMounted(() => {
             <a-col :lg="{span: 8}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}">
                 <a-card title="用户" :style="{minHeight: '220px'}">
                     <a-row :gutter="[24,24]">
-                        <a-col align="middle" :span="6">
+                        <a-col align="middle" :span="is_admin === '1' ? 6 : 24">
                             <router-link to="/user/detail">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -129,7 +131,7 @@ onMounted(() => {
                                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">用户资料</p>
                             </router-link>
                         </a-col>
-                        <a-col align="middle" :span="6">
+                        <a-col align="middle" :span="6" v-if="is_admin === '1'">
                             <router-link to="/user/manager">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -137,11 +139,11 @@ onMounted(() => {
                                     </template>
 
                                 </a-button>
-                                <p style="padding-top: 6px; font-size: 12px; color: #333333;">设备管理</p>
+                                <p style="padding-top: 6px; font-size: 12px; color: #333333;">用户管理</p>
                             </router-link>
                         </a-col>
 
-                        <a-col align="middle" :span="6">
+                        <a-col align="middle" :span="6" v-if="is_admin === '1'">
                             <router-link to="/user/add">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -153,7 +155,7 @@ onMounted(() => {
                             </router-link>
                         </a-col>
 
-                        <a-col align="middle" :span="6">
+                        <a-col align="middle" :span="6" v-if="is_admin === '1'">
                             <router-link to="/user/batch">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -171,7 +173,7 @@ onMounted(() => {
             <a-col :lg="{span: 8}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}">
                 <a-card title="签到打卡" :style="{minHeight: '220px'}">
                     <a-row :gutter="[24,24]">
-                        <a-col align="middle" :span="12">
+                        <a-col align="middle" :span="is_admin === '1' ? 12 : 24 ">
                             <router-link to="/checkin/list">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -182,7 +184,7 @@ onMounted(() => {
                                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">签到列表</p>
                             </router-link>
                         </a-col>
-                        <a-col align="middle" :span="12">
+                        <a-col align="middle" :span="12" v-if="is_admin === '1'">
                             <router-link to="/checkin/manager">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -199,7 +201,7 @@ onMounted(() => {
             <a-col :lg="{span: 8}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}">
                 <a-card title="设备" :style="{minHeight: '220px'}">
                     <a-row :gutter="[24,24]">
-                        <a-col align="middle" :span="6">
+                        <a-col align="middle" :span="is_admin === '1' ? 6 : 12">
                             <router-link to="/equipment/my">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -210,7 +212,7 @@ onMounted(() => {
                                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">我的设备</p>
                             </router-link>
                         </a-col>
-                        <a-col align="middle" :span="6">
+                        <a-col align="middle" :span="is_admin === '1' ? 6 : 12">
                             <router-link to="/equipment/apply">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -221,7 +223,7 @@ onMounted(() => {
                                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">设备借用申请</p>
                             </router-link>
                         </a-col>
-                        <a-col align="middle" :span="6">
+                        <a-col align="middle" :span="6" v-if="is_admin === '1'">
                             <router-link to="/equipment/manager">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -232,7 +234,7 @@ onMounted(() => {
                                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">设备管理</p>
                             </router-link>
                         </a-col>
-                        <a-col align="middle" :span="6">
+                        <a-col align="middle" :span="6" v-if="is_admin === '1'">
                             <router-link to="/equipment/audit">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -244,7 +246,7 @@ onMounted(() => {
                             </router-link>
                         </a-col>
                         <a-col align="middle" :span="6">
-                            <router-link to="/equipment/history">
+                            <router-link to="/equipment/history" v-if="is_admin === '1'">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
                                         <UnorderedListOutlined />
@@ -255,7 +257,7 @@ onMounted(() => {
                             </router-link>
                         </a-col>
                         <a-col align="middle" :span="6">
-                            <router-link to="/equipment/add">
+                            <router-link to="/equipment/add" v-if="is_admin === '1'">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
                                         <AppstoreAddOutlined />
@@ -266,7 +268,7 @@ onMounted(() => {
                             </router-link>
                         </a-col>
                         <a-col align="middle" :span="6">
-                            <router-link to="/equipment/batch">
+                            <router-link to="/equipment/batch" v-if="is_admin === '1'">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
                                         <CloudUploadOutlined />
@@ -282,7 +284,7 @@ onMounted(() => {
             <a-col :lg="{span: 8}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}">
                 <a-card title="活动" :style="{minHeight: '220px'}">
                     <a-row :gutter="[24,24]">
-                        <a-col align="middle" :span="6">
+                        <a-col align="middle" :span="is_admin === '1' ? 6 : 24">
                             <router-link to="/activity/list">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -294,7 +296,7 @@ onMounted(() => {
                             </router-link>
                         </a-col>
                         <a-col align="middle" :span="6">
-                            <router-link to="/activity/manager">
+                            <router-link to="/activity/manager" v-if="is_admin === '1'">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
                                         <SettingOutlined />
@@ -304,7 +306,7 @@ onMounted(() => {
                                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">活动管理</p>
                             </router-link>
                         </a-col>
-                        <a-col align="middle" :span="6">
+                        <a-col align="middle" :span="6" v-if="is_admin === '1'">
                             <router-link to="/activity/add">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -315,7 +317,7 @@ onMounted(() => {
                                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">活动添加</p>
                             </router-link>
                         </a-col>
-                        <a-col align="middle" :span="6">
+                        <a-col align="middle" :span="6" v-if="is_admin === '1'">
                             <router-link to="/activity/enrollment">
                                 <a-button shape="circle" size="large">
                                     <template #icon>
@@ -324,6 +326,23 @@ onMounted(() => {
 
                                 </a-button>
                                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">报名审批</p>
+                            </router-link>
+                        </a-col>
+                    </a-row>
+                </a-card>
+            </a-col>
+            <a-col v-if="is_admin === '1'" :lg="{span: 8}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}">
+                <a-card title="安全审计" :style="{minHeight: '220px'}">
+                    <a-row :gutter="[24,24]">
+                        <a-col align="middle" :span="24">
+                            <router-link to="/security/history">
+                                <a-button shape="circle" size="large">
+                                    <template #icon>
+                                        <HistoryOutlined />
+                                    </template>
+
+                                </a-button>
+                                <p style="padding-top: 6px; font-size: 12px; color: #333333;">API访问历史</p>
                             </router-link>
                         </a-col>
                     </a-row>
