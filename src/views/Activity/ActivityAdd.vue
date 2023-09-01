@@ -192,6 +192,31 @@ const rowSelection = computed(() => {
     };
 });
 
+const isShow = ref(true);
+
+function handleResize(event) {
+    // 页面宽度小于525px时，不显示表格
+    if (document.documentElement.clientWidth < 768) {
+        isShow.value = false;
+    } else {
+        isShow.value = true;
+    }
+}
+
+onMounted(() => {
+    handleResize();
+});
+
+window.addEventListener('resize', handleResize);
+
+const scroll_users = computed(() => {
+    if (isShow.value === true) {
+        return false
+    } else {
+        return { x: 180 }
+    }
+})
+
 </script>
 
 <template>
@@ -324,7 +349,7 @@ const rowSelection = computed(() => {
             <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>
             <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>
         </a-card>
-        <a-table :row-selection="rowSelection" :columns="columns" :data-source="users">
+        <a-table :scroll="scroll_users" :row-selection="rowSelection" :columns="columns" :data-source="users">
             <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
                 <div style="padding: 8px">
                     <a-input

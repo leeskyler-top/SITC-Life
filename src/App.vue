@@ -148,7 +148,7 @@ const stopLoadingLogo = () => {
 
 </script>
 <template>
-    <a-style-provider hash-priority="high" :transformers="[legacyLogicalPropertiesTransformer]">
+    <a-style-provider hash-priority="high"  :transformers="[legacyLogicalPropertiesTransformer]">
         <div v-if="!token" class="login">
             <a-form
                     :model="formState"

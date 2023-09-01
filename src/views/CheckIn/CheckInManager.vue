@@ -548,6 +548,14 @@ const scroll = computed(() => {
 })
 
 
+const scroll_users = computed(() => {
+    if (isShow.value === true) {
+        return false
+    } else {
+        return { x: 180 }
+    }
+})
+
 </script>
 <template>
     <a-layout-content
@@ -783,7 +791,7 @@ const scroll = computed(() => {
                 <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>
                 <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>
             </a-card>
-            <a-table :row-selection="rowSelection" :columns="columns_2" :data-source="usersData">
+            <a-table :scroll="scroll_users" :row-selection="rowSelection" :columns="columns_2" :data-source="usersData">
                 <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
                     <div style="padding: 8px">
                         <a-input
