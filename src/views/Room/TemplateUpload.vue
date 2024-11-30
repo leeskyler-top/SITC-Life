@@ -13,9 +13,9 @@ const handleRemove = () => {
   // file.value = newfile;
   file.value = [];
 };
-const newUsers = ref([]);
+const newTemplates = ref([]);
 const results = ref([]);
-const visibleUsers = ref(false);
+const visibleTemplates = ref(false);
 const handleUpload = () => {
   let formData = new FormData();
   // console.log(file.value[0].originFileObj);
@@ -29,24 +29,11 @@ const handleUpload = () => {
       'Content-Type': 'multipart/form-data',
     },
   };
-  api.post("/user/upload", formData, config).then((res) => {
+  api.post("/template/upload", formData, config).then((res) => {
     let {data, msg} = res.data;
-    data.users = data.users.map(item => {
-      if (item.is_admin === true || item.is_admin === '1' || item.is_admin === 1) {
-        item.is_admin = '是';
-      } else {
-        item.is_admin = '否';
-      }
-      if (item.resident === true || item.resident === '1' || item.resident === 1) {
-        item.resident = '是';
-      } else {
-        item.resident = '否';
-      }
-      return item;
-    })
-    newUsers.value = data.users;
+    newTemplates.value = data.created_templates;
     results.value = data.results;
-    visibleUsers.value = true;
+    visibleTemplates.value = true;
     uploading.value = false
     message.success(msg);
   }).catch((err) => {
@@ -57,7 +44,7 @@ const handleUpload = () => {
 };
 
 const handleCancel = () => {
-  visibleUsers.value = false;
+  visibleTemplates.value = false;
 }
 
 const formItemLayout = {
@@ -76,7 +63,7 @@ const formItemLayout = {
       :style="{margin: '16px'}"
   >
     <h2 style="display: flex; justify-content: space-between;">
-      <span>用户批量添加</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined/> 首页</router-link></span>
+      <span>模板批量添加</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined/> 首页</router-link></span>
     </h2>
     <a-row>
       <a-col :span="24" style="padding: 24px; background-color: #FFFFFF">
@@ -113,24 +100,16 @@ const formItemLayout = {
         </a-form>
       </a-col>
     </a-row>
-    <a-modal v-model:visible="visibleUsers" title="新增用户情况">
+    <a-modal v-model:visible="visibleTemplates" title="新增模板情况">
       <a-card style="margin-top: 4px;">
         <a-card v-for="result in results">
           {{ result }}
         </a-card>
       </a-card>
-      <a-card v-for="item in newUsers" style="margin-top: 4px;">
-        <p>用户id：<span>{{ item.id }}</span></p>
-        <p>学籍号：<span>{{ item.studentId }}</span></p>
-        <p>姓名：<span>{{ item.name }}</span></p>
+      <a-card v-for="item in newTemplates" style="margin-top: 4px;">
+        <p>楼栋：<span>{{ item.building }}</span></p>
+        <p>房间：<span>{{ item.room }}</span></p>
         <p>班级：<span>{{ item.classname }}</span></p>
-        <p>系部：<span>{{ item.department }}</span></p>
-        <p>性别：<span>{{ item.gender }}</span></p>
-        <p>手机：<span>{{ item.phone }}</span></p>
-        <p>政治面貌：<span>{{ item.politicalLandscape }}</span></p>
-        <p>是否住宿：<span>{{ item.resident }}</span></p>
-        <p>是否管理员：<span>{{ item.is_admin }}</span></p>
-        <p>入部时间：<span>{{ item.join_at }}</span></p>
       </a-card>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
