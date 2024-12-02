@@ -8,7 +8,8 @@ import {
   DownOutlined,
   AlertOutlined,
   ScheduleOutlined,
-  BankOutlined
+  BankOutlined,
+  CloudServerOutlined
 } from '@ant-design/icons-vue';
 import {message, legacyLogicalPropertiesTransformer} from "ant-design-vue";
 import {ref, computed, reactive, watch, onMounted} from 'vue';
@@ -236,6 +237,10 @@ const stopLoadingLogo = () => {
             <a-menu-item key="1" @click.prevent="$router.push('/')">
               <dashboard-outlined/>
               <span>工作台</span>
+            </a-menu-item>
+            <a-menu-item key="cloud" @click.prevent="$router.push('/cloud/manager')">
+              <CloudServerOutlined />
+              <span>网盘管理</span>
             </a-menu-item>
             <a-menu-item key="semester" @click.prevent="$router.push('/semester/manager')">
               <carry-out-outlined />

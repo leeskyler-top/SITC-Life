@@ -42,12 +42,12 @@ const router = createRouter({
         {
             path: '/semester/manager',
             component: () => import("@/views/Semester/SemesterManager.vue"),
-            meta: {...admin}
+            meta: {...user}
         },
         {
             path: '/template/manager',
             component: () => import("@/views/Room/RoomManager.vue"),
-            meta: {...admin}
+            meta: {...user}
         },
         {
             path: '/template/batch',
@@ -63,6 +63,11 @@ const router = createRouter({
             path: '/checkin/manager',
             component: () => import("@/views/CheckIn/CheckInManager.vue"),
             meta: {...admin}
+        },
+        {
+            path: '/cloud/manager',
+            component: () => import("@/views/Driver/DriverManager.vue"),
+            meta: {...user}
         },
         {
             path: '/security/history',

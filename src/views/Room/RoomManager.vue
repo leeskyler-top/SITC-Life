@@ -242,6 +242,7 @@ const formState = reactive({
 const handleCancel = () => {
   visible.value = false;
   visibleCreate.value = false;
+  visibleLink.value = false;
 };
 
 const rules = {
