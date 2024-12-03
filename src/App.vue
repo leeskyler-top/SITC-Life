@@ -9,7 +9,8 @@ import {
   AlertOutlined,
   ScheduleOutlined,
   BankOutlined,
-  CloudServerOutlined
+  CloudServerOutlined,
+  PieChartOutlined
 } from '@ant-design/icons-vue';
 import {message, legacyLogicalPropertiesTransformer} from "ant-design-vue";
 import {ref, computed, reactive, watch, onMounted} from 'vue';
@@ -45,6 +46,7 @@ const access_token = ref(localStorage.access_token);
 const refresh_token = ref(localStorage.refresh_token);
 let latestToken = access_token.value; // 中间变量存储最新的token值
 const is_admin = ref(localStorage.is_admin);
+const user_position = ref(localStorage.user_position);
 
 onMounted(() => {
   handleResize();
@@ -139,10 +141,12 @@ const login = () => {
     refresh_token.value = data.refresh_token;
     name.value = data.user.name;
     is_admin.value = data.user.is_admin;
+    user_position.value = data.user.position;
     localStorage.access_token = data.access_token;
     localStorage.refresh_token = data.refresh_token;
     localStorage.name = data.user.name;
     localStorage.is_admin = data.user.is_admin;
+    localStorage.user_position = data.user.position;
     message.success(msg);
   }).catch((err) => {
     let {msg} = err.response.data;
@@ -160,6 +164,7 @@ const logout = () => {
     access_token.value = null;
     name.value = null;
     is_admin.value = null;
+    user_position.value = null;
     message.success(msg);
   }).catch((err) => {
     let {msg} = err.response.data;
@@ -168,6 +173,7 @@ const logout = () => {
     access_token.value = null;
     name.value = null;
     is_admin.value = null;
+    user_position.value = null;
     localStorage.clear();
     message.warn("会话注销可能失败:" + msg);
   });
@@ -298,6 +304,11 @@ const stopLoadingLogo = () => {
               <alert-outlined/>
               <span>安全审计记录</span>
             </a-menu-item>
+            <a-menu-item key="data-analyzer" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'"
+                         @click.prevent="$router.push('/analyzer/view')">
+              <PieChartOutlined />
+              <span>数据统计</span>
+            </a-menu-item>
           </a-menu>
         </a-layout-sider>
         <a-layout>
@@ -378,6 +389,11 @@ const stopLoadingLogo = () => {
                         <alert-outlined/>
                         <span>安全历史</span>
                       </a-menu-item>
+                      <a-menu-item key="data-analyzer" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'"
+                                   @click.prevent="$router.push('/analyzer/view')">
+                        <PieChartOutlined />
+                        <span>数据统计</span>
+                      </a-menu-item>
                     </a-menu>
                   </template>
                 </a-dropdown>
@@ -390,7 +406,7 @@ const stopLoadingLogo = () => {
           </a-layout-content>
           <a-layout-footer style="text-align: center">
             上海信息技术学校团委学生会生活部 &copy; 2024 | <a
-              href="https://github.com/leeskyler-top/SITC-Publicity-Backend"
+              href="https://github.com/leeskyler-top/SITC-Life-Driver"
               style="text-decoration: none; color: black">GitHub 仓库</a>
           </a-layout-footer>
         </a-layout>

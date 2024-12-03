@@ -104,9 +104,8 @@ const deleteDir = (docid) => {
 
 const linkData = ref();
 
-const openLink = (docid) => {
+const openLink = () => {
   spinning.value = true;
-  formState.docid = docid;
   api.post("/driver/dir/link", formState).then(res => {
     let {data, msg} = res.data;
     spinning.value = false;
@@ -205,8 +204,9 @@ const showModal = () => {
   visible.value = true;
 }
 
-const showCreateModal = () => {
+const showCreateModal = (docid) => {
   visibleCreate.value = true;
+  formState.docid = docid
 }
 
 const showLink = () => {
@@ -267,7 +267,7 @@ const formState = reactive({
                 </a-button>
               </a-row>
               <a-row justify="end">
-                <a-button type="link" @click="openLink(item.docid)">获取链接</a-button>
+                <a-button type="link" @click="showCreateModal(item.docid)">获取链接</a-button>
                 <a-button type="link" danger v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true"  @click="showConfirm('deleteDir', item.docid)">删除</a-button>
               </a-row>
             </a-list-item>
@@ -289,7 +289,7 @@ const formState = reactive({
           v-bind="formItemLayout"
           :rules="rules"
       >
-        <a-form-item name="department" label="权限" :rules="[{ required: true }]">
+        <a-form-item name="perm" label="权限" :rules="[{ required: true }]">
           <a-select v-model:value="formState.perm" placeholder="选择权限">
             <a-select-option :value="1">仅预览</a-select-option>
             <a-select-option :value="3">预览与下载</a-select-option>
@@ -301,8 +301,6 @@ const formState = reactive({
         <a-form-item name="usePassword" label="是否使用密码">
           <a-switch v-model:checked="formState.usePassword"></a-switch>
         </a-form-item>
-
-
       </a-form>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
