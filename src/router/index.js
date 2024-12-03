@@ -2,7 +2,7 @@ import {createRouter, createWebHashHistory} from 'vue-router'
 
 const admin = {
     auth: true,
-    is_admin: '1',
+    is_admin: 'true',
 }
 
 const user = {
@@ -73,6 +73,11 @@ const router = createRouter({
             path: '/security/history',
             component: () => import("@/views/Security/SecurityHistory.vue"),
             meta: {...admin}
+        },
+        {
+            path: '/analyzer/view',
+            component: () => import("@/views/Analyzer/DataView.vue"),
+            meta: {...user}
         },
         {
             path: '/:pathMatch(.*)',

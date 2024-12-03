@@ -137,11 +137,11 @@ onMounted(() => {
         <a-form-item name="semester_name" label="学期名称" :rules="[{ required: true }]">
           <a-input v-model:value="formState.semester_name"/>
         </a-form-item>
-        <a-form-item name="start_time" label="开始时间" :rules="[{ required: true }]">
+        <a-form-item name="start_month" label="开始时间" :rules="[{ required: true }]">
           <a-date-picker picker="month" v-model:value="formState.start_month" placeholder="选择年-月-日"
                          valueFormat="YYYY-MM"/>
         </a-form-item>
-        <a-form-item name="end_time" label="结束时间" :rules="[{ required: true }]">
+        <a-form-item name="end_month" label="结束时间" :rules="[{ required: true }]">
           <a-date-picker picker="month" v-model:value="formState.end_month" placeholder="选择年-月-日"
                          valueFormat="YYYY-MM"/>
         </a-form-item>

@@ -12,8 +12,10 @@
     "ant-design-vue": "^4.0.0-rc.6",
     "antd": "^4.0.0",
     "axios": "^1.4.0",
+    "echarts": "^5.5.1",
     "lodash-es": "^4.17.21",
     "vue": "^3.3.2",
+    "vue-echarts": "^7.0.3",
     "vue-router": "^4.2.0"
   },
   "devDependencies": {
