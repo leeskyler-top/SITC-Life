@@ -173,6 +173,19 @@ onMounted(() => {
   listMyInfo();
 });
 
+const pushZip = (name, docid) => {
+  api.post("/dir/download", {
+    name: name,
+    docid: docid
+  }).then(res => {
+    let {msg} = res.data
+    message.success(msg)
+  }).catch(err => {
+    let {msg} = err.response.data
+    message.success(msg)
+  })
+}
+
 const showConfirm = (op, docid=null) => {
   let contentText = ""
   if (op === "genSemester") {
@@ -268,6 +281,7 @@ const formState = reactive({
               </a-row>
               <a-row justify="end">
                 <a-button type="link" @click="showCreateModal(item.docid)">获取链接</a-button>
+                <a-button type="link" v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true"  @click="pushZip(item.name,item.docid)">尝试推送</a-button>
                 <a-button type="link" danger v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true"  @click="showConfirm('deleteDir', item.docid)">删除</a-button>
               </a-row>
             </a-list-item>

@@ -80,6 +80,11 @@ const router = createRouter({
             meta: {...user}
         },
         {
+            path: '/analyzer/transfer',
+            component: () => import("@/views/Analyzer/ZipTransfer.vue"),
+            meta: {...user}
+        },
+        {
             path: '/:pathMatch(.*)',
             component: () => import("@/views/NotFound.vue"),
             meta: {...user}
