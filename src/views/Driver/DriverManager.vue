@@ -174,7 +174,7 @@ onMounted(() => {
 });
 
 const pushZip = (name, docid) => {
-  api.post("/dir/download", {
+  api.post("/driver/dir/download", {
     name: name,
     docid: docid
   }).then(res => {
