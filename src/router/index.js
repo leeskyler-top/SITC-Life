@@ -77,7 +77,7 @@ const router = createRouter({
         {
             path: '/analyzer/view',
             component: () => import("@/views/Analyzer/DataView.vue"),
-            meta: {...user}
+            meta: {...admin}
         },
         {
             path: '/analyzer/transfer',
