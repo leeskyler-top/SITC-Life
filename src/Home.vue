@@ -12,7 +12,7 @@ import {
   CloudUploadOutlined,
   UserAddOutlined,
   InfoCircleOutlined,
-  HistoryOutlined, CarryOutOutlined, BankOutlined, CloudServerOutlined
+  HistoryOutlined, CarryOutOutlined, BankOutlined, CloudServerOutlined, PieChartOutlined
 } from '@ant-design/icons-vue';
 import api from "@/api";
 
@@ -265,7 +265,25 @@ onMounted(() => {
           </a-row>
         </a-card>
       </a-col>
+      <a-col :lg="{span: 8}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}" v-if="is_admin === 'true' || ['部长', '副部长', '部门负责人'].includes(user_position)">
+        <a-card title="数据统计" :style="{minHeight: '220px'}">
+          <a-row :gutter="[24,24]">
+            <a-col align="middle" :span="24 ">
+              <router-link to="/analyzer/view">
+                <a-button shape="circle" size="large">
+                  <template #icon>
+                    <PieChartOutlined/>
+                  </template>
+
+                </a-button>
+                <p style="padding-top: 6px; font-size: 12px; color: #333333;">数据统计</p>
+              </router-link>
+            </a-col>
+          </a-row>
+        </a-card>
+      </a-col>
     </a-row>
+
   </a-layout-content>
   <a-layout-content :style="isShow ? {margin: '16px'} : {margin: '4px'}">
     <a-row type="flex" justify="space-around" align="middle">
