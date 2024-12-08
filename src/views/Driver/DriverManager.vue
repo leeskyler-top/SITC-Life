@@ -174,15 +174,18 @@ onMounted(() => {
 });
 
 const pushZip = (name, docid) => {
+  spinning.value = true;
   api.post("/driver/dir/download", {
     name: name,
     docid: docid
   }).then(res => {
     let {msg} = res.data
-    message.success(msg)
+    spinning.value = false;
+    openNotification("已尝试发送", msg)
   }).catch(err => {
     let {msg} = err.response.data
-    message.success(msg)
+    spinning.value = false;
+    openNotification("发送失败", msg)
   })
 }
 
