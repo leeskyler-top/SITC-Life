@@ -333,6 +333,10 @@ const stopLoadingLogo = () => {
                         <dashboard-outlined/>
                         <span>工作台</span>
                       </a-menu-item>
+                      <a-menu-item key="cloud" @click.prevent="$router.push('/cloud/manager')">
+                        <CloudServerOutlined />
+                        <span>网盘管理</span>
+                      </a-menu-item>
                       <a-menu-item key="semester" @click.prevent="$router.push('/semester/manager')">
                         <carry-out-outlined />
                         <span>学期配置</span>
