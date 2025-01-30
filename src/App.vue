@@ -18,6 +18,27 @@ import api from './api.js';
 import router from "@/router";
 import axios from "axios";
 
+// 初始化时间戳
+const ACCESS_TOKEN_TIMESTAMP_KEY = "access_token_timestamp";
+const REFRESH_TOKEN_TIMESTAMP_KEY = "refresh_token_timestamp";
+
+// 获取时间戳
+const getTimestamp = (key) => {
+  return parseInt(localStorage.getItem(key)) || 0;
+};
+
+// 设置时间戳
+const setTimestamp = (key, timestamp) => {
+  localStorage.setItem(key, timestamp);
+};
+
+// 计算时间差（分钟）
+const getTimeDifferenceInMinutes = (timestamp) => {
+  const currentTime = Date.now();
+  return (currentTime - timestamp) / (1000 * 60); // 以分钟为单位
+};
+
+
 const isShow = ref(true);
 
 function handleResize(event) {
@@ -64,6 +85,7 @@ const refreshToken = () => {
     localStorage.access_token = data.access_token
     access_token.value = data.access_token
     latestToken = data.access_token
+    setTimestamp(ACCESS_TOKEN_TIMESTAMP_KEY, Date.now());
     api.defaults.headers['Authorization'] = `Bearer ${latestToken}`;
   }).catch((err) => {
     let {msg} = err.response.data
@@ -80,6 +102,40 @@ const refreshToken = () => {
   })
 }
 
+// 检查并执行 token 刷新
+const checkTokenExpiration = async (config) => {
+  const accessTokenTimestamp = getTimestamp(ACCESS_TOKEN_TIMESTAMP_KEY);
+  const refreshTokenTimestamp = getTimestamp(REFRESH_TOKEN_TIMESTAMP_KEY);
+
+  // 检查refresh_token是否超过29.5分钟未更新
+  if (getTimeDifferenceInMinutes(refreshTokenTimestamp) > 29.5) {
+    message.warn("refresh_token已过期，请重新登录");
+    logout();
+    localStorage.clear(); // 清除存储
+    return Promise.reject(new Error('refresh_token expired'));
+  }
+
+  // 检查access_token是否过期 2.5分钟
+  if (getTimeDifferenceInMinutes(accessTokenTimestamp) > 2.5 && !config.url.includes("/auth/refresh")) {
+    await refreshToken(); // 刷新token
+  }
+
+};
+
+// 每次请求之前检查token
+api.interceptors.request.use(async (config) => {
+  if (!config.url.includes("/auth/login")) {
+    await checkTokenExpiration(config); // 每次请求前检查token是否过期
+    const latestToken = localStorage.getItem('access_token');
+    if (!config.url.includes("/auth/refresh")) {
+      config.headers['Authorization'] = `Bearer ${latestToken}`;
+    }
+  }
+  return config
+}, (error) => {
+  return Promise.reject(error);
+});
+
 api.interceptors.response.use(
     (response) => response, // 成功响应直接返回
     async (error) => {
@@ -88,7 +144,7 @@ api.interceptors.response.use(
 
       if (response.status === 401 && response.data.msg === "Token has expired" && !originalRequest._retry) {
         originalRequest._retry = true; // 标记避免死循环
-        await refreshToken(); // 更新 Token
+        // await refreshToken(); // 更新 Token
         originalRequest.headers.Authorization = `Bearer ${latestToken}`; // 更新请求头
         return api(originalRequest); // 重试请求
       }
@@ -114,9 +170,10 @@ api.interceptors.response.use(
     }
 );
 
-
 watch(access_token, (newToken) => {
+  // 直接在 request 中使用最新的 token
   latestToken = newToken; // 更新最新的token值
+  api.defaults.headers['Authorization'] = `Bearer ${newToken}`;
 });
 
 // 在发送请求前应用最新的token值
@@ -134,6 +191,8 @@ const signin = ref(false);
 const login = () => {
   signin.value = true;
   api.post("/auth/login", formState).then((res) => {
+    setTimestamp(REFRESH_TOKEN_TIMESTAMP_KEY, Date.now());
+    setTimestamp(ACCESS_TOKEN_TIMESTAMP_KEY, Date.now());
     signin.value = false;
     formState.studentId = null;
     formState.password = null;
@@ -158,26 +217,13 @@ const login = () => {
 
 const logout = () => {
   router.push("/");
-  api.delete("/auth/logout").then((res) => {
-    let {msg} = res.data;
-    localStorage.clear();
-    refresh_token.value = null;
-    access_token.value = null;
-    name.value = null;
-    is_admin.value = null;
-    user_position.value = null;
-    message.success(msg);
-  }).catch((err) => {
-    let {msg} = err.response.data;
-    localStorage.clear();
-    refresh_token.value = null;
-    access_token.value = null;
-    name.value = null;
-    is_admin.value = null;
-    user_position.value = null;
-    localStorage.clear();
-    message.warn("会话注销可能失败:" + msg);
-  });
+  localStorage.clear();
+  refresh_token.value = null;
+  access_token.value = null;
+  name.value = null;
+  is_admin.value = null;
+  user_position.value = null;
+  message.success("注销完成");
 }
 
 const logoLoading = ref('none')

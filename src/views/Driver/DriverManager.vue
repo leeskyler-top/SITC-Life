@@ -169,6 +169,20 @@ const genMonthDir = () => {
   })
 }
 
+const genCurrentMonthDir = () => {
+  spinning.value = true
+  api.get("/driver/dir/month/create_current_month").then(res => {
+    let {msg} = res.data;
+    spinning.value = false;
+    visible.value = false;
+    openNotification("生成成功", "文件夹已生成")
+  }).catch(err => {
+    let {msg} = err.response.data
+    spinning.value = false;
+    openNotification("生成失败", msg)
+  })
+}
+
 onMounted(() => {
   listMyInfo();
 });
@@ -271,8 +285,9 @@ const formState = reactive({
         <a-row justify="end">
           <a-button style="margin: 8px;" @click="listHomeDir()" type="primary">返回根目录</a-button>
           <a-button style="margin: 8px;" @click="listOtherDir(parentDir)" type="primary" v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true" :disabled="!parentDir">返回上一级</a-button>
-          <a-button type="primary" style="margin: 8px;" ghost @click="showConfirm('genSemester')">生成学期文件夹</a-button>
-          <a-button type="primary" style="margin: 8px;" ghost @click="showModal">生成月文件夹</a-button>
+          <a-button type="primary" style="margin: 8px;" ghost @click="showConfirm('genSemester')" v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true">生成学期文件夹</a-button>
+          <a-button type="primary" style="margin: 8px;" ghost @click="showModal" v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true">生成月文件夹</a-button>
+          <a-button type="primary" style="margin: 8px;" ghost @click="showModal" v-if="['普通部员', '实习部员'].includes(userData?.position) || userData?.is_admin === true">生成当前月文件夹</a-button>
         </a-row>
         <a-list :data-source="currentDir">
           <template #renderItem="{ item }">
