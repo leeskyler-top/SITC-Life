@@ -54,7 +54,7 @@ const listMonthDir = () => {
   spinning.value = true;
   let date = new Date();
   api.post("/driver/dir/list/month", {
-    month: `${date.getUTCFullYear()}-${date.getMonth() + 1}`
+    month: `${date.getUTCFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`
   }).then(res => {
     let {data} = res.data;
     spinning.value = false;
