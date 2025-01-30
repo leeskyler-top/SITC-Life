@@ -50,15 +50,16 @@ const user_position = ref(localStorage.user_position);
 
 onMounted(() => {
   handleResize();
+  getCurrentYear();
 })
 
 const refreshToken = () => {
-  api.post("/auth/refresh", null ,{
-    headers: {
-      Authorization: `Bearer ${refresh_token.value}`
-    }
-  }
-    ).then((res) => {
+  api.post("/auth/refresh", null, {
+        headers: {
+          Authorization: `Bearer ${refresh_token.value}`
+        }
+      }
+  ).then((res) => {
     let {data, msg} = res.data
     localStorage.access_token = data.access_token
     access_token.value = data.access_token
@@ -83,7 +84,7 @@ api.interceptors.response.use(
     (response) => response, // 成功响应直接返回
     async (error) => {
       const originalRequest = error.config;
-      const { response } = error;
+      const {response} = error;
 
       if (response.status === 401 && response.data.msg === "Token has expired" && !originalRequest._retry) {
         originalRequest._retry = true; // 标记避免死循环
@@ -184,6 +185,14 @@ const stopLoadingLogo = () => {
   logoLoading.value = 'block';
 }
 
+const year = ref(1971);
+
+const getCurrentYear = () => {
+  let date = new Date();
+  date = date.getFullYear();
+  year.value = date
+}
+
 </script>
 <template>
   <a-style-provider hash-priority="high" :transformers="[legacyLogicalPropertiesTransformer]">
@@ -227,6 +236,13 @@ const stopLoadingLogo = () => {
         </div>
 
       </a-form>
+      <footer id="login-footer">
+        <div>
+          <a href="https://beian.miit.gov.cn" style="text-decoration: none; color: rgba(255,255,255,0.7); font-size: 15px;">
+            沪ICP备2023001976号-1
+          </a>
+        </div>
+      </footer>
     </div>
     <div v-if="refresh_token" style="height: 100%;">
       <a-layout style="min-height: 100vh">
@@ -245,16 +261,16 @@ const stopLoadingLogo = () => {
               <span>工作台</span>
             </a-menu-item>
             <a-menu-item key="cloud" @click.prevent="$router.push('/cloud/manager')">
-              <CloudServerOutlined />
+              <CloudServerOutlined/>
               <span>网盘管理</span>
             </a-menu-item>
             <a-menu-item key="semester" @click.prevent="$router.push('/semester/manager')">
-              <carry-out-outlined />
+              <carry-out-outlined/>
               <span>学期配置</span>
             </a-menu-item>
             <a-sub-menu key="room">
               <template #title>
-                <BankOutlined />
+                <BankOutlined/>
                 <span>房间配置</span>
               </template>
               <a-menu-item key="template-list">
@@ -266,7 +282,7 @@ const stopLoadingLogo = () => {
             </a-sub-menu>
             <a-sub-menu key="checkIn">
               <template #title>
-                <ScheduleOutlined />
+                <ScheduleOutlined/>
                 <span>签到</span>
               </template>
               <a-menu-item key="17">
@@ -304,9 +320,10 @@ const stopLoadingLogo = () => {
               <alert-outlined/>
               <span>安全审计记录</span>
             </a-menu-item>
-            <a-menu-item key="data-analyzer" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'"
+            <a-menu-item key="data-analyzer"
+                         v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'"
                          @click.prevent="$router.push('/analyzer/view')">
-              <PieChartOutlined />
+              <PieChartOutlined/>
               <span>数据统计</span>
             </a-menu-item>
           </a-menu>
@@ -334,16 +351,16 @@ const stopLoadingLogo = () => {
                         <span>工作台</span>
                       </a-menu-item>
                       <a-menu-item key="cloud" @click.prevent="$router.push('/cloud/manager')">
-                        <CloudServerOutlined />
+                        <CloudServerOutlined/>
                         <span>网盘管理</span>
                       </a-menu-item>
                       <a-menu-item key="semester" @click.prevent="$router.push('/semester/manager')">
-                        <carry-out-outlined />
+                        <carry-out-outlined/>
                         <span>学期配置</span>
                       </a-menu-item>
                       <a-sub-menu key="room">
                         <template #title>
-                          <BankOutlined />
+                          <BankOutlined/>
                           <span>房间配置</span>
                         </template>
                         <a-menu-item key="template-list">
@@ -355,7 +372,7 @@ const stopLoadingLogo = () => {
                       </a-sub-menu>
                       <a-sub-menu key="checkIn">
                         <template #title>
-                          <ScheduleOutlined />
+                          <ScheduleOutlined/>
                           <span>签到</span>
                         </template>
                         <a-menu-item key="17">
@@ -393,9 +410,10 @@ const stopLoadingLogo = () => {
                         <alert-outlined/>
                         <span>安全历史</span>
                       </a-menu-item>
-                      <a-menu-item key="data-analyzer" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'"
+                      <a-menu-item key="data-analyzer"
+                                   v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'"
                                    @click.prevent="$router.push('/analyzer/view')">
-                        <PieChartOutlined />
+                        <PieChartOutlined/>
                         <span>数据统计</span>
                       </a-menu-item>
                     </a-menu>
@@ -409,9 +427,17 @@ const stopLoadingLogo = () => {
             <RouterView></RouterView>
           </a-layout-content>
           <a-layout-footer style="text-align: center">
-            上海信息技术学校团委学生会生活部 &copy; 2024 | <a
-              href="https://github.com/leeskyler-top/SITC-Life-Driver"
-              style="text-decoration: none; color: black">GitHub 仓库</a>
+            <div>上海信息技术学校团委学生会生活部 &copy; {{ year }}</div>
+            <div style="margin-top: 4px;">
+              <a href="https://beian.miit.gov.cn" style="text-decoration: none; color: black">
+                沪ICP备2023001976号-1
+              </a>
+              |
+              <a
+                  href="https://github.com/leeskyler-top/SITC-Life-Driver"
+                  style="text-decoration: none; color: black">Github 仓库
+              </a>
+            </div>
           </a-layout-footer>
         </a-layout>
       </a-layout>
@@ -421,6 +447,18 @@ const stopLoadingLogo = () => {
 </template>
 
 <style>
+
+#login-footer {
+  background: rgba(0, 0, 0, 0.3);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 #components-layout-demo-side .logo {
   height: 32px;
