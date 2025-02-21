@@ -16,27 +16,7 @@ import {message, legacyLogicalPropertiesTransformer} from "ant-design-vue";
 import {ref, computed, reactive, watch, onMounted} from 'vue';
 import api from './api.js';
 import router from "@/router";
-import axios from "axios";
-
-// 初始化时间戳
-const ACCESS_TOKEN_TIMESTAMP_KEY = "access_token_timestamp";
-const REFRESH_TOKEN_TIMESTAMP_KEY = "refresh_token_timestamp";
-
-// 获取时间戳
-const getTimestamp = (key) => {
-  return parseInt(localStorage.getItem(key)) || 0;
-};
-
-// 设置时间戳
-const setTimestamp = (key, timestamp) => {
-  localStorage.setItem(key, timestamp);
-};
-
-// 计算时间差（分钟）
-const getTimeDifferenceInMinutes = (timestamp) => {
-  const currentTime = Date.now();
-  return (currentTime - timestamp) / (1000 * 60); // 以分钟为单位
-};
+import {jwtDecode} from 'jwt-decode';
 
 
 const isShow = ref(true);
@@ -75,7 +55,7 @@ onMounted(() => {
 })
 
 const refreshToken = () => {
-  api.post("/auth/refresh", null, {
+  return api.post("/auth/refresh", null, {
         headers: {
           Authorization: `Bearer ${refresh_token.value}`
         }
@@ -85,8 +65,7 @@ const refreshToken = () => {
     localStorage.access_token = data.access_token
     access_token.value = data.access_token
     latestToken = data.access_token
-    setTimestamp(ACCESS_TOKEN_TIMESTAMP_KEY, Date.now());
-    api.defaults.headers['Authorization'] = `Bearer ${latestToken}`;
+    return data.access_token
   }).catch((err) => {
     let {msg} = err.response.data
     message.error(msg)
@@ -104,30 +83,44 @@ const refreshToken = () => {
 
 // 检查并执行 token 刷新
 const checkTokenExpiration = async (config) => {
-  const accessTokenTimestamp = getTimestamp(ACCESS_TOKEN_TIMESTAMP_KEY);
-  const refreshTokenTimestamp = getTimestamp(REFRESH_TOKEN_TIMESTAMP_KEY);
-
-  // 检查refresh_token是否超过29.5分钟未更新
-  if (getTimeDifferenceInMinutes(refreshTokenTimestamp) > 29.5) {
-    message.warn("refresh_token已过期，请重新登录");
+  if (!refresh_token.value) {
+    message.error('Token 不存在，请重新登录');
     logout();
-    localStorage.clear(); // 清除存储
-    return Promise.reject(new Error('refresh_token expired'));
+    return Promise.reject(new Error('Token 不存在'));
   }
+  try {
+    // 解析JWT token，获取过期时间
+    const decoded = jwtDecode(refresh_token.value);
+    const exp = decoded.exp * 1000; // exp 字段是秒级时间戳，转为毫秒级时间戳
+    const currentTime = Date.now();
+    // 如果当前时间大于过期时间，说明 Token 已经过期
+    if (currentTime > exp) {
+      message.warn("refresh_token 已过期，请重新登录");
+      logout();
+      return Promise.reject(new Error('refresh_token expired'));
+    }
 
-  // 检查access_token是否过期 2.5分钟
-  if (getTimeDifferenceInMinutes(accessTokenTimestamp) > 2.5 && !config.url.includes("/auth/refresh")) {
-    await refreshToken(); // 刷新token
+    // 检查 refresh_token 是否过期，使用相同的逻辑
+    if (!config.url.includes('/auth/refresh') && latestToken) {
+      const decodedAccess = jwtDecode(latestToken);
+      const AccessExp = decodedAccess.exp * 1000 - 100;
+      if (currentTime > AccessExp) {
+        refreshToken();
+      }
+    }
+  } catch (error) {
+    console.error("Token 解码失败", error);
+    logout();
+    return Promise.reject(new Error('Token 解码失败'));
   }
-
 };
 
 // 每次请求之前检查token
 api.interceptors.request.use(async (config) => {
   if (!config.url.includes("/auth/login")) {
     await checkTokenExpiration(config); // 每次请求前检查token是否过期
-    const latestToken = localStorage.getItem('access_token');
     if (!config.url.includes("/auth/refresh")) {
+      console.log(latestToken)
       config.headers['Authorization'] = `Bearer ${latestToken}`;
     }
   }
@@ -144,7 +137,7 @@ api.interceptors.response.use(
 
       if (response.status === 401 && response.data.msg === "Token has expired" && !originalRequest._retry) {
         originalRequest._retry = true; // 标记避免死循环
-        // await refreshToken(); // 更新 Token
+        refreshToken(); // 更新 Token
         originalRequest.headers.Authorization = `Bearer ${latestToken}`; // 更新请求头
         return api(originalRequest); // 重试请求
       }
@@ -173,16 +166,6 @@ api.interceptors.response.use(
 watch(access_token, (newToken) => {
   // 直接在 request 中使用最新的 token
   latestToken = newToken; // 更新最新的token值
-  api.defaults.headers['Authorization'] = `Bearer ${newToken}`;
-});
-
-// 在发送请求前应用最新的token值
-api.interceptors.request.use((config) => {
-  // 如果请求的 URL 是 /auth/refresh 则不覆盖 Authorization header
-  if (!config.url.includes("/auth/refresh")) {
-    config.headers.Authorization = `Bearer ${latestToken}`; // 非刷新令牌的请求，使用最新的 access_token
-  }
-  return config;
 });
 
 const name = ref(localStorage.name);
@@ -284,7 +267,8 @@ const getCurrentYear = () => {
       </a-form>
       <footer id="login-footer">
         <div>
-          <a href="https://beian.miit.gov.cn" style="text-decoration: none; color: rgba(255,255,255,0.7); font-size: 15px;">
+          <a href="https://beian.miit.gov.cn"
+             style="text-decoration: none; color: rgba(255,255,255,0.7); font-size: 15px;">
             沪ICP备2023001976号-1
           </a>
         </div>
