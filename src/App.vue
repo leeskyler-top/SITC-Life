@@ -54,95 +54,109 @@ onMounted(() => {
   getCurrentYear();
 })
 
-const refreshToken = () => {
-  return api.post("/auth/refresh", null, {
-        headers: {
-          Authorization: `Bearer ${refresh_token.value}`
-        }
-      }
-  ).then((res) => {
-    let {data, msg} = res.data
-    localStorage.access_token = data.access_token
-    access_token.value = data.access_token
-    latestToken = data.access_token
-    return data.access_token
-  }).catch((err) => {
-    let {msg} = err.response.data
-    message.error(msg)
-    if (msg === "Token has expired") {
-      router.go('/');
-      message.warn("登录超时，请重新登录")
-      localStorage.clear();
-      refresh_token.value = null;
-      access_token.value = null;
-      name.value = null;
-      is_admin.value = null;
-    }
-  })
-}
+let isRefreshing = false; // 标记是否正在刷新 Token
+let requestsQueue = [];   // 存储等待刷新的请求队列
 
-// 检查并执行 token 刷新
-const checkTokenExpiration = async (config) => {
-  if (!refresh_token.value) {
-    message.error('Token 不存在，请重新登录');
-    logout();
-    return Promise.reject(new Error('Token 不存在'));
-  }
+const refreshToken = async () => {
   try {
-    // 解析JWT token，获取过期时间
-    const decoded = jwtDecode(refresh_token.value);
-    const exp = decoded.exp * 1000; // exp 字段是秒级时间戳，转为毫秒级时间戳
-    const currentTime = Date.now();
-    // 如果当前时间大于过期时间，说明 Token 已经过期
-    if (currentTime > exp) {
-      message.warn("refresh_token 已过期，请重新登录");
+    const res = await api.post("/auth/refresh", null, {
+      headers: {Authorization: `Bearer ${refresh_token.value}`},
+    });
+    const {data} = res.data;
+    localStorage.access_token = data.access_token;
+    access_token.value = data.access_token;
+    latestToken = data.access_token;
+    return data.access_token;
+  } catch (err) {
+    const {msg} = err.response?.data || {};
+    message.error(msg || "刷新 Token 失败");
+    if (msg === "Token has expired") {
       logout();
-      return Promise.reject(new Error('refresh_token expired'));
     }
-
-    // 检查 refresh_token 是否过期，使用相同的逻辑
-    if (!config.url.includes('/auth/refresh') && latestToken) {
-      const decodedAccess = jwtDecode(latestToken);
-      const AccessExp = decodedAccess.exp * 1000 - 100;
-      if (currentTime > AccessExp) {
-        refreshToken();
-      }
-    }
-  } catch (error) {
-    console.error("Token 解码失败", error);
-    logout();
-    return Promise.reject(new Error('Token 解码失败'));
+    throw err;
   }
 };
 
-// 每次请求之前检查token
-api.interceptors.request.use(async (config) => {
-  if (!config.url.includes("/auth/login")) {
-    await checkTokenExpiration(config); // 每次请求前检查token是否过期
-    if (!config.url.includes("/auth/refresh")) {
-      console.log(latestToken)
-      config.headers['Authorization'] = `Bearer ${latestToken}`;
-    }
+const checkTokenExpiration = async () => {
+  if (!refresh_token.value) {
+    message.error("Token 不存在，请重新登录");
+    logout();
+    throw new Error("Token 不存在");
   }
-  return config
-}, (error) => {
-  return Promise.reject(error);
+
+  try {
+    // 检查 refresh_token 是否过期
+    const decodedRefresh = jwtDecode(refresh_token.value);
+    const refreshExp = decodedRefresh.exp * 1000;
+    if (Date.now() > refreshExp) {
+      message.warn("refresh_token 已过期，请重新登录");
+      logout();
+      throw new Error("refresh_token expired");
+    }
+
+    // 检查 access_token 是否即将过期（提前 5 分钟刷新）
+    if (latestToken) {
+      const decodedAccess = jwtDecode(latestToken);
+      const accessExp = decodedAccess.exp * 1000; // 提前 5 分钟
+      if (Date.now() > accessExp) {
+        if (!isRefreshing) {
+          isRefreshing = true;
+          await refreshToken();
+          isRefreshing = false;
+          // 刷新完成后执行队列中的请求
+          requestsQueue.forEach((cb) => cb(latestToken));
+          requestsQueue = [];
+        } else {
+          // 如果正在刷新，将当前请求加入队列等待
+          return new Promise((resolve) => {
+            requestsQueue.push((newToken) => {
+              resolve(newToken);
+            });
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Token 检查失败", error);
+    logout();
+    throw error;
+  }
+};
+
+// 请求拦截器
+api.interceptors.request.use(async (config) => {
+  if (config.url.includes("/auth/login") || config.url.includes("/auth/refresh")) {
+    return config;
+  }
+
+  try {
+    await checkTokenExpiration(); // 主动检查 Token 过期
+    config.headers.Authorization = `Bearer ${latestToken}`;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+  return config;
 });
 
+// 响应拦截器（精简错误处理）
 api.interceptors.response.use(
-    (response) => response, // 成功响应直接返回
+    (response) => response,
     async (error) => {
       const originalRequest = error.config;
       const {response} = error;
 
-      if (response.status === 401 && response.data.msg === "Token has expired" && !originalRequest._retry) {
-        originalRequest._retry = true; // 标记避免死循环
-        refreshToken(); // 更新 Token
-        originalRequest.headers.Authorization = `Bearer ${latestToken}`; // 更新请求头
-        return api(originalRequest); // 重试请求
+      // 仅处理 401 错误，其他错误逻辑保持不变
+      if (response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes("/auth/refresh")) {
+        originalRequest._retry = true;
+        try {
+          const newToken = await refreshToken();
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        } catch (err) {
+          logout();
+          return Promise.reject(err);
+        }
       }
-
-      // 处理其他错误
       switch (response.status) {
         case 413:
           message.error("上传数据不得大于10M");
@@ -159,6 +173,8 @@ api.interceptors.response.use(
         default:
           break;
       }
+
+      // 其他错误处理...
       return Promise.reject(error);
     }
 );
@@ -174,8 +190,6 @@ const signin = ref(false);
 const login = () => {
   signin.value = true;
   api.post("/auth/login", formState).then((res) => {
-    setTimestamp(REFRESH_TOKEN_TIMESTAMP_KEY, Date.now());
-    setTimestamp(ACCESS_TOKEN_TIMESTAMP_KEY, Date.now());
     signin.value = false;
     formState.studentId = null;
     formState.password = null;
