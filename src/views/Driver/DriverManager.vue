@@ -99,6 +99,7 @@ const deleteDir = (docid) => {
     let {data, msg} = res.data;
     spinning.value = false;
     currentDir.value = currentDir.value.filter(dir => dir.docid !== docid);
+    currentFiles.value = currentFiles.value.filter(file => file.docid !== docid);
     message.success(msg)
   }).catch(err => {
     let {msg} = err.response.data;
