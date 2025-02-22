@@ -3,10 +3,12 @@ import {ExclamationCircleOutlined, HomeOutlined} from "@ant-design/icons-vue";
 import {createVNode, onMounted, reactive, ref} from "vue";
 import api from "@/api";
 import {message, Modal, notification } from "ant-design-vue";
+import my_config from "@/my_config";
 
 const spinning = ref(false);
 const userData = ref();
 const currentDir = ref([]);
+const currentFiles = ref([]);
 let date = new Date();
 const currentMonth = ref(date.getMonth() + 1);
 
@@ -43,6 +45,7 @@ const listSemesterDir = () => {
     let {data} = res.data;
     spinning.value = false;
     currentDir.value = data.dirs;
+    currentFiles.value = data.files;
   }).catch(err => {
     let {msg} = err.response.data;
     spinning.value = false;
@@ -59,6 +62,7 @@ const listMonthDir = () => {
     let {data} = res.data;
     spinning.value = false;
     currentDir.value = data.dirs;
+    currentFiles.value = data.files;
   }).catch(err => {
     let {msg} = err.response.data;
     spinning.value = false;
@@ -79,6 +83,7 @@ const listOtherDir = (docid) => {
     console.log(parentDir.value)
     spinning.value = false;
     currentDir.value = data.dirs;
+    currentFiles.value = data.files;
   }).catch(err => {
     let {msg} = err.response.data;
     spinning.value = false;
@@ -247,6 +252,7 @@ const handleCancel = () => {
   visible.value = false;
   visibleCreate.value = false;
   visibleLink.value = false;
+  visiblePhotos.value = false;
 };
 
 // 获取当前日期
@@ -301,6 +307,20 @@ const formState = reactive({
                 <a-button type="link" @click="showCreateModal(item.docid)">获取链接</a-button>
                 <a-button type="link" v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true"  @click="pushZip(item.name,item.docid)">尝试推送</a-button>
                 <a-button type="link" danger v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true"  @click="showConfirm('deleteDir', item.docid)">删除</a-button>
+              </a-row>
+            </a-list-item>
+          </template>
+        </a-list>
+        <a-list :data-source="currentFiles">
+          <template #renderItem="{ item }">
+            <a-list-item>
+              <a-row justify="end">
+                <a-button type="text">
+                  {{ item.name }}
+                </a-button>
+              </a-row>
+              <a-row justify="end">
+                <a-button type="link" danger @click="showConfirm('deleteDir', item.docid)">删除</a-button>
               </a-row>
             </a-list-item>
           </template>
