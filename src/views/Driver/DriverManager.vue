@@ -296,7 +296,7 @@ const formState = reactive({
           <a-button type="primary" style="margin: 8px;" ghost @click="showModal" v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true">生成月文件夹</a-button>
           <a-button type="primary" style="margin: 8px;" ghost @click="showModal" v-if="['普通部员', '实习部员'].includes(userData?.position) || userData?.is_admin === true">生成当前月文件夹</a-button>
         </a-row>
-        <a-list :data-source="currentDir">
+        <a-list :data-source="currentDir" v-if="currentDir?.length !== 0">
           <template #renderItem="{ item }">
             <a-list-item>
               <a-row justify="end" @click="listOtherDir(item.docid)">
@@ -312,7 +312,7 @@ const formState = reactive({
             </a-list-item>
           </template>
         </a-list>
-        <a-list :data-source="currentFiles">
+        <a-list :data-source="currentFiles" v-if="currentFiles?.length !== 0 || currentDir?.length === 0">
           <template #renderItem="{ item }">
             <a-list-item>
               <a-row justify="end">
