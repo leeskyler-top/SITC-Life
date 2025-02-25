@@ -108,6 +108,22 @@ const deleteDir = (docid) => {
   });
 }
 
+const deleteFile = (docid) => {
+  spinning.value = true;
+  api.post("/driver/file/del" , {
+    "docid": docid
+  }).then(res => {
+    let {data, msg} = res.data;
+    spinning.value = false;
+    currentFiles.value = currentFiles.value.filter(file => file.docid !== docid);
+    message.success(msg)
+  }).catch(err => {
+    let {msg} = err.response.data;
+    spinning.value = false;
+    message.error(msg);
+  });
+}
+
 const linkData = ref();
 
 const openLink = () => {
@@ -213,8 +229,10 @@ const showConfirm = (op, docid=null) => {
   let contentText = ""
   if (op === "genSemester") {
     contentText = '是否尝试按照模板生成文件夹？大约需要25分钟，且不可中断！';
-  } else {
+  } else if (p === "deleteDir") {
     contentText = '是否删除文件夹，操作不可逆！';
+  } else if (p === "deleteFile") {
+    contentText = '是否删除文件，操作不可逆！';
   }
   Modal.confirm({
     title: '确认操作',
@@ -227,6 +245,8 @@ const showConfirm = (op, docid=null) => {
         genSemesterDir()
       }  else if (op === 'deleteDir') {
         deleteDir(docid)
+      } else if (op === 'deleteFile') {
+        deleteFile(docid)
       }
     }
   });
@@ -321,7 +341,9 @@ const formState = reactive({
                 </a-button>
               </a-row>
               <a-row justify="end">
-                <a-button type="link" danger @click="showConfirm('deleteDir', item.docid)">删除</a-button>
+                <a-button type="link" danger v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true"  @click="showConfirm('deleteDir', item.docid)">删除</a-button>
+                <a-button type="link" danger v-else @click="showConfirm('deleteFile', item.docid)">删除</a-button>
+
               </a-row>
             </a-list-item>
           </template>
