@@ -146,7 +146,7 @@ api.interceptors.response.use(
       const {response} = error;
 
       // 仅处理 401 错误，其他错误逻辑保持不变
-      if (response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes("/auth/refresh")) {
+      if (response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes("/auth/refresh") && !originalRequest.url.includes("/auth/login")) {
         originalRequest._retry = true;
         try {
           const newToken = await refreshToken();
@@ -169,6 +169,12 @@ api.interceptors.response.use(
           break;
         case 502:
           message.error("网关出错");
+          break;
+        case 503:
+          message.error("服务器离线，请刷新页面，如果问题仍然存在请联系管理员");
+          break;
+        case 520:
+          message.error("响应超时，请刷新页面");
           break;
         default:
           break;
