@@ -229,9 +229,9 @@ const showConfirm = (op, docid=null) => {
   let contentText = ""
   if (op === "genSemester") {
     contentText = '是否尝试按照模板生成文件夹？大约需要25分钟，且不可中断！';
-  } else if (p === "deleteDir") {
+  } else if (op === "deleteDir") {
     contentText = '是否删除文件夹，操作不可逆！';
-  } else if (p === "deleteFile") {
+  } else if (op === "deleteFile") {
     contentText = '是否删除文件，操作不可逆！';
   }
   Modal.confirm({
@@ -253,11 +253,16 @@ const showConfirm = (op, docid=null) => {
 }
 
 const visible = ref(false)
+const visibleGenCurrentMonth = ref(false)
 const visibleCreate = ref(false)
 const visibleLink = ref(false)
 
 const showModal = () => {
   visible.value = true;
+}
+
+const showGenCurrentMonthModal = () => {
+  visibleGenCurrentMonth.value = true;
 }
 
 const showCreateModal = (docid) => {
@@ -314,7 +319,7 @@ const formState = reactive({
           <a-button style="margin: 8px;" @click="listOtherDir(parentDir)" type="primary" v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true" :disabled="!parentDir">返回上一级</a-button>
           <a-button type="primary" style="margin: 8px;" ghost @click="showConfirm('genSemester')" v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true">生成学期文件夹</a-button>
           <a-button type="primary" style="margin: 8px;" ghost @click="showModal" v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true">生成月文件夹</a-button>
-          <a-button type="primary" style="margin: 8px;" ghost @click="showModal" v-if="['普通部员', '实习部员'].includes(userData?.position) || userData?.is_admin === true">生成当前月文件夹</a-button>
+          <a-button type="primary" style="margin: 8px;" ghost @click="showGenCurrentMonthModal" v-if="['普通部员', '实习部员'].includes(userData?.position) || userData?.is_admin === true">生成当前月文件夹</a-button>
         </a-row>
         <a-list :data-source="currentDir" v-if="currentDir?.length !== 0">
           <template #renderItem="{ item }">
@@ -355,6 +360,12 @@ const formState = reactive({
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
         <a-button type="primary" danger @click="genMonthDir" :loading="spinning">变更</a-button>
+      </template>
+    </a-modal>
+    <a-modal v-model:visible="visibleGenCurrentMonth" title="要生成当前学期当前月份的文件夹？">
+      <template #footer>
+        <a-button type="primary" @click="handleCancel">关闭</a-button>
+        <a-button type="primary" danger @click="genCurrentMonthDir" :loading="spinning">变更</a-button>
       </template>
     </a-modal>
     <a-modal v-model:visible="visibleCreate" title="创建当前房间">
