@@ -3,6 +3,8 @@ import {ref} from "vue";
 import {InboxOutlined, HomeOutlined} from "@ant-design/icons-vue";
 import api from "@/api";
 import {message} from "ant-design-vue";
+import templateUrl from '@/assets/csv-templates/Add User Template.zip?url'
+
 
 const file = ref([]);
 const uploading = ref(false);
@@ -105,7 +107,7 @@ const formItemLayout = {
           <a-form-item :wrapper-col="{ span: 12, offset: 6 }">
             <a-button type="primary" html-type="submit" :disabled="file.length === 0" :loading="uploading">尝试提交
             </a-button>
-            <a href="https://twxc-beta.leeskyler.top/backend/public/files/User Add Template (SITC-Publicity).csv"
+            <a :href="templateUrl"
                target="_blank">
               <a-button type="primary" ghost style="margin-left: 8px;">下载模板</a-button>
             </a>
