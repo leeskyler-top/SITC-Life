@@ -368,7 +368,7 @@ const formState = reactive({
         <a-button type="primary" danger @click="genCurrentMonthDir" :loading="spinning">变更</a-button>
       </template>
     </a-modal>
-    <a-modal v-model:visible="visibleCreate" title="创建当前房间">
+    <a-modal v-model:visible="visibleCreate" title="获取链接">
       <a-form
           :model="formState"
           name="validate_other"
