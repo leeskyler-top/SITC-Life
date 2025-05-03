@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <a-layout-content style="margin: 16px;">
     <h2 style="display: flex; justify-content: space-between;">
       <span>排班管理</span>
       <span style="margin-bottom: 4px;">
@@ -58,7 +58,7 @@
         </a-form-item>
       </a-form>
     </a-modal>
-  </div>
+  </a-layout-content>
 </template>
 
 <script setup>
