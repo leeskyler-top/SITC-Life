@@ -55,6 +55,11 @@ const router = createRouter({
             meta: {...admin}
         },
         {
+            path: '/schedule/manager',
+            component: () => import("@/views/Schedule/ScheduleManager.vue"),
+            meta: {...admin}
+        },
+        {
             path: '/checkin/list',
             component: () => import("@/views/CheckIn/CheckInList.vue"),
             meta: {...user}
