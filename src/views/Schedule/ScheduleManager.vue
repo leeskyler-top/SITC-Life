@@ -1,5 +1,5 @@
 <template>
-  <a-layout-content :style="{margin: '16px'}">
+  <div>
     <h2 style="display: flex; justify-content: space-between;">
       <span>排班管理</span>
       <span style="margin-bottom: 4px;">
@@ -58,7 +58,7 @@
         </a-form-item>
       </a-form>
     </a-modal>
-  </a-layout-content>
+  </div>
 </template>
 
 <script setup>
@@ -152,10 +152,21 @@ const handleCancel = () => {
   scheduleType.value = "放学";
 };
 
-// 获取指定日期的排班数据
+// 获取指定月份的排班数据，带缓存，只在数据变更或时间跨度太大时才重新拉数据
 const getScheduleData = (date) => {
   return schedules.value.filter(schedule => moment(schedule.schedule_start_time).isSame(date, 'day'));
 };
+
+const availableSchedules = computed(() => {
+  const filteredDateRange = daysInMonth.value;
+
+  return filteredDateRange.map(date => {
+    return {
+      date: date.format('YYYY-MM-DD'),
+      schedules: getScheduleData(date),
+    };
+  });
+});
 
 // 改变年份
 const changeYear = (year) => {
@@ -172,7 +183,6 @@ const changeMonth = (month) => {
 // 更新月份
 const updateMonth = () => {
   currentMonth.value = moment().year(selectedYear.value).month(selectedMonth.value);
-  fetchSchedules();
 };
 
 // 上个月
@@ -180,7 +190,6 @@ const prevMonth = () => {
   currentMonth.value = currentMonth.value.clone().subtract(1, 'month');
   selectedYear.value = currentMonth.value.year();
   selectedMonth.value = currentMonth.value.month();
-  fetchSchedules();
 };
 
 // 下个月
@@ -188,7 +197,6 @@ const nextMonth = () => {
   currentMonth.value = currentMonth.value.clone().add(1, 'month');
   selectedYear.value = currentMonth.value.year();
   selectedMonth.value = currentMonth.value.month();
-  fetchSchedules();
 };
 
 onMounted(() => {
