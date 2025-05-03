@@ -180,7 +180,6 @@ const switchChartType = (type) => {
           <div>
             <a-button @click="switchChartType('pie')" type="primary" ghost>饼图</a-button>
             <a-button style="margin-left: 8px;" @click="switchChartType('bar')" type="primary" ghost>柱状图</a-button>
-            <a-button style="margin-left: 8px;" @click="switchChartType('line')" type="primary" ghost>折线图</a-button>
           </div>
           <h2>
             <router-link to="/"><HomeOutlined/> 首页</router-link>

@@ -253,7 +253,7 @@ onMounted(() => {
               </router-link>
             </a-col>
             <a-col align="middle" :span="8" v-if="is_admin === 'true' || ['部长', '副部长', '部门负责人'].includes(user_position)">
-              <router-link to="/template/upload">
+              <router-link to="/template/batch">
                 <a-button shape="circle" size="large">
                   <template #icon>
                     <CloudUploadOutlined/>

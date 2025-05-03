@@ -278,7 +278,7 @@ const handleCancel = () => {
   visible.value = false;
   visibleCreate.value = false;
   visibleLink.value = false;
-  visiblePhotos.value = false;
+  visibleGenCurrentMonth.value = false;
 };
 
 // 获取当前日期
