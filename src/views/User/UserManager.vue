@@ -201,6 +201,28 @@ const deleteUser = id => {
   });
 };
 
+function downloadUser() {
+  api.get('/user/export', {
+    responseType: 'blob'  // 设置响应类型为 blob
+  })
+      .then(response => {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+
+        // 创建一个 <a> 标签以触发下载
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'current_user_info.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        console.error('下载 CSV 失败: ', error);
+        message.error('下载 CSV 失败')
+      });
+}
+
 const visible = ref(false);
 const visiblePassword = ref(false);
 
@@ -316,6 +338,7 @@ const scroll = computed(() => {
           <router-link to="/user/add">
             <a-button type="primary" style="margin: 8px; " ghost>添加用户</a-button>
           </router-link>
+          <a-button type="primary" style="margin: 8px; " @click="downloadUser" ghost>下载用户</a-button>
         </a-row>
 
         <a-table :columns="columns" :data-source="dataSource" :scroll="scroll" bordered>
