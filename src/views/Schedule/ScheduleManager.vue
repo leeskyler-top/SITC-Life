@@ -1,11 +1,11 @@
 <script setup>
 import {ref, onMounted, computed, createVNode, reactive} from 'vue';
-import {Button, Modal, Select, DatePicker, Form, message, Spin, Badge, notification} from 'ant-design-vue';
-import {ExclamationCircleOutlined, HomeOutlined} from '@ant-design/icons-vue';
+import {Button, Modal, Select, DatePicker, Form, message, Spin, Badge, notification, Table} from 'ant-design-vue';
+import {ExclamationCircleOutlined, HomeOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import moment from 'moment';
 import api from "@/api";
 
-const loading = ref(false);
+const spinning = ref(false);
 const schedules = ref([]);
 const showAddScheduleModal = ref(false);
 const scheduleForm = reactive({
@@ -13,6 +13,10 @@ const scheduleForm = reactive({
   "schedule_start_time": "",
   "schedule_type": "放学",
 });
+const checkInUserForm = reactive({
+  "checkin_ids": [],
+  "user_ids": [],
+})
 const loadingSchedules = ref(true);
 const batchEditMode = ref(false);  // Flag for batch edit mode
 const scheduleIdList = ref([]);       // List of selected schedule IDs
@@ -53,6 +57,65 @@ const emptyDaysStart = computed(() => {
   return emptyDays;
 });
 
+const users = ref([]);
+
+const onSelectChange = changableRowKeys => {
+  console.log(changableRowKeys)
+  checkInUserForm.user_ids = changableRowKeys;
+};
+
+const rowSelection = computed(() => {
+  return {
+    selectedRowKeys: checkInUserForm.user_ids,
+    onChange: onSelectChange,
+    hideDefaultSelections: true,
+    selections: [Table.SELECTION_ALL, Table.SELECTION_INVERT, Table.SELECTION_NONE],
+  };
+});
+
+const columns = [
+  {
+    title: '学籍号',
+    dataIndex: 'studentId',
+    width: '25%',
+    customFilterDropdown: true,
+    onFilter: (value, record) =>
+        record.studentId.toString().toLowerCase().includes(value.toLowerCase()),
+  },
+  {
+    title: '系部',
+    dataIndex: 'department',
+    width: '25%',
+    customFilterDropdown: true,
+    onFilter: (value, record) =>
+        record.department.toString().toLowerCase().includes(value.toLowerCase()),
+  },
+  {
+    title: '班级',
+    dataIndex: 'classname',
+    width: '25%',
+    customFilterDropdown: true,
+    onFilter: (value, record) =>
+        record.classname.toString().toLowerCase().includes(value.toLowerCase()),
+  },
+  {
+    title: '姓名',
+    dataIndex: 'name',
+    width: '20%',
+    customFilterDropdown: true,
+    onFilter: (value, record) =>
+        record.name.toString().toLowerCase().includes(value.toLowerCase()),
+  },
+  {
+    title: '住宿',
+    dataIndex: 'resident',
+    width: '5%',
+    customFilterDropdown: true,
+    onFilter: (value, record) =>
+        record.resident.toString().toLowerCase().includes(value.toLowerCase()),
+  }
+];
+
 // 获取排班数据
 const fetchSchedules = () => {
   loadingSchedules.value = true;
@@ -67,6 +130,31 @@ const fetchSchedules = () => {
     loadingSchedules.value = false;
   });
 };
+
+const listUsers = () => {
+  spinning.value = true;
+  api.get("/user").then((res) => {
+    spinning.value = false;
+    let {data} = res.data;
+    data = data.map(item => {
+      if (item.is_admin === true) {
+        item.is_admin = '是';
+      } else {
+        item.is_admin = '否';
+      }
+      if (item.resident === true) {
+        item.resident = '是';
+      } else {
+        item.resident = '否';
+      }
+      return item;
+    })
+    users.value = data;
+  }).catch((err) => {
+    let {msg} = err.response.data;
+    message.error(msg);
+  });
+}
 
 // 获取指定月份的排班数据，带缓存，只在数据变更或时间跨度太大时才重新拉数据
 const getScheduleData = (date) => {
@@ -117,8 +205,8 @@ const nextMonth = () => {
 
 onMounted(() => {
   fetchSchedules();
+  listUsers();
 });
-
 
 // Go to user selection
 const goToUserSelection = () => {
@@ -126,23 +214,40 @@ const goToUserSelection = () => {
     message.warning("请至少选择一个排班计划进行编辑");
     return;
   }
-  batchEditMode.value = false; // Toggle off batch editing UI
   visibleUsers.value = true; // Show the user selection modal
 };
 
 // Handle user selection
 const handleCloseUser = (confirm) => {
   if (confirm === 'T') {
-    // Save selected users and the corresponding schedules
-    // You should implement relevant logic to link schedules with users here
-    message.success('用户选择已保存');
+    // 根据 scheduleIdList 生成 check_in_ids
+    const checkInIds = [];
+
+    scheduleIdList.value.forEach(scheduleId => {
+      const schedule = schedules.value.find(s => s.id === scheduleId);
+      if (schedule) {
+        // 添加每个 schedule 的 check_ins 中 is_main_check_in 为 true 的 id
+        const checkIn = schedule.check_ins.find(checkIn => checkIn.is_main_check_in);
+        checkInIds.push(checkIn.id);
+      }
+    });
+
+    // 更新 checkInUserForm
+    checkInUserForm.checkin_ids = checkInIds;
+
+    // 发送 API 请求
+    api.post('/checkin/assign', checkInUserForm).then(res => {
+      message.success('已执行排班，并通知了对方');
+    }).catch(err => {
+      const {msg} = err.response.data;
+      message.error(msg); // Handle error appropriately
+    });
   }
+
   visibleUsers.value = false;
-  // Reset your selection
   scheduleIdList.value = [];
   batchEditMode.value = false;
 };
-
 const handleCheckboxChange = (id) => {
   if (scheduleIdList.value.includes(id)) {
     // 如果数组中存在该id，则移除
@@ -151,6 +256,19 @@ const handleCheckboxChange = (id) => {
     // 否则，将其添加到数组中
     scheduleIdList.value.push(id);
   }
+};
+
+const state = reactive({})
+
+const handleSearch = (selectedKeys, confirm, dataIndex) => {
+  confirm();
+  state.searchText = selectedKeys[0];
+  state.searchedColumn = dataIndex;
+};
+
+const handleReset = clearFilters => {
+  clearFilters({confirm: true});
+  state.searchText = '';
 };
 
 const openNotification = (title, message) => {
@@ -263,6 +381,9 @@ const deleteSchedules = async () => {
                           :status="typeColors[schedule.schedule_type]"
                           :text="`${schedule.schedule_name} (${schedule.schedule_type})`"
                       />
+                      <div>
+                        {{ schedule.schedule_start_time }}
+                      </div>
                     </a-checkbox>
                   </a-col>
                   <a-col v-else>
@@ -270,6 +391,9 @@ const deleteSchedules = async () => {
                         :status="typeColors[schedule.schedule_type]"
                         :text="`${schedule.schedule_name} (${schedule.schedule_type})`"
                     />
+                    <div>
+                      {{ schedule.schedule_start_time }}
+                    </div>
                   </a-col>
                 </a-row>
               </li>
@@ -287,7 +411,8 @@ const deleteSchedules = async () => {
         <a-form-item label="值班计划名称" name="schedule_name" :rules="[{ required: true, message: '请填写值班名称' }]">
           <a-input v-model:value="scheduleForm.schedule_name" placeholder="日常值班"/>
         </a-form-item>
-        <a-form-item label="计划开始时间" name="schedule_start_time" :rules="[{ required: true, message: '请填写计划开始时间' }]">
+        <a-form-item label="计划开始时间" name="schedule_start_time"
+                     :rules="[{ required: true, message: '请填写计划开始时间' }]">
           <a-date-picker
               v-model:value="scheduleForm.schedule_start_time"
               :disabled-date="(current) => current && current.isBefore(moment().startOf('day'))"
@@ -296,7 +421,8 @@ const deleteSchedules = async () => {
               valueFormat="YYYY-MM-DD HH:mm:ss"
           />
         </a-form-item>
-        <a-form-item label="值班计划类型" name="schedule_type" :rules="[{ required: true, message: '请选择值班计划类型' }]">
+        <a-form-item label="值班计划类型" name="schedule_type"
+                     :rules="[{ required: true, message: '请选择值班计划类型' }]">
           <a-select v-model:value="scheduleForm.schedule_type">
             <a-select-option v-for="type in scheduleTypes" :key="type" :value="type">{{ type }}</a-select-option>
           </a-select>
@@ -308,49 +434,49 @@ const deleteSchedules = async () => {
       </template>
     </a-modal>
     <!-- User Selection Modal -->
-    <!--    <a-modal title="活动用户列表" v-model:visible="visibleUsers">-->
-    <!--      <a-card>-->
-    <!--        <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>-->
-    <!--        <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>-->
-    <!--      </a-card>-->
-    <!--      <a-table :scroll="scroll_users" :row-selection="rowSelection" :columns="columns" :data-source="users">-->
-    <!--        <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">-->
-    <!--          <div style="padding: 8px">-->
-    <!--            <a-input-->
-    <!--                ref="searchInput"-->
-    <!--                :placeholder="`Search ${column.dataIndex}`"-->
-    <!--                :value="selectedKeys[0]"-->
-    <!--                style="width: 188px; margin-bottom: 8px; display: block"-->
-    <!--                @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"-->
-    <!--                @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"-->
-    <!--            />-->
-    <!--            <a-button-->
-    <!--                type="primary"-->
-    <!--                size="small"-->
-    <!--                style="width: 90px; margin-right: 8px"-->
-    <!--                @click="handleSearch(selectedKeys, confirm, column.dataIndex)"-->
-    <!--            >-->
-    <!--              <template #icon>-->
-    <!--                <search-outlined />-->
-    <!--              </template>-->
-    <!--              Search-->
-    <!--            </a-button>-->
-    <!--            <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">Reset</a-button>-->
-    <!--          </div>-->
-    <!--        </template>-->
-    <!--        <template #bodyCell="{ column, text, record }">-->
-    <!--          <template v-if="['uid', 'name', 'classname', 'department'].includes(column.dataIndex)">-->
-    <!--            <div>-->
-    <!--              {{ text }}-->
-    <!--            </div>-->
-    <!--          </template>-->
-    <!--        </template>-->
-    <!--      </a-table>-->
-    <!--      <template #footer>-->
-    <!--        <a-button type="primary" danger @click="handleCloseUser('F')">放弃选择</a-button>-->
-    <!--        <a-button type="primary" @click="handleCloseUser('T')">保存</a-button>-->
-    <!--      </template>-->
-    <!--    </a-modal>-->
+    <a-modal title="用户列表" v-model:visible="visibleUsers">
+      <a-card>
+        <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>
+        <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>
+      </a-card>
+      <a-table :row-selection="rowSelection" :columns="columns" :data-source="users" :row-key="record => record.id">
+        <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
+          <div style="padding: 8px">
+            <a-input
+                ref="searchInput"
+                :placeholder="`Search ${column.dataIndex}`"
+                :value="selectedKeys[0]"
+                style="width: 188px; margin-bottom: 8px; display: block"
+                @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
+                @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
+            />
+            <a-button
+                type="primary"
+                size="small"
+                style="width: 90px; margin-right: 8px"
+                @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
+            >
+              <template #icon>
+                <search-outlined/>
+              </template>
+              Search
+            </a-button>
+            <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">Reset</a-button>
+          </div>
+        </template>
+        <template #bodyCell="{ column, text, record }">
+          <template v-if="['studentId', 'name', 'classname', 'department', 'resident'].includes(column.dataIndex)">
+            <div>
+              {{ text }}
+            </div>
+          </template>
+        </template>
+      </a-table>
+      <template #footer>
+        <a-button type="primary" danger @click="handleCloseUser('F')">放弃选择</a-button>
+        <a-button type="primary" @click="handleCloseUser('T')">保存</a-button>
+      </template>
+    </a-modal>
   </a-layout-content>
 </template>
 
