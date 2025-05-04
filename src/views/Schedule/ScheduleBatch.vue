@@ -3,7 +3,7 @@ import {ref} from "vue";
 import {InboxOutlined, HomeOutlined} from "@ant-design/icons-vue";
 import api from "@/api";
 import {message} from "ant-design-vue";
-import templateUrl from '@/assets/csv-templates/Add User Template.zip?url'
+import templateUrl from '@/assets/csv-templates/Add Schedule Template.zip?url'
 
 
 const file = ref([]);
