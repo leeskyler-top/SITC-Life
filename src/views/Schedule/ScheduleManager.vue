@@ -1,70 +1,7 @@
-<template>
-  <a-layout-content style="margin: 16px;">
-    <h2 style="display: flex; justify-content: space-between;">
-      <span>排班管理</span>
-      <span style="margin-bottom: 4px;">
-        <router-link to="/"><HomeOutlined /> 首页</router-link>
-      </span>
-    </h2>
-    <div style="padding: 8px; background-color: #FFFFFF; min-height: 500px">
-      <a-row justify="end">
-        <a-button type="primary" style="margin: 8px" @click="showAddScheduleModal = true" ghost>添加排班</a-button>
-      </a-row>
-      <a-spin :spinning="loadingSchedules">
-        <div class="calendar-header">
-          <a-button @click="prevMonth">《</a-button>
-          <a-select v-model:value="selectedYear" @change="changeYear">
-            <a-select-option v-for="year in years" :key="year" :value="year">{{ year }}</a-select-option>
-          </a-select>
-          <a-select v-model:value="selectedMonth" @change="changeMonth">
-            <a-select-option v-for="(month, index) in months" :key="index" :value="index">{{ month }}</a-select-option>
-          </a-select>
-          <a-button @click="nextMonth">》</a-button>
-        </div>
-        <div class="calendar-grid">
-          <div class="day-name" v-for="day in dayNames" :key="day">{{ day }}</div>
-          <div class="day-cell" v-for="day in emptyDaysStart" :key="day"></div>
-          <div class="day-cell" v-for="date in daysInMonth" :key="date.format('YYYY-MM-DD')">
-            <div class="date-number">{{ date.date() }}</div>
-            <ul class="events">
-              <li v-for="event in getScheduleData(date)" :key="event.id">
-                <a-badge :status="typeColors[event.schedule_type]" :text="`${event.schedule_name} (${event.schedule_type})`" />
-              </li>
-            </ul>
-          </div>
-        </div>
-      </a-spin>
-    </div>
-
-    <a-modal
-        title="添加排班"
-        v-model:visible="showAddScheduleModal"
-        @ok="addSchedule"
-        @cancel="handleCancel"
-    >
-      <a-form layout="vertical">
-        <a-form-item label="开始时间">
-          <a-date-picker
-              v-model:value="scheduleStartTime"
-              :disabled-date="(current) => current && current.isBefore(moment().startOf('day'))"
-              format="YYYY-MM-DD HH:mm:ss"
-              show-time
-          />
-        </a-form-item>
-        <a-form-item label="排班类型">
-          <a-select v-model:value="scheduleType">
-            <a-select-option v-for="type in scheduleTypes" :key="type" :value="type">{{ type }}</a-select-option>
-          </a-select>
-        </a-form-item>
-      </a-form>
-    </a-modal>
-  </a-layout-content>
-</template>
-
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { Button, Modal, Select, DatePicker, Form, message, Spin, Badge } from 'ant-design-vue';
-import { HomeOutlined } from '@ant-design/icons-vue';
+import {ref, onMounted, computed} from 'vue';
+import {Button, Modal, Select, DatePicker, Form, message, Spin, Badge} from 'ant-design-vue';
+import {HomeOutlined} from '@ant-design/icons-vue';
 import moment from 'moment';
 import api from "@/api";
 
@@ -74,6 +11,9 @@ const showAddScheduleModal = ref(false);
 const scheduleType = ref("放学");
 const scheduleStartTime = ref(null);
 const loadingSchedules = ref(true);
+const batchEditMode = ref(false);  // Flag for batch edit mode
+const scheduleIdList = ref([]);       // List of selected schedule IDs
+const visibleUsers = ref(false);       // Control visibility of users modal
 
 const currentMonth = ref(moment());
 const selectedYear = ref(moment().year());
@@ -91,7 +31,7 @@ const typeColors = {
 
 const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
-const years = Array.from({ length: 50 }, (_, i) => moment().year() - 25 + i);
+const years = Array.from({length: 100}, (_, i) => moment().year() - 25 + i);
 const months = moment.months();
 
 const daysInMonth = computed(() => {
@@ -114,12 +54,12 @@ const emptyDaysStart = computed(() => {
 const fetchSchedules = () => {
   loadingSchedules.value = true;
   api.get("/schedule").then((res) => {
-    let { msg, data } = res.data;
+    let {msg, data} = res.data;
     message.success(msg);
     schedules.value = data;
     loadingSchedules.value = false;
   }).catch((err) => {
-    let { msg } = err.response.data;
+    let {msg} = err.response.data;
     message.error(msg);
     loadingSchedules.value = false;
   });
@@ -202,7 +142,178 @@ const nextMonth = () => {
 onMounted(() => {
   fetchSchedules();
 });
+
+
+// Go to user selection
+const goToUserSelection = () => {
+  if (scheduleIdList.value.length === 0) {
+    message.warning("请至少选择一个排班计划进行编辑");
+    return;
+  }
+  batchEditMode.value = false; // Toggle off batch editing UI
+  visibleUsers.value = true; // Show the user selection modal
+};
+
+// Handle user selection
+const handleCloseUser = (confirm) => {
+  if (confirm === 'T') {
+    // Save selected users and the corresponding schedules
+    // You should implement relevant logic to link schedules with users here
+    message.success('用户选择已保存');
+  }
+  visibleUsers.value = false;
+  // Reset your selection
+  scheduleIdList.value = [];
+  batchEditMode.value = false;
+};
+
+const handleCheckboxChange = (id) => {
+  if (scheduleIdList.value.includes(id)) {
+    // 如果数组中存在该id，则移除
+    scheduleIdList.value = scheduleIdList.value.filter(item => item !== id);
+  } else {
+    // 否则，将其添加到数组中
+    scheduleIdList.value.push(id);
+  }
+};
+
 </script>
+
+<template>
+  <a-layout-content style="margin: 16px;">
+    <h2 style="display: flex; justify-content: space-between;">
+      <span>排班管理</span>
+      <span style="margin-bottom: 4px;">
+        <router-link to="/"><HomeOutlined/> 首页</router-link>
+      </span>
+    </h2>
+    <div style="padding: 8px; background-color: #FFFFFF; min-height: 500px">
+      <a-row justify="end">
+        <a-button v-if="!batchEditMode" type="primary" style="margin: 8px" @click="showAddScheduleModal = true" ghost>
+          添加值班计划
+        </a-button>
+        <a-button v-if="!batchEditMode" type="primary" style="margin: 8px" @click="batchEditMode = true">批量编辑
+        </a-button>
+        <a-button v-if="batchEditMode" type="primary" style="margin: 8px" @click="batchEditMode = false" danger>
+          删除值班
+        </a-button>
+        <a-button v-if="batchEditMode" type="primary" style="margin: 8px" @click="goToUserSelection">批量排班</a-button>
+        <a-button v-if="batchEditMode" type="primary" style="margin: 8px" @click="batchEditMode = false" ghost>
+          取消选择
+        </a-button>
+      </a-row>
+      <a-spin :spinning="loadingSchedules">
+        <div class="calendar-header">
+          <a-button @click="prevMonth">《</a-button>
+          <a-select v-model:value="selectedYear" @change="changeYear">
+            <a-select-option v-for="year in years" :key="year" :value="year">{{ year }}</a-select-option>
+          </a-select>
+          <a-select v-model:value="selectedMonth" @change="changeMonth">
+            <a-select-option v-for="(month, index) in months" :key="index" :value="index">{{ month }}</a-select-option>
+          </a-select>
+          <a-button @click="nextMonth">》</a-button>
+        </div>
+        <div class="calendar-grid">
+          <div class="day-name" v-for="day in dayNames" :key="day">{{ day }}</div>
+          <div class="day-cell" v-for="day in emptyDaysStart" :key="day"></div>
+          <div class="day-cell" v-for="date in daysInMonth" :key="date.format('YYYY-MM-DD')">
+            <div class="date-number">{{ date.date() }}</div>
+            <ul class="events">
+              <li v-for="schedule in getScheduleData(date)" :key="schedule.id">
+                <a-row justify="start">
+                  <a-col v-if="batchEditMode">
+                    <a-checkbox
+                        :checked="scheduleIdList.includes(schedule.id)"
+                        @change="handleCheckboxChange(schedule.id)"
+                    >
+                      <a-badge
+                          :status="typeColors[schedule.schedule_type]"
+                          :text="`${schedule.schedule_name} (${schedule.schedule_type})`"
+                      />
+                    </a-checkbox>
+                  </a-col>
+                  <a-col v-else>
+                    <a-badge
+                        :status="typeColors[schedule.schedule_type]"
+                        :text="`${schedule.schedule_name} (${schedule.schedule_type})`"
+                    />
+                  </a-col>
+                </a-row>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </a-spin>
+    </div>
+
+    <a-modal
+        title="添加排班"
+        v-model:visible="showAddScheduleModal"
+        @ok="addSchedule"
+        @cancel="handleCancel"
+    >
+      <a-form layout="vertical">
+        <a-form-item label="开始时间">
+          <a-date-picker
+              v-model:value="scheduleStartTime"
+              :disabled-date="(current) => current && current.isBefore(moment().startOf('day'))"
+              format="YYYY-MM-DD HH:mm:ss"
+              show-time
+          />
+        </a-form-item>
+        <a-form-item label="排班类型">
+          <a-select v-model:value="scheduleType">
+            <a-select-option v-for="type in scheduleTypes" :key="type" :value="type">{{ type }}</a-select-option>
+          </a-select>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+    <!-- User Selection Modal -->
+    <!--    <a-modal title="活动用户列表" v-model:visible="visibleUsers">-->
+    <!--      <a-card>-->
+    <!--        <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>-->
+    <!--        <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>-->
+    <!--      </a-card>-->
+    <!--      <a-table :scroll="scroll_users" :row-selection="rowSelection" :columns="columns" :data-source="users">-->
+    <!--        <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">-->
+    <!--          <div style="padding: 8px">-->
+    <!--            <a-input-->
+    <!--                ref="searchInput"-->
+    <!--                :placeholder="`Search ${column.dataIndex}`"-->
+    <!--                :value="selectedKeys[0]"-->
+    <!--                style="width: 188px; margin-bottom: 8px; display: block"-->
+    <!--                @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"-->
+    <!--                @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"-->
+    <!--            />-->
+    <!--            <a-button-->
+    <!--                type="primary"-->
+    <!--                size="small"-->
+    <!--                style="width: 90px; margin-right: 8px"-->
+    <!--                @click="handleSearch(selectedKeys, confirm, column.dataIndex)"-->
+    <!--            >-->
+    <!--              <template #icon>-->
+    <!--                <search-outlined />-->
+    <!--              </template>-->
+    <!--              Search-->
+    <!--            </a-button>-->
+    <!--            <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">Reset</a-button>-->
+    <!--          </div>-->
+    <!--        </template>-->
+    <!--        <template #bodyCell="{ column, text, record }">-->
+    <!--          <template v-if="['uid', 'name', 'classname', 'department'].includes(column.dataIndex)">-->
+    <!--            <div>-->
+    <!--              {{ text }}-->
+    <!--            </div>-->
+    <!--          </template>-->
+    <!--        </template>-->
+    <!--      </a-table>-->
+    <!--      <template #footer>-->
+    <!--        <a-button type="primary" danger @click="handleCloseUser('F')">放弃选择</a-button>-->
+    <!--        <a-button type="primary" @click="handleCloseUser('T')">保存</a-button>-->
+    <!--      </template>-->
+    <!--    </a-modal>-->
+  </a-layout-content>
+</template>
 
 <style scoped>
 .calendar-header {
@@ -215,6 +326,9 @@ onMounted(() => {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  overflow-x: auto; /* 使日历可横向滚动 */
+  white-space: nowrap; /* 防止内容换行 */
+  max-width: 100%; /* 可选：限制最大宽度 */
 }
 
 .day-name {
