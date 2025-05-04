@@ -1,15 +1,18 @@
 <script setup>
-import {ref, onMounted, computed} from 'vue';
-import {Button, Modal, Select, DatePicker, Form, message, Spin, Badge} from 'ant-design-vue';
-import {HomeOutlined} from '@ant-design/icons-vue';
+import {ref, onMounted, computed, createVNode, reactive} from 'vue';
+import {Button, Modal, Select, DatePicker, Form, message, Spin, Badge, notification} from 'ant-design-vue';
+import {ExclamationCircleOutlined, HomeOutlined} from '@ant-design/icons-vue';
 import moment from 'moment';
 import api from "@/api";
 
 const loading = ref(false);
 const schedules = ref([]);
 const showAddScheduleModal = ref(false);
-const scheduleType = ref("放学");
-const scheduleStartTime = ref(null);
+const scheduleForm = reactive({
+  "schedule_name": "日常值班",
+  "schedule_start_time": "",
+  "schedule_type": "放学",
+});
 const loadingSchedules = ref(true);
 const batchEditMode = ref(false);  // Flag for batch edit mode
 const scheduleIdList = ref([]);       // List of selected schedule IDs
@@ -63,33 +66,6 @@ const fetchSchedules = () => {
     message.error(msg);
     loadingSchedules.value = false;
   });
-};
-
-// 添加排班
-const addSchedule = async () => {
-  const startTime = scheduleStartTime.value.format('YYYY-MM-DD HH:mm:ss');
-  if (scheduleStartTime.value.isBefore(moment().startOf('day'))) {
-    message.error('选择的开始时间不能早于当前时间');
-    return;
-  }
-
-  try {
-    await api.post('/schedule', {
-      schedule_start_time: startTime,
-      schedule_type: scheduleType.value,
-    });
-    message.success('排班添加成功');
-    showAddScheduleModal.value = false;
-    fetchSchedules();
-  } catch (error) {
-    message.error('添加排班失败');
-  }
-};
-
-const handleCancel = () => {
-  showAddScheduleModal.value = false;
-  scheduleStartTime.value = null;
-  scheduleType.value = "放学";
 };
 
 // 获取指定月份的排班数据，带缓存，只在数据变更或时间跨度太大时才重新拉数据
@@ -177,6 +153,63 @@ const handleCheckboxChange = (id) => {
   }
 };
 
+const openNotification = (title, message) => {
+  notification.open({
+    message: title,
+    description: message,
+    duration: 0,
+  });
+};
+
+const createSchedule = () => {
+  showAddScheduleModal.value = false;
+  api.post("/schedule", scheduleForm).then(res => {
+    let {msg, data} = res.data
+    schedules.value.push(data)
+    message.success(msg)
+  }).catch(err => {
+    let {msg} = err.response.data
+    message.error(msg)
+  });
+}
+
+const deleteSchedules = async () => {
+  Modal.confirm({
+    title: '确认操作',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '确定删除这些值班计划？',
+    okText: '确认',
+    cancelText: '取消',
+    async onOk() {
+      batchEditMode.value = false; // 关闭批量编辑模式
+      try {
+        const deletePromises = scheduleIdList.value.map(scheduleId => {
+          return api.delete("/schedule/" + scheduleId);
+        });
+
+        const results = await Promise.all(deletePromises);
+
+        results.forEach((res, index) => {
+
+          // 更新 schedules 只在请求成功时
+          const deletedScheduleId = scheduleIdList.value[index]; // 获取当前删除的排班 ID
+          schedules.value = schedules.value.filter(schedule => schedule.id !== deletedScheduleId);
+
+        });
+        message.success("已执行删除值班计划")
+
+        // 清空选中的排班 ID
+        scheduleIdList.value = [];
+      } catch (err) {
+        console.log(err);
+        const {msg} = err.response.data;
+        openNotification("删除失败", msg); // 使用通知组件
+      }
+    },
+  });
+};
+
+
 </script>
 
 <template>
@@ -194,7 +227,7 @@ const handleCheckboxChange = (id) => {
         </a-button>
         <a-button v-if="!batchEditMode" type="primary" style="margin: 8px" @click="batchEditMode = true">批量编辑
         </a-button>
-        <a-button v-if="batchEditMode" type="primary" style="margin: 8px" @click="batchEditMode = false" danger>
+        <a-button v-if="batchEditMode" type="primary" style="margin: 8px" @click="deleteSchedules" danger>
           删除值班
         </a-button>
         <a-button v-if="batchEditMode" type="primary" style="margin: 8px" @click="goToUserSelection">批量排班</a-button>
@@ -247,26 +280,32 @@ const handleCheckboxChange = (id) => {
     </div>
 
     <a-modal
-        title="添加排班"
+        title="添加值班计划"
         v-model:visible="showAddScheduleModal"
-        @ok="addSchedule"
-        @cancel="handleCancel"
     >
-      <a-form layout="vertical">
-        <a-form-item label="开始时间">
+      <a-form layout="vertical" :model="scheduleForm">
+        <a-form-item label="值班计划名称" name="schedule_name" :rules="[{ required: true, message: '请填写值班名称' }]">
+          <a-input v-model:value="scheduleForm.schedule_name" placeholder="日常值班"/>
+        </a-form-item>
+        <a-form-item label="计划开始时间" name="schedule_start_time" :rules="[{ required: true, message: '请填写计划开始时间' }]">
           <a-date-picker
-              v-model:value="scheduleStartTime"
+              v-model:value="scheduleForm.schedule_start_time"
               :disabled-date="(current) => current && current.isBefore(moment().startOf('day'))"
               format="YYYY-MM-DD HH:mm:ss"
               show-time
+              valueFormat="YYYY-MM-DD HH:mm:ss"
           />
         </a-form-item>
-        <a-form-item label="排班类型">
-          <a-select v-model:value="scheduleType">
+        <a-form-item label="值班计划类型" name="schedule_type" :rules="[{ required: true, message: '请选择值班计划类型' }]">
+          <a-select v-model:value="scheduleForm.schedule_type">
             <a-select-option v-for="type in scheduleTypes" :key="type" :value="type">{{ type }}</a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
+      <template #footer>
+        <a-button type="primary" @click="showAddScheduleModal = false">关闭</a-button>
+        <a-button type="primary" danger @click="createSchedule">变更</a-button>
+      </template>
     </a-modal>
     <!-- User Selection Modal -->
     <!--    <a-modal title="活动用户列表" v-model:visible="visibleUsers">-->
