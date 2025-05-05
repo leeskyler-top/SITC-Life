@@ -214,14 +214,36 @@ onMounted(() => {
               </router-link>
             </a-col>
             <a-col align="middle" :span="12" v-if="is_admin === 'true'">
-              <router-link to="/checkin/manager">
+              <router-link to="/schedule/manager">
                 <a-button shape="circle" size="large">
                   <template #icon>
                     <SettingOutlined/>
                   </template>
 
                 </a-button>
-                <p style="padding-top: 6px; font-size: 12px; color: #333333;">签到管理</p>
+                <p style="padding-top: 6px; font-size: 12px; color: #333333;">值班管理</p>
+              </router-link>
+            </a-col>
+            <a-col align="middle" :span="12" v-if="is_admin === 'true'">
+              <router-link to="/schedule/list">
+                <a-button shape="circle" size="large">
+                  <template #icon>
+                    <SettingOutlined/>
+                  </template>
+
+                </a-button>
+                <p style="padding-top: 6px; font-size: 12px; color: #333333;">值班列表</p>
+              </router-link>
+            </a-col>
+            <a-col align="middle" :span="12" v-if="is_admin === 'true'">
+              <router-link to="/schedule/batch">
+                <a-button shape="circle" size="large">
+                  <template #icon>
+                    <SettingOutlined/>
+                  </template>
+
+                </a-button>
+                <p style="padding-top: 6px; font-size: 12px; color: #333333;">批量计划</p>
               </router-link>
             </a-col>
           </a-row>

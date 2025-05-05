@@ -338,11 +338,17 @@ const getCurrentYear = () => {
                 <ScheduleOutlined/>
                 <span>签到</span>
               </template>
-              <a-menu-item key="17">
+              <a-menu-item key="checkin-list">
                 <RouterLink to="/checkin/list">签到</RouterLink>
               </a-menu-item>
-              <a-menu-item key="18" v-if="is_admin === 'true'">
-                <RouterLink to="/checkin/manager">签到管理</RouterLink>
+              <a-menu-item key="schedule-manager" v-if="is_admin === 'true'">
+                <RouterLink to="/schedule/manager">值班管理</RouterLink>
+              </a-menu-item>
+              <a-menu-item key="schedule-list" v-if="is_admin === 'true'">
+                <RouterLink to="/schedule/list">值班列表</RouterLink>
+              </a-menu-item>
+              <a-menu-item key="schedule-batch" v-if="is_admin === 'true'">
+                <RouterLink to="/schedule/batch">批量计划</RouterLink>
               </a-menu-item>
             </a-sub-menu>
             <a-sub-menu key="user">
@@ -428,11 +434,14 @@ const getCurrentYear = () => {
                           <ScheduleOutlined/>
                           <span>签到</span>
                         </template>
-                        <a-menu-item key="17">
-                          <RouterLink to="/checkin/list">签到</RouterLink>
+                        <a-menu-item key="schedule-manager" v-if="is_admin === 'true'">
+                          <RouterLink to="/schedule/manager">值班管理</RouterLink>
                         </a-menu-item>
-                        <a-menu-item key="18" v-if="is_admin === 'true'">
-                          <RouterLink to="/checkin/manager">签到管理</RouterLink>
+                        <a-menu-item key="schedule-list" v-if="is_admin === 'true'">
+                          <RouterLink to="/schedule/list">值班列表</RouterLink>
+                        </a-menu-item>
+                        <a-menu-item key="schedule-batch" v-if="is_admin === 'true'">
+                          <RouterLink to="/schedule/batch">批量计划</RouterLink>
                         </a-menu-item>
                       </a-sub-menu>
                       <a-sub-menu key="user">

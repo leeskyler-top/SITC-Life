@@ -1,12 +1,10 @@
 <script setup>
-import {ref, createVNode, computed, onMounted, reactive} from "vue";
+import {reactive, ref, onMounted, computed, createVNode} from "vue";
 import {ExclamationCircleOutlined, UploadOutlined, HomeOutlined} from '@ant-design/icons-vue';
-import {Empty, message, Modal} from "ant-design-vue";
+import {Empty, message, Modal, Spin, Table} from "ant-design-vue";
 import api from "@/api";
 
-const data_waiting = ref([]);
-const data_started = ref([]);
-const data_ended = ref([]);
+const check_in_data = ref([]);
 
 const activeKey = ref('started');
 
@@ -15,233 +13,181 @@ const currentStartedPage = ref(1);
 const currentEndedPage = ref(1);
 
 const currentWaitingPageData = computed(() => {
-    const startIdx = (currentWaitingPage.value - 1) * 5;
-    const endIdx = startIdx + 5;
-    return data_waiting.value.slice(startIdx, endIdx);
+  const startIdx = (currentWaitingPage.value - 1) * 5;
+  const endIdx = startIdx + 5;
+  return filteredCheckInDataWaiting.value.slice(startIdx, endIdx);
 });
+
 const currentStartedPageData = computed(() => {
-    const startIdx = (currentStartedPage.value - 1) * 5;
-    const endIdx = startIdx + 5;
-    return data_started.value.slice(startIdx, endIdx);
+  const startIdx = (currentStartedPage.value - 1) * 5;
+  const endIdx = startIdx + 5;
+  return filteredCheckInDataStarted.value.slice(startIdx, endIdx);
 });
+
 const currentEndedPageData = computed(() => {
-    const startIdx = (currentEndedPage.value - 1) * 5;
-    const endIdx = startIdx + 5;
-    return data_ended.value.slice(startIdx, endIdx);
+  const startIdx = (currentEndedPage.value - 1) * 5;
+  const endIdx = startIdx + 5;
+  return filteredCheckInDataEnded.value.slice(startIdx, endIdx);
 });
 
-const spinning = ref(false)
-
-const formState = reactive({
-    image_url: []
-})
-const listWaitingCheckIns = () => {
-    spinning.value = true;
-    api.get("/checkin/list/waiting").then((res) => {
-        let {data} = res.data;
-        data_waiting.value = data;
-        spinning.value = false;
-    }).catch((err) => {
-        let {msg} = err.response.data;
-        spinning.value = false;
-        message.error(msg);
-    });
-}
-
-const listStartedCheckIns = () => {
-    spinning.value = true;
-    api.get("/checkin/list/started").then((res) => {
-        let {data} = res.data;
-        data_started.value = data;
-        spinning.value = false;
-    }).catch((err) => {
-        let {msg} = err.response.data;
-        spinning.value = false;
-        message.error(msg);
-    });
-}
-
-const listEndedCheckIns = () => {
-    spinning.value = true;
-    api.get("/checkin/list/ended").then((res) => {
-        let {data} = res.data;
-        data_ended.value = data;
-        spinning.value = false;
-    }).catch((err) => {
-        let {msg} = err.response.data;
-        spinning.value = false;
-        message.error(msg);
-    });
-}
-
-onMounted(() => {
-    listStartedCheckIns();
+const filteredCheckInDataWaiting = computed(() => {
+  return check_in_data.value.filter(item => item.status === "未开始");
 });
 
-const handleTabChange = (key) => {
-    // 根据切换的标签 key 执行相应的操作，节流，节省请求次数。
-    if (key === 'started') {
-        listStartedCheckIns();
-    } else if (key === 'waiting') {
-        listWaitingCheckIns()
-    } else if (key === 'ended') {
-        listEndedCheckIns();
-    }
-};
+const filteredCheckInDataStarted = computed(() => {
+  return check_in_data.value.filter(item => item.status === "未签到");
+});
 
-const visible = ref(false);
-const hideModal = () => {
-    visible.value = false;
-};
+const filteredCheckInDataEnded = computed(() => {
+  return check_in_data.value.filter(item => item.status === "缺勤");
+});
 
-const loading = ref(false)
+const spinning = ref(false);
 
-const handleCancel = () => {
-    visible.value = false;
-}
-
-let config = {
-    headers: {
-        'Content-Type': 'multipart/form-data',
-    },
+// 获取用户签到列表
+const listMyCheckIns = () => {
+  spinning.value = true;
+  api.get("/checkin/my").then(res => {
+    let {msg, data} = res.data;
+    check_in_data.value = data;
+    message.success(msg);
+  }).catch(err => {
+    let {msg} = err.response.data;
+    message.error(msg);
+  }).finally(() => {
+    spinning.value = false; // 加载完成
+  });
 };
 
 const checkin = (id) => {
-    visible.value = true;
-    current_id.value = id
-}
+  spinning.value = true;
+  api.get("/checkin/checkin/" + id).then(res => {
+    let {msg} = res.data;
+    check_in_data.value = check_in_data.value.filter(x => x.id !== id)
+    message.success(msg);
+  }).catch(err => {
+    let {msg} = err.response.data;
+    message.error(msg);
+  }).finally(() => {
+    spinning.value = false; // 加载完成
+  });
+};
 
-const current_id = ref(null)
+onMounted(() => {
+  listMyCheckIns();
+});
 
-const checkInNow = () => {
-    loading.value = true;
-    let formData = new FormData();
-    for (let item of formState.image_url) {
-        formData.append('image_url[]', item.originFileObj)
+// 切换标签时更新当前显示的数据
+const handleTabChange = (key) => {
+  activeKey.value = key;
+  // 这里可以增加需要的逻辑或状态更新
+};
+
+// 模态框控制
+const visible = ref(false);
+const handleCancel = () => {
+  visible.value = false;
+};
+
+// 查看签到确认框
+const showConfirm = (id) => {
+  Modal.confirm({
+    title: '确认操作',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '确定删除此签到记录?',
+    okText: '确认',
+    cancelText: '取消',
+    onOk() {
+      // 删除逻辑在此
     }
-    api.post("/checkin/now/" + current_id.value, formData, config).then(res => {
-        let {msg} = res.data;
-        loading.value = false;
-        visible.value = false;
-        data_started.value = data_started.value.filter(item => item.id !== current_id.value);
-        formState.image_url = [];
-        current_id.value = null;
-        message.success(msg);
-    }).catch(err => {
-        let {msg} = err.response.data;
-        loading.value = false;
-        message.error(msg);
-    });
-}
+  });
+};
 
 </script>
 
 <template>
-    <a-layout-content :style="{margin: '16px', height: '100%'}">
-        <h2 style="display: flex; justify-content: space-between;">
-            <span>签到列表</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined /> 首页</router-link></span>
-        </h2>
-        <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
-            <a-tab-pane key="started" tab="正在进行">
-                <a-spin :spinning="spinning" tip="Loading...">
-                    <a-descriptions-item v-if="data_started.length === 0">
-                        <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                            <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
-                        </div>
-                    </a-descriptions-item>
-                    <a-space direction="vertical" :size="5" style="height: 100%">
+  <a-layout-content :style="{margin: '16px', height: '100%'}">
+    <h2 style="display: flex; justify-content: space-between;">
+      <span>签到列表</span>
+      <span style="margin-bottom: 4px;">
+        <router-link to="/"><HomeOutlined/> 首页</router-link>
+      </span>
+    </h2>
 
-                        <a-descriptions v-for="item in currentStartedPageData" :title="'签到名称：' + item.title"
-                                        style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                            <a-descriptions-item label="活动标题">{{  item.activity_title  }}</a-descriptions-item>
-                            <a-descriptions-item label="活动地点">{{  item.activity_place  }}</a-descriptions-item>
-                            <a-descriptions-item label="签到开始时间">{{ item.start_time }}</a-descriptions-item>
-                            <a-descriptions-item label="签到结束时间">{{  item.end_time  }}</a-descriptions-item>
-                            <a-descriptions-item label="签到状态">{{  item.status  }}</a-descriptions-item>
-                            <a-descriptions-item label="操作">
-                                <a-row>
-                                    <a-button type="primary" @click="checkin(item.id)" :disabled="item.status !== 'unsigned'">签到</a-button>
-                                </a-row>
-                            </a-descriptions-item>
+    <a-tabs v-model:activeKey="activeKey" @update:activeKey="handleTabChange" type="card">
+      <a-tab-pane key="waiting" tab="等待开始">
+        <a-spin :spinning="spinning" tip="Loading...">
+          <div v-if="filteredCheckInDataWaiting.length === 0">
+            <Empty description="没有等待开始的签到"/>
+          </div>
+          <a-space direction="vertical" :size="5">
+            <a-descriptions v-for="item in currentWaitingPageData" :title="'签到名称：' + item.check_in.name"
+                            style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+              <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
+              <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
+              <a-descriptions-item label="签到开始时间">{{ item.status }}</a-descriptions-item>
+            </a-descriptions>
+            <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentWaitingPage" simple
+                          pageSize="5"
+                          :total="filteredCheckInDataWaiting.length"/>
+          </a-space>
+        </a-spin>
+      </a-tab-pane>
 
-                        </a-descriptions>
-                        <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentStartedPage" simple pageSize="5"
-                                      :total="data_started.length" v-if="data_started.length !== 0"/>
-                    </a-space>
-                </a-spin>
-            </a-tab-pane>
-            <a-tab-pane key="waiting" tab="等待开始">
-                <a-spin :spinning="spinning" tip="Loading...">
-                    <a-descriptions-item v-if="data_waiting.length === 0">
-                        <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                            <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
-                        </div>
-                    </a-descriptions-item>
-                    <a-space direction="vertical" :size="5" style="height: 100%">
+      <a-tab-pane key="started" tab="正在进行">
+        <a-spin :spinning="spinning" tip="Loading...">
+          <div v-if="filteredCheckInDataStarted.length === 0">
+            <Empty description="没有正在进行的签到"/>
+          </div>
+          <a-space direction="vertical" :size="5">
+            <a-descriptions v-for="item in currentStartedPageData" :title="'签到名称：' + item.check_in.name"
+                            style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+              <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
+              <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
+              <a-descriptions-item label="签到开始时间">{{ item.status }}</a-descriptions-item>
+              <a-descriptions-item label="操作">
+                <a-row>
+                  <a-button type="primary" @click="checkin(item.check_in_id)" :disabled="item.status !== '未签到'">签到
+                  </a-button>
+                </a-row>
+              </a-descriptions-item>
+            </a-descriptions>
+            <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentStartedPage" simple
+                          pageSize="5"
+                          :total="filteredCheckInDataStarted.length"/>
+          </a-space>
+        </a-spin>
+      </a-tab-pane>
 
-                        <a-descriptions v-for="item in currentWaitingPageData" :title="'签到名称：' + item.title"
-                                        style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                            <a-descriptions-item label="活动标题">{{  item.activity_title  }}</a-descriptions-item>
-                            <a-descriptions-item label="活动地点">{{  item.activity_place  }}</a-descriptions-item>
-                            <a-descriptions-item label="签到开始时间">{{ item.start_time }}</a-descriptions-item>
-                            <a-descriptions-item label="签到结束时间">{{  item.end_time  }}</a-descriptions-item>
-                        </a-descriptions>
-                        <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentWaitingPage" simple pageSize="5"
-                                      :total="data_waiting.length" v-if="data_waiting.length !== 0"/>
-                    </a-space>
-                </a-spin>
-            </a-tab-pane>
-            <a-tab-pane key="ended" tab="已结束">
-                <a-spin :spinning="spinning" tip="Loading...">
-                    <a-descriptions-item v-if="data_ended.length === 0">
-                        <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                            <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
-                        </div>
-                    </a-descriptions-item>
-                    <a-space direction="vertical" :size="5" style="height: 100%">
-
-                        <a-descriptions v-for="item in currentEndedPageData"  :title="'签到名称：' + item.title"
-                                        style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
-                            <a-descriptions-item label="活动标题">{{  item.activity_title  }}</a-descriptions-item>
-                            <a-descriptions-item label="活动地点">{{  item.activity_place  }}</a-descriptions-item>
-                            <a-descriptions-item label="签到开始时间">{{ item.start_time }}</a-descriptions-item>
-                            <a-descriptions-item label="签到结束时间">{{  item.end_time  }}</a-descriptions-item>
-                        </a-descriptions>
-                        <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentEndedPage" simple pageSize="5"
-                                      :total="data_ended.length" v-if="data_ended.length !== 0"/>
-                    </a-space>
-                </a-spin>
-            </a-tab-pane>
-        </a-tabs>
-
-
-    </a-layout-content>
-    <a-modal v-model:visible="visible" title="打卡图片上传">
-        <a-form
-            :model="formState"
-            name="validate_other"
-        >
-
-            <a-form-item name="image_url" label="图片" extra="至少上传一张图片，最多两张" :rules="[{ required: true, message: '至少上传一张图片' }]">
-                <a-upload
-                    list-type="picture"
-                    :before-upload="true" max-count="2"
-                    v-model:file-list="formState.image_url"
-                >
-                    <a-button>
-                        <template #icon><UploadOutlined /></template>
-                        Click to upload
-                    </a-button>
-                </a-upload>
-            </a-form-item>
-        </a-form>
-        <template #footer>
-            <a-button type="primary" danger @click="handleCancel">取消</a-button>
-            <a-button type="primary" @click="checkInNow" :disabled="formState.image_url.length === 0" :loading="loading">上传并签到</a-button>
-        </template>
-    </a-modal>
+      <a-tab-pane key="ended" tab="已结束">
+        <a-spin :spinning="spinning" tip="Loading...">
+          <div v-if="filteredCheckInDataEnded.length === 0">
+            <Empty description="没有已结束的签到"/>
+          </div>
+          <a-space direction="vertical" :size="5">
+            <a-descriptions v-for="item in currentEndedPageData" :title="'签到名称：' + item.check_in.name"
+                            style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+              <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
+              <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
+              <a-descriptions-item label="签到开始时间">{{ item.status }}</a-descriptions-item>
+              <a-descriptions-item label="操作">
+                <a-row>
+                  <a-button type="primary" @click="checkin(item.id)" :disabled="item.status !== 'unsigned'">签到
+                  </a-button>
+                </a-row>
+              </a-descriptions-item>
+            </a-descriptions>
+            <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentEndedPage" simple pageSize="5"
+                          :total="filteredCheckInDataEnded.length"/>
+          </a-space>
+        </a-spin>
+      </a-tab-pane>
+    </a-tabs>
+  </a-layout-content>
 </template>
 
 <style scoped>
-
+.editable-row-operations a {
+  margin-right: 8px;
+}
 </style>

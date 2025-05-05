@@ -1,7 +1,7 @@
 <script setup>
 import {reactive, ref, onMounted, createVNode, computed} from 'vue';
 import {ExclamationCircleOutlined, SearchOutlined, HomeOutlined} from '@ant-design/icons-vue';
-import {message, Modal, Table} from "ant-design-vue";
+import {Empty, message, Modal, Table} from "ant-design-vue";
 import api from "@/api";
 import moment from "moment/moment";
 
@@ -28,6 +28,9 @@ window.addEventListener('resize', handleResize);
 
 const myData = ref([]);
 const spinning = ref(false);
+const loading = ref(false);
+const visibleCheckIn = ref(false);
+const activeKey = ref('');
 
 const scheduleForm = reactive({
   "schedule_name": "日常值班",
@@ -302,17 +305,35 @@ const listUsers = () => {
   });
 }
 
-const showConfirm = (id) => {
-  Modal.confirm({
-    title: '确认操作',
-    icon: createVNode(ExclamationCircleOutlined),
-    content: '确定重置密码？',
-    okText: '确认',
-    cancelText: '取消',
-    onOk() {
-      resetPwd(id)
-    }
-  });
+const revokeCheckIn = (id) => {
+  loading.value = true;
+  api.get("/checkin/cancel/" + id).then(res => {
+    let {msg} = res.data;
+    loading.value = false;
+    message.success(msg);
+  }).catch(err => {
+    let {msg} = err.response.data;
+    loading.value = false;
+    message.error(msg);
+  })
+}
+
+const showConfirm = (op, id) => {
+  if (op === "refuse") {
+    Modal.confirm({
+      title: '确认操作',
+      icon: createVNode(ExclamationCircleOutlined),
+      content: '是否判定此签到无效并驳回？',
+      okText: '确认',
+      cancelText: '取消',
+      onOk() {
+        revokeCheckIn(id)
+      }
+    });
+  } else if ("openCheckIn") {
+    visibleCheckIn.value = true;
+    currentId.value = id;
+  }
 }
 const formItemLayout = {
   labelCol: {
@@ -330,6 +351,7 @@ const formState = reactive({
 
 const handleCancel = () => {
   visible.value = false;
+  visibleCheckIn.value = false;
 };
 
 const scroll = computed(() => {
@@ -404,7 +426,7 @@ const scroll = computed(() => {
                           <a @click="showModal(record.id)">编辑</a>
                       </span>
                 <span>
-                          <a @click="showConfirm(record.id)">查看签到</a>
+                          <a @click="showConfirm('openCheckIn', record.id)">查看签到</a>
                       </span>
                 <span>
                         <a-popconfirm title="确定删除此值班计划？" @confirm="deleteSchedule(record.id)"><a
@@ -509,6 +531,34 @@ const scroll = computed(() => {
         <a-button type="primary" @click="showAddScheduleModal = false">关闭</a-button>
         <a-button type="primary" danger @click="createSchedule">变更</a-button>
       </template>
+    </a-modal>
+
+<!--    查看签到-->
+    <a-modal v-model:visible="visibleCheckIn" title="签到管理">
+      <template #footer>
+        <a-button type="primary" @click="handleCancel">关闭</a-button>
+      </template>
+      <a-spin :spinning="loading" tip="Loading...">
+        <a-collapse v-model:activeKey="activeKey" accordion>
+          <a-collapse-panel v-for="checkIn in myData.find(s => s.id === currentId).check_ins" :key="checkIn.id" :header="checkIn.name">
+            <a-card>
+              <p>签到开始时间: {{ checkIn.check_in_start_time }}</p>
+              <p>签到结束时间: {{ checkIn.check_in_end_time }}</p>
+              <p>当前状态: {{ checkIn.status }}</p>
+              <div>
+                <a-button type="primary" @click="showEdit(checkIn.id)">变更结束时间</a-button>
+                <a-button v-if="checkIn.is_main_check_in === false" type="primary" danger @click="showConfirm('deleteCheckIn', checkIn.id)">删除签到</a-button>
+              </div>
+            </a-card>
+            <a-card v-for="checkInUser in checkIn.check_in_users" :key="checkInUser.id">
+              <a-descriptions :title="checkInUser.user.studentId + '-' + checkInUser.user.name" layout="vertical">
+                <a-descriptions-item label="签到时间" v-if="checkInUser.status === 'signed'">{{ checkInUser.check_in_time }}</a-descriptions-item>
+                <a-descriptions-item label="签到状态">{{ checkInUser.status }}</a-descriptions-item>
+              </a-descriptions>
+            </a-card>
+          </a-collapse-panel>
+        </a-collapse>
+      </a-spin>
     </a-modal>
 
 
