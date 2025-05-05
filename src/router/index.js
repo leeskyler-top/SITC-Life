@@ -60,6 +60,11 @@ const router = createRouter({
             meta: {...user}
         },
         {
+            path: '/schedule/list',
+            component: () => import("@/views/Schedule/ScheduleList.vue"),
+            meta: {...admin}
+        },
+        {
             path: '/schedule/batch',
             component: () => import("@/views/Schedule/ScheduleBatch.vue"),
             meta: {...admin}

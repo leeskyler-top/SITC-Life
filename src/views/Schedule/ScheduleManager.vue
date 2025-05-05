@@ -127,6 +127,7 @@ const listMyInfo = () => {
     let {data} = res.data;
     if (data.is_admin === true) {
       data.is_admin = '是';
+      listUsers();
     } else {
       data.is_admin = '否';
     }
@@ -233,7 +234,6 @@ const nextMonth = () => {
 onMounted(() => {
   listMyInfo();
   fetchSchedules();
-  listUsers();
 });
 
 const isUserOnDuty = (date) => {
