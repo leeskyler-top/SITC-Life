@@ -118,7 +118,7 @@ onMounted(() => {
       <a-col :lg="{span: 8}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}">
         <a-card title="获取当天共享链接" :style="{minHeight: '220px'}">
           <template #extra>
-            <router-link to="/equipment/my">详情</router-link>
+            <router-link to="/cloud/manager">详情</router-link>
           </template>
           <p>值班时拍下值日扣分点。</p>
           <p>每一个班级检查完成后，请上传照片。</p>

@@ -212,7 +212,10 @@ const login = () => {
     localStorage.user_position = data.user.position;
     message.success(msg);
   }).catch((err) => {
-    let {msg} = err.response.data;
+    let msg = err?.response?.data?.msg;
+    if (!msg) {
+      message.error("服务器离线，请刷新页面，如果问题仍然存在请联系管理员")
+    }
     signin.value = false;
     message.error(msg);
   });

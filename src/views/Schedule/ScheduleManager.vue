@@ -26,6 +26,9 @@ const currentMonth = ref(moment());
 const selectedYear = ref(moment().year());
 const selectedMonth = ref(moment().month());
 
+const showMainCheckIn = ref(false);
+const showScheduleStartTime = ref(false);
+
 const scheduleTypes = ["放学", "午间", "晚间", "早间", "其它"];
 
 const typeColors = {
@@ -36,7 +39,7 @@ const typeColors = {
   "其它": "error"
 };
 
-const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const dayNames = ["日", "一", "二", "三", "四", "五", "六"];
 
 const years = Array.from({length: 100}, (_, i) => moment().year() - 25 + i);
 const months = moment.months();
@@ -60,7 +63,6 @@ const emptyDaysStart = computed(() => {
 const users = ref([]);
 
 const onSelectChange = changableRowKeys => {
-  console.log(changableRowKeys)
   checkInUserForm.user_ids = changableRowKeys;
 };
 
@@ -115,6 +117,31 @@ const columns = [
         record.resident.toString().toLowerCase().includes(value.toLowerCase()),
   }
 ];
+
+const userData = ref([])
+
+const listMyInfo = () => {
+  spinning.value = true;
+  api.get("/user/my").then((res) => {
+    spinning.value = false;
+    let {data} = res.data;
+    if (data.is_admin === true) {
+      data.is_admin = '是';
+    } else {
+      data.is_admin = '否';
+    }
+    if (data.resident === true) {
+      data.resident = '是';
+    } else {
+      data.resident = '否';
+    }
+    userData.value = data;
+  }).catch((err) => {
+    let {msg} = err.response.data;
+    message.error(msg);
+  });
+}
+
 
 // 获取排班数据
 const fetchSchedules = () => {
@@ -204,9 +231,22 @@ const nextMonth = () => {
 };
 
 onMounted(() => {
+  listMyInfo();
   fetchSchedules();
   listUsers();
 });
+
+const isUserOnDuty = (date) => {
+  return schedules.value.some(schedule => {
+    return schedule.check_ins.some(checkIn => {
+      return checkIn.is_main_check_in && checkIn.check_in_users.some(checkInUser => {
+        return checkInUser.user.studentId === userData.value.studentId &&
+            moment(checkIn.check_in_start_time).isSame(date, 'day'); // 确保是同一天
+      });
+    });
+  });
+};
+
 
 // Go to user selection
 const goToUserSelection = () => {
@@ -238,6 +278,8 @@ const handleCloseUser = (confirm) => {
     // 发送 API 请求
     api.post('/checkin/assign', checkInUserForm).then(res => {
       message.success('已执行排班，并通知了对方');
+      openNotification("排班系统执行情况", res.data.msg)
+      fetchSchedules();
     }).catch(err => {
       const {msg} = err.response.data;
       message.error(msg); // Handle error appropriately
@@ -245,7 +287,8 @@ const handleCloseUser = (confirm) => {
   }
 
   visibleUsers.value = false;
-  scheduleIdList.value = [];
+  checkInUserForm.user_ids = [];  // 清空选中的用户
+  scheduleIdList.value = [];       // 清空选中的排班 ID
   batchEditMode.value = false;
 };
 const handleCheckboxChange = (id) => {
@@ -339,7 +382,8 @@ const deleteSchedules = async () => {
       </span>
     </h2>
     <div style="padding: 8px; background-color: #FFFFFF; min-height: 500px">
-      <a-row justify="end">
+      <a-row justify="end"
+             v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true">
         <a-button v-if="!batchEditMode" type="primary" style="margin: 8px" @click="showAddScheduleModal = true" ghost>
           添加值班计划
         </a-button>
@@ -353,6 +397,8 @@ const deleteSchedules = async () => {
           取消选择
         </a-button>
       </a-row>
+
+
       <a-spin :spinning="loadingSchedules">
         <div class="calendar-header">
           <a-button @click="prevMonth">《</a-button>
@@ -364,10 +410,19 @@ const deleteSchedules = async () => {
           </a-select>
           <a-button @click="nextMonth">》</a-button>
         </div>
+        <div class="main-checkin-switch" style="display:flex; align-items: center; justify-content: center;">
+          <a-switch v-model:checked="showMainCheckIn" style="margin-bottom: 8px;" checked-children="显示人员"
+                    un-checked-children="隐藏人员"/>
+          <a-switch v-model:checked="showScheduleStartTime" style="margin-bottom: 8px; margin-left: 6px;"
+                    checked-children="显示值班时间" un-checked-children="隐藏计划时间"/>
+        </div>
         <div class="calendar-grid">
           <div class="day-name" v-for="day in dayNames" :key="day">{{ day }}</div>
           <div class="day-cell" v-for="day in emptyDaysStart" :key="day"></div>
-          <div class="day-cell" v-for="date in daysInMonth" :key="date.format('YYYY-MM-DD')">
+          <div class="day-cell"
+               v-for="date in daysInMonth"
+               :key="date.format('YYYY-MM-DD')"
+               :class="{'red-background': isUserOnDuty(date)}"> <!-- 使用 isUserOnDuty 方法 -->
             <div class="date-number">{{ date.date() }}</div>
             <ul class="events">
               <li v-for="schedule in getScheduleData(date)" :key="schedule.id">
@@ -381,8 +436,17 @@ const deleteSchedules = async () => {
                           :status="typeColors[schedule.schedule_type]"
                           :text="`${schedule.schedule_name} (${schedule.schedule_type})`"
                       />
-                      <div>
+                      <div v-if="showScheduleStartTime">
                         {{ schedule.schedule_start_time }}
+                      </div>
+                      <div v-if="showMainCheckIn">
+                        <div v-for="checkIn in schedule.check_ins" :key="checkIn.id">
+                          <div v-if="checkIn.is_main_check_in">
+                  <span v-for="checkInUser in checkIn.check_in_users" :key="checkInUser.id">
+                    {{ checkInUser.user.studentId }} - {{ checkInUser.user.name }}<br/>
+                  </span>
+                          </div>
+                        </div>
                       </div>
                     </a-checkbox>
                   </a-col>
@@ -391,8 +455,17 @@ const deleteSchedules = async () => {
                         :status="typeColors[schedule.schedule_type]"
                         :text="`${schedule.schedule_name} (${schedule.schedule_type})`"
                     />
-                    <div>
+                    <div v-if="showScheduleStartTime">
                       {{ schedule.schedule_start_time }}
+                    </div>
+                    <div v-if="showMainCheckIn">
+                      <div v-for="checkIn in schedule.check_ins" :key="checkIn.id">
+                        <div v-if="checkIn.is_main_check_in">
+                <span v-for="checkInUser in checkIn.check_in_users" :key="checkInUser.id">
+                  {{ checkInUser.user.studentId }} - {{ checkInUser.user.name }}<br/>
+                </span>
+                        </div>
+                      </div>
                     </div>
                   </a-col>
                 </a-row>
@@ -526,4 +599,11 @@ const deleteSchedules = async () => {
   width: 100%;
   font-size: 12px;
 }
+
+.red-background {
+  background-color: rgba(255, 0, 0, 0.5); /* 红色半透明背景 */
+  padding: 4px; /* 添加一些内边距 */
+  border-radius: 3px; /* 圆角 */
+}
+
 </style>

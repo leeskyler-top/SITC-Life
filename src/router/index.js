@@ -57,7 +57,7 @@ const router = createRouter({
         {
             path: '/schedule/manager',
             component: () => import("@/views/Schedule/ScheduleManager.vue"),
-            meta: {...admin}
+            meta: {...user}
         },
         {
             path: '/schedule/batch',
