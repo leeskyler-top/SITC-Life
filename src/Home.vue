@@ -2,17 +2,12 @@
 import {computed, onMounted, ref} from 'vue';
 import {Empty, message} from "ant-design-vue";
 import {
-  AuditOutlined,
-  AppstoreAddOutlined,
   OrderedListOutlined,
-  UnorderedListOutlined,
   SettingOutlined,
-  ProfileOutlined,
-  ContainerOutlined,
   CloudUploadOutlined,
   UserAddOutlined,
   InfoCircleOutlined,
-  HistoryOutlined, CarryOutOutlined, BankOutlined, CloudServerOutlined, PieChartOutlined
+  CalendarOutlined, CarryOutOutlined, BankOutlined, CloudServerOutlined, PieChartOutlined, UngroupOutlined
 } from '@ant-design/icons-vue';
 import api from "@/api";
 
@@ -53,10 +48,10 @@ const getMyMsg = () => {
 }
 
 const readAllMsg = () => {
-  api.get("/message/read/").then(res => {
+  api.get("/message/read").then(res => {
     let {msg} = res.data
     messages.value.forEach(msg => {
-      msg.status = "read";
+      msg.status = true;
     });
     message.success(msg);
   }).catch(err => {
@@ -66,16 +61,17 @@ const readAllMsg = () => {
 }
 
 const readMsg = (id) => {
-  if (messages.value.find(msg => msg.id === id) && messages.value.find(msg => msg.id === id).status === 'unread') {
+  if (messages.value.find(msg => msg.id === id) && messages.value.find(msg => msg.id === id).status === false) {
     api.get("/message/read/" + id).then(res => {
       let updatedMsg = messages.value.find(msg => msg.id === id);
-      updatedMsg.status = "read";
+      updatedMsg.status = true;
     }).catch(err => {
       let {msg} = err.response.data;
       message.error(msg);
     })
   }
 }
+
 
 const currentMsgPage = ref(1);
 const currentMsgPageData = computed(() => {
@@ -84,7 +80,7 @@ const currentMsgPageData = computed(() => {
   return messages.value.slice(startIdx, endIdx);
 });
 onMounted(() => {
-  // getMyMsg()
+  getMyMsg()
 })
 </script>
 
@@ -202,7 +198,7 @@ onMounted(() => {
       <a-col :lg="{span: 8}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}">
         <a-card title="签到打卡" :style="{minHeight: '220px'}">
           <a-row :gutter="[24,24]">
-            <a-col align="middle" :span="is_admin === 'true' ? 12 : 24 ">
+            <a-col align="middle" :span="is_admin === 'true' ? 6 : 24">
               <router-link to="/checkin/list">
                 <a-button shape="circle" size="large">
                   <template #icon>
@@ -213,33 +209,33 @@ onMounted(() => {
                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">签到列表</p>
               </router-link>
             </a-col>
-            <a-col align="middle" :span="12" v-if="is_admin === 'true'">
+            <a-col align="middle" :span="is_admin === 'true' ? 6 : 24" v-if="is_admin === 'true'">
               <router-link to="/schedule/manager">
                 <a-button shape="circle" size="large">
                   <template #icon>
-                    <SettingOutlined/>
+                    <CalendarOutlined />
                   </template>
 
                 </a-button>
                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">值班管理</p>
               </router-link>
             </a-col>
-            <a-col align="middle" :span="12" v-if="is_admin === 'true'">
+            <a-col align="middle" :span="is_admin === 'true' ? 6 : 24" v-if="is_admin === 'true'">
               <router-link to="/schedule/list">
                 <a-button shape="circle" size="large">
                   <template #icon>
-                    <SettingOutlined/>
+                    <UngroupOutlined />
                   </template>
 
                 </a-button>
                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">值班列表</p>
               </router-link>
             </a-col>
-            <a-col align="middle" :span="12" v-if="is_admin === 'true'">
+            <a-col align="middle" :span="is_admin === 'true' ? 6 : 24" v-if="is_admin === 'true'">
               <router-link to="/schedule/batch">
                 <a-button shape="circle" size="large">
                   <template #icon>
-                    <SettingOutlined/>
+                    <CloudUploadOutlined />
                   </template>
 
                 </a-button>
@@ -322,10 +318,10 @@ onMounted(() => {
               </div>
             </a-descriptions-item>
             <a-collapse v-model:activeKey="activeKey">
-              <a-collapse-panel v-for="item in currentMsgPageData" :key="item.id" :header="item.title"
-                                :style="item.status === 'unread' ? { fontWeight: 'bold' } : {}"
-                                @click="readMsg(item.id)">
-                <p>{{ item.msg }}</p>
+              <a-collapse-panel v-for="item in currentMsgPageData" :key="item.id" :header="item.msg_title"
+                                :style="item.status === false && item.msg_type === 'PRIVATE' ? { fontWeight: 'bold' } : {}"
+                                @click.stop="readMsg(item.id)">
+                <p>{{ item.msg_text }}</p>
               </a-collapse-panel>
             </a-collapse>
           </a-spin>
@@ -336,8 +332,6 @@ onMounted(() => {
       </a-col>
     </a-row>
   </a-layout-content>
-
-
 </template>
 
 <style>

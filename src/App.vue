@@ -435,6 +435,9 @@ const getCurrentYear = () => {
                           <span>签到</span>
                         </template>
                         <a-menu-item key="schedule-manager" v-if="is_admin === 'true'">
+                          <RouterLink to="/checkin/list">签到</RouterLink>
+                        </a-menu-item>
+                        <a-menu-item key="schedule-manager" v-if="is_admin === 'true'">
                           <RouterLink to="/schedule/manager">值班管理</RouterLink>
                         </a-menu-item>
                         <a-menu-item key="schedule-list" v-if="is_admin === 'true'">
