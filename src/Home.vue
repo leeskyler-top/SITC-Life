@@ -198,7 +198,7 @@ onMounted(() => {
       <a-col :lg="{span: 8}" :md="{span: 24}" :sm="{span: 24}" :xs="{span: 24}">
         <a-card title="签到打卡" :style="{minHeight: '220px'}">
           <a-row :gutter="[24,24]">
-            <a-col align="middle" :span="is_admin === 'true' ? 6 : 24">
+            <a-col align="middle" :span="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true' ? 6 : 12">
               <router-link to="/checkin/list">
                 <a-button shape="circle" size="large">
                   <template #icon>
@@ -209,7 +209,7 @@ onMounted(() => {
                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">签到列表</p>
               </router-link>
             </a-col>
-            <a-col align="middle" :span="is_admin === 'true' ? 6 : 24" v-if="is_admin === 'true'">
+            <a-col align="middle" :span="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true' ? 6 : 12">
               <router-link to="/schedule/manager">
                 <a-button shape="circle" size="large">
                   <template #icon>
@@ -220,7 +220,7 @@ onMounted(() => {
                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">值班管理</p>
               </router-link>
             </a-col>
-            <a-col align="middle" :span="is_admin === 'true' ? 6 : 24" v-if="is_admin === 'true'">
+            <a-col align="middle" :span="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true' ? 6 : 12" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
               <router-link to="/schedule/list">
                 <a-button shape="circle" size="large">
                   <template #icon>
@@ -231,7 +231,7 @@ onMounted(() => {
                 <p style="padding-top: 6px; font-size: 12px; color: #333333;">值班列表</p>
               </router-link>
             </a-col>
-            <a-col align="middle" :span="is_admin === 'true' ? 6 : 24" v-if="is_admin === 'true'">
+            <a-col align="middle" :span="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true' ? 6 : 12" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
               <router-link to="/schedule/batch">
                 <a-button shape="circle" size="large">
                   <template #icon>

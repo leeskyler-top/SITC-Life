@@ -341,13 +341,13 @@ const getCurrentYear = () => {
               <a-menu-item key="checkin-list">
                 <RouterLink to="/checkin/list">签到</RouterLink>
               </a-menu-item>
-              <a-menu-item key="schedule-manager" v-if="is_admin === 'true'">
+              <a-menu-item key="schedule-manager">
                 <RouterLink to="/schedule/manager">值班管理</RouterLink>
               </a-menu-item>
-              <a-menu-item key="schedule-list" v-if="is_admin === 'true'">
+              <a-menu-item key="schedule-list" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
                 <RouterLink to="/schedule/list">值班列表</RouterLink>
               </a-menu-item>
-              <a-menu-item key="schedule-batch" v-if="is_admin === 'true'">
+              <a-menu-item key="schedule-batch" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
                 <RouterLink to="/schedule/batch">批量计划</RouterLink>
               </a-menu-item>
             </a-sub-menu>
@@ -434,16 +434,16 @@ const getCurrentYear = () => {
                           <ScheduleOutlined/>
                           <span>签到</span>
                         </template>
-                        <a-menu-item key="schedule-manager" v-if="is_admin === 'true'">
+                        <a-menu-item key="checkin-list">
                           <RouterLink to="/checkin/list">签到</RouterLink>
                         </a-menu-item>
-                        <a-menu-item key="schedule-manager" v-if="is_admin === 'true'">
+                        <a-menu-item key="schedule-manager">
                           <RouterLink to="/schedule/manager">值班管理</RouterLink>
                         </a-menu-item>
-                        <a-menu-item key="schedule-list" v-if="is_admin === 'true'">
+                        <a-menu-item key="schedule-list" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
                           <RouterLink to="/schedule/list">值班列表</RouterLink>
                         </a-menu-item>
-                        <a-menu-item key="schedule-batch" v-if="is_admin === 'true'">
+                        <a-menu-item key="schedule-batch" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
                           <RouterLink to="/schedule/batch">批量计划</RouterLink>
                         </a-menu-item>
                       </a-sub-menu>
