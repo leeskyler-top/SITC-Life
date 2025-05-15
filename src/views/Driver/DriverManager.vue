@@ -2,8 +2,9 @@
 import {ExclamationCircleOutlined, HomeOutlined} from "@ant-design/icons-vue";
 import {createVNode, onMounted, reactive, ref} from "vue";
 import api from "@/api";
-import {message, Modal, notification } from "ant-design-vue";
+import {message, Modal, notification} from "ant-design-vue";
 import my_config from "@/my_config";
+import io from 'socket.io-client';
 
 const spinning = ref(false);
 const userData = ref();
@@ -11,17 +12,62 @@ const currentDir = ref([]);
 const currentFiles = ref([]);
 let date = new Date();
 const currentMonth = ref(date.getMonth() + 1);
+const qrCodeVisible = ref(false);
+const qrCodeData = ref('');
+const qrCodeStatus = ref('');
+const wechat_file_server = my_config.wechat_file_transfer_server;
+const socket_io_path = my_config.wfts_socket_path;
+
+const socket = io(wechat_file_server,{
+  path: socket_io_path  // 指定自定义路径
+});
+
+socket.on('update_qrcode', function (data) {
+  qrCodeData.value = `data:image/png;base64,${data.qrcode_base64}`;
+});
+
+socket.on('login_status', function (data) {
+  qrCodeStatus.value = 'Login Status: ' + data.code;
+});
+
+socket.on('login_success', function (data) {
+  qrCodeStatus.value = 'Login Successful';
+});
+
+const loginToWebSocket = () => {
+  let session_id = localStorage.session_id ? localStorage.session_id : null
+  api.post(wechat_file_server + "/login", {
+    "session_id": session_id
+  }).then(res => {
+    let data = res.data
+    let msg = data.message
+    message.success(msg)
+    localStorage.session_id = data.session_id
+  }).catch(err => {
+    message.error(err.response.message)
+  })
+};
+
+const currentPushName = ref(null)
+const currentPushDocid = ref(null)
+
+const openQRCodeModal = (name, docid) => {
+  qrCodeVisible.value = true;
+  currentPushName.value = name
+  currentPushDocid.value = docid;
+  loginToWebSocket();  // Log in when opening the QR code modal
+}
 
 const listMyInfo = () => {
   spinning.value = true;
   api.get("/user/my").then((res) => {
     spinning.value = false;
-    let { data } = res.data;
+    let {data} = res.data;
     userData.value = data;
     listHomeDir();  // Ensure this is called after userData is set
   }).catch((err) => {
     spinning.value = false;
-    let { msg } = err.response.data;
+    let {msg} = err.response.data;
     message.error(msg);
   });
 }
@@ -93,7 +139,7 @@ const listOtherDir = (docid) => {
 
 const deleteDir = (docid) => {
   spinning.value = true;
-  api.post("/driver/dir/del" , {
+  api.post("/driver/dir/del", {
     "docid": docid
   }).then(res => {
     let {data, msg} = res.data;
@@ -110,7 +156,7 @@ const deleteDir = (docid) => {
 
 const deleteFile = (docid) => {
   spinning.value = true;
-  api.post("/driver/file/del" , {
+  api.post("/driver/file/del", {
     "docid": docid
   }).then(res => {
     let {data, msg} = res.data;
@@ -209,11 +255,13 @@ onMounted(() => {
   listMyInfo();
 });
 
-const pushZip = (name, docid) => {
+const pushZip = () => {
+  let session_id = localStorage.session_id
   spinning.value = true;
   api.post("/driver/dir/download", {
-    name: name,
-    docid: docid
+    session_id: session_id,
+    name: currentPushName.value,
+    docid: currentPushDocid.value
   }).then(res => {
     let {msg} = res.data
     spinning.value = false;
@@ -225,7 +273,7 @@ const pushZip = (name, docid) => {
   })
 }
 
-const showConfirm = (op, docid=null) => {
+const showConfirm = (op, docid = null) => {
   let contentText = ""
   if (op === "genSemester") {
     contentText = '是否尝试按照模板生成文件夹？大约需要25分钟，且不可中断！';
@@ -243,7 +291,7 @@ const showConfirm = (op, docid=null) => {
     onOk() {
       if (op === "genSemester") {
         genSemesterDir()
-      }  else if (op === 'deleteDir') {
+      } else if (op === 'deleteDir') {
         deleteDir(docid)
       } else if (op === 'deleteFile') {
         deleteFile(docid)
@@ -279,6 +327,7 @@ const handleCancel = () => {
   visibleCreate.value = false;
   visibleLink.value = false;
   visibleGenCurrentMonth.value = false;
+  qrCodeVisible.value = false;
 };
 
 // 获取当前日期
@@ -316,10 +365,21 @@ const formState = reactive({
 
         <a-row justify="end">
           <a-button style="margin: 8px;" @click="listHomeDir()" type="primary">返回根目录</a-button>
-          <a-button style="margin: 8px;" @click="listOtherDir(parentDir)" type="primary" v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true" :disabled="!parentDir">返回上一级</a-button>
-          <a-button type="primary" style="margin: 8px;" ghost @click="showConfirm('genSemester')" v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true">生成学期文件夹</a-button>
-          <a-button type="primary" style="margin: 8px;" ghost @click="showModal" v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true">生成月文件夹</a-button>
-          <a-button type="primary" style="margin: 8px;" ghost @click="showGenCurrentMonthModal" v-if="['普通部员', '实习部员'].includes(userData?.position) || userData?.is_admin === true">生成当前月文件夹</a-button>
+          <a-button style="margin: 8px;" @click="listOtherDir(parentDir)" type="primary"
+                    v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true"
+                    :disabled="!parentDir">返回上一级
+          </a-button>
+          <a-button type="primary" style="margin: 8px;" ghost @click="showConfirm('genSemester')"
+                    v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true">
+            生成学期文件夹
+          </a-button>
+          <a-button type="primary" style="margin: 8px;" ghost @click="showModal"
+                    v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true">
+            生成月文件夹
+          </a-button>
+          <a-button type="primary" style="margin: 8px;" ghost @click="showGenCurrentMonthModal"
+                    v-if="['普通部员', '实习部员'].includes(userData?.position) || userData?.is_admin === true">生成当前月文件夹
+          </a-button>
         </a-row>
         <a-list :data-source="currentDir" v-if="currentDir?.length !== 0">
           <template #renderItem="{ item }">
@@ -331,8 +391,14 @@ const formState = reactive({
               </a-row>
               <a-row justify="end">
                 <a-button type="link" @click="showCreateModal(item.docid)">获取链接</a-button>
-                <a-button type="link" v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true"  @click="pushZip(item.name,item.docid)">尝试推送</a-button>
-                <a-button type="link" danger v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true"  @click="showConfirm('deleteDir', item.docid)">删除</a-button>
+                <a-button type="link"
+                          v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true"
+                          @click="openQRCodeModal(item.name,item.docid)">尝试推送
+                </a-button>
+                <a-button type="link" danger
+                          v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true"
+                          @click="showConfirm('deleteDir', item.docid)">删除
+                </a-button>
               </a-row>
             </a-list-item>
           </template>
@@ -346,7 +412,10 @@ const formState = reactive({
                 </a-button>
               </a-row>
               <a-row justify="end">
-                <a-button type="link" danger v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true"  @click="showConfirm('deleteDir', item.docid)">删除</a-button>
+                <a-button type="link" danger
+                          v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true"
+                          @click="showConfirm('deleteDir', item.docid)">删除
+                </a-button>
                 <a-button type="link" danger v-else @click="showConfirm('deleteFile', item.docid)">删除</a-button>
 
               </a-row>
@@ -356,7 +425,7 @@ const formState = reactive({
       </a-spin>
     </div>
     <a-modal v-model:visible="visible" title="要生成当前学期哪个月份的文件夹？">
-      <a-input-number id="inputNumber" v-model:value="currentMonth" :min="1" :max="12" />
+      <a-input-number id="inputNumber" v-model:value="currentMonth" :min="1" :max="12"/>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
         <a-button type="primary" danger @click="genMonthDir" :loading="spinning">变更</a-button>
@@ -402,6 +471,16 @@ const formState = reactive({
         <a-button type="primary" @click="handleCancel">关闭</a-button>
       </template>
     </a-modal>
+
+    <a-modal v-model:visible="qrCodeVisible" title="QR Code for File Upload">
+      <img :src="qrCodeData" alt="QR Code" style="width: 200px; height: 200px;"/>
+      <p>{{ qrCodeStatus }}</p>
+      <template #footer>
+        <a-button type="primary" @click="handleCancel" ghost>关闭</a-button>
+        <a-button type="primary" @click="pushZip">推送</a-button>
+      </template>
+    </a-modal>
+
   </a-layout-content>
 </template>
 

@@ -1,7 +1,7 @@
 const my_config = {
     api_url: "http://127.0.0.1:8080/api/v1/",
-    images_user_base_url: "https://127.0.0.1/sitc-publicity/backend/api/v1/files/",
-    images_admin_base_url: "https://127.0.0.1/sitc-publicity/backend/api/v1/files/admin/"
+    wechat_file_transfer_server: "http://127.0.0.1:5000",
+    wfts_socket_path: "/mmfiletrans/socket.io"
 }
 
 export default my_config
