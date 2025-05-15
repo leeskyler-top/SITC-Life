@@ -17,6 +17,7 @@ const qrCodeData = ref('');
 const qrCodeStatus = ref('');
 const wechat_file_server = my_config.wechat_file_transfer_server;
 const socket_io_path = my_config.wfts_socket_path;
+const wfts_proxy_path = my_config.wfts_proxy_path
 
 const socket = io(wechat_file_server,{
   path: socket_io_path  // 指定自定义路径
@@ -36,7 +37,7 @@ socket.on('login_success', function (data) {
 
 const loginToWebSocket = () => {
   let session_id = localStorage.session_id ? localStorage.session_id : null
-  api.post(wechat_file_server + "/login", {
+  api.post(wechat_file_server + wfts_proxy_path + "/login", {
     "session_id": session_id
   }).then(res => {
     let data = res.data
