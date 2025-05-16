@@ -19,27 +19,39 @@ const wechat_file_server = my_config.wechat_file_transfer_server;
 const socket_io_path = my_config.wfts_socket_path;
 const wfts_proxy_path = my_config.wfts_proxy_path
 
-const socket = io(wechat_file_server,{
-  path: socket_io_path  // 指定自定义路径
-});
+let socket = null;
 
-socket.on('update_qrcode', function (data) {
-  qrCodeData.value = `data:image/png;base64,${data.qrcode_base64}`;
-});
+const connectMMFileTrans = () => {
+  socket = io(wechat_file_server, {
+    path: socket_io_path  // 指定自定义路径
+  });
 
-socket.on('login_status', function (data) {
-  if (data.code === '408') {
-    qrCodeStatus.value = "未扫码"
-  } else if (data.code === '201') {
-    qrCodeStatus.value = "已扫码，待确认"
-  } else if (data.code === '200') {
-    qrCodeStatus.value = "已登录"
-  }
-});
+  socket.on('update_qrcode', function (data) {
+    qrCodeData.value = `data:image/png;base64,${data.qrcode_base64}`;
+  });
 
-socket.on('login_success', function (data) {
-  qrCodeStatus.value = '已登录';
-});
+  socket.on('login_status', function (data) {
+    if (data.code === '408') {
+      qrCodeStatus.value = "未扫码"
+    } else if (data.code === '201') {
+      qrCodeStatus.value = "已扫码，待确认"
+    } else if (data.code === '200') {
+      qrCodeStatus.value = "已登录"
+    }
+  });
+
+  socket.on('login_success', function (data) {
+    qrCodeStatus.value = '已登录';
+  });
+
+  socket.on('upload_progress', function (data) {
+    uploadProgress.value = Math.round(data.progress * 100, 2);
+  });
+}
+
+const uploadProgress = ref(0);
+
+
 
 const loginToWebSocket = () => {
   let session_id = localStorage.session_id ? localStorage.session_id : null
@@ -266,6 +278,7 @@ const genCurrentMonthDir = () => {
 }
 
 onMounted(() => {
+  connectMMFileTrans();
   listMyInfo();
 });
 
@@ -279,13 +292,46 @@ const pushZip = () => {
   }).then(res => {
     let {msg} = res.data
     spinning.value = false;
-    openNotification("已尝试发送", msg)
   }).catch(err => {
     let {msg} = err.response.data
     spinning.value = false;
-    openNotification("发送失败", msg)
   })
 }
+
+const logoutMM = () => {
+  const session_id = localStorage.session_id ? localStorage.session_id : null;
+
+  // 请求头信息
+  const headers = {
+    "Content-Type": "application/json"
+  };
+
+  // 进行登出操作
+  api.delete(wechat_file_server + wfts_proxy_path + "/logout", {
+    headers,
+    data: { session_id }  // 将 session_id 放入请求体中
+  }).then(res => {
+    // 请求成功，处理注销后的操作
+    localStorage.removeItem("session_id");
+    qrCodeVisible.value = false;
+    if (socket) {
+      socket.disconnect();
+      socket = null; // 重置 socket 变量
+    }
+    connectMMFileTrans();
+    message.success("成功登出，请刷新页面");
+  }).catch(err => {
+    // 发生错误时处理
+    localStorage.removeItem("session_id");
+    if (socket) {
+      socket.disconnect();
+      socket = null; // 重置 socket 变量
+    }
+    connectMMFileTrans();
+    qrCodeVisible.value = false;
+    message.error("登出失败：" + (err.response?.data?.message || "未知错误"));
+  });
+};
 
 const showConfirm = (op, docid = null) => {
   let contentText = ""
@@ -375,6 +421,7 @@ const formState = reactive({
       </span>
     </h2>
     <div style="padding: 8px; background-color: #FFFFFF">
+
       <a-spin :spinning="spinning">
 
         <a-row justify="end">
@@ -395,7 +442,12 @@ const formState = reactive({
                     v-if="['普通部员', '实习部员'].includes(userData?.position) || userData?.is_admin === true">生成当前月文件夹
           </a-button>
         </a-row>
+        <a-row style="padding: 32px; box-sizing: border-box;" v-if="uploadProgress > 0 && uploadProgress < 100">
+          <span :style="{ marginLeft: 8 }">上传进度 : {{ uploadProgress }}%</span>
+          <a-progress :percent="uploadProgress" />
+        </a-row>
         <a-list :data-source="currentDir" v-if="currentDir?.length !== 0">
+
           <template #renderItem="{ item }">
             <a-list-item>
               <a-row justify="end" @click="listOtherDir(item.docid)">
@@ -407,7 +459,8 @@ const formState = reactive({
                 <a-button type="link" @click="showCreateModal(item.docid)">获取链接</a-button>
                 <a-button type="link"
                           v-if="['部长', '副部长', '部门负责人', '汇总负责人', '实习汇总负责人'].includes(userData?.position) || userData?.is_admin === true"
-                          @click="openQRCodeModal(item.name,item.docid)">尝试推送
+                          @click="openQRCodeModal(item.name,item.docid)"
+                          :disabled="(uploadProgress > 0 && uploadProgress < 100) || spinning">尝试推送
                 </a-button>
                 <a-button type="link" danger
                           v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true"
@@ -512,10 +565,15 @@ const formState = reactive({
         <a-row align="center">
           <p>二维码状态：{{ qrCodeStatus }}</p>
         </a-row>
+        <a-row>
+          <a-progress :percent="uploadProgress"/>
+        </a-row>
       </a-col>
       <template #footer>
         <a-button type="primary" @click="handleCancel" ghost>关闭</a-button>
-        <a-button type="primary" @click="pushZip" :disabled="qrCodeStatus !== '已登录'">推送</a-button>
+        <a-button type="primary" @click="logoutMM" :disabled="qrCodeStatus !== '已登录'" danger ghost>登出会话</a-button>
+        <a-button type="primary" @click="pushZip" :disabled="qrCodeStatus !== '已登录'" :loading="spinning">推送
+        </a-button>
       </template>
     </a-modal>
 
