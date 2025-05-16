@@ -14,7 +14,7 @@ let date = new Date();
 const currentMonth = ref(date.getMonth() + 1);
 const qrCodeVisible = ref(false);
 const qrCodeData = ref('');
-const qrCodeStatus = ref('');
+const qrCodeStatus = ref('初始化/未检查');
 const wechat_file_server = my_config.wechat_file_transfer_server;
 const socket_io_path = my_config.wfts_socket_path;
 const wfts_proxy_path = my_config.wfts_proxy_path
@@ -28,11 +28,17 @@ socket.on('update_qrcode', function (data) {
 });
 
 socket.on('login_status', function (data) {
-  qrCodeStatus.value = 'Login Status: ' + data.code;
+  if (data.code === '408') {
+    qrCodeStatus.value = "未扫码"
+  } else if (data.code === '201') {
+    qrCodeStatus.value = "已扫码，待确认"
+  } else if (data.code === '200') {
+    qrCodeStatus.value = "已登录"
+  }
 });
 
 socket.on('login_success', function (data) {
-  qrCodeStatus.value = 'Login Successful';
+  qrCodeStatus.value = '已登录';
 });
 
 const loginToWebSocket = () => {
@@ -43,6 +49,11 @@ const loginToWebSocket = () => {
     let data = res.data
     let msg = data.message
     message.success(msg)
+    if (data.message === 'Valid Session ID') {
+      qrCodeStatus.value = "已登录"
+    } else {
+      qrCodeStatus.value = "需要重新登录"
+    }
     localStorage.session_id = data.session_id
   }).catch(err => {
     message.error(err.response.message)
@@ -53,6 +64,7 @@ const currentPushName = ref(null)
 const currentPushDocid = ref(null)
 
 const openQRCodeModal = (name, docid) => {
+  qrCodeStatus.value = '检查登录状态...'
   qrCodeVisible.value = true;
   currentPushName.value = name
   currentPushDocid.value = docid;
@@ -79,6 +91,7 @@ const listLifeDepDir = () => {
     let {data} = res.data;
     spinning.value = false;
     currentDir.value = data.dirs;
+    currentFiles.value = data.files;
   }).catch(err => {
     let {msg} = err.response.data;
     spinning.value = false;
@@ -473,12 +486,36 @@ const formState = reactive({
       </template>
     </a-modal>
 
-    <a-modal v-model:visible="qrCodeVisible" title="QR Code for File Upload">
-      <img :src="qrCodeData" alt="QR Code" style="width: 200px; height: 200px;"/>
-      <p>{{ qrCodeStatus }}</p>
+    <a-modal v-model:visible="qrCodeVisible" title="微信传输助手二维码上传">
+      <a-card title="使用方法" style="margin-bottom: 8px;">
+        <p>
+          1. 请使用手机微信扫描下方二维码登录文件传输助手。
+        </p>
+        <p>
+          2. 登录完成后点击“推送”.
+        </p>
+        <p>
+          3. 5分钟内文件传输助手没有收到文件请重试，请勿多次点击。
+        </p>
+        <p>
+          ⚠ 二维码仅限使用摄像头扫描，请勿截图使用相册打开。
+        </p>
+      </a-card>
+      <a-col>
+        <a-row align="center">
+          <a-image-preview-group>
+            <a-image :width="200"
+                     fallback="data:image/png;base64,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"
+                     :src="qrCodeData"/>
+          </a-image-preview-group>
+        </a-row>
+        <a-row align="center">
+          <p>二维码状态：{{ qrCodeStatus }}</p>
+        </a-row>
+      </a-col>
       <template #footer>
         <a-button type="primary" @click="handleCancel" ghost>关闭</a-button>
-        <a-button type="primary" @click="pushZip">推送</a-button>
+        <a-button type="primary" @click="pushZip" :disabled="qrCodeStatus !== '已登录'">推送</a-button>
       </template>
     </a-modal>
 
