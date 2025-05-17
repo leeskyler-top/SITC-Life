@@ -573,7 +573,7 @@ const formState = reactive({
       </a-col>
       <template #footer>
         <a-button type="primary" @click="handleCancel" ghost>关闭</a-button>
-        <a-button type="primary" @click="logoutMM" :disabled="qrCodeStatus !== '已登录' || (uploadProgress > 0 && uploadProgress < 100)" danger ghost>登出会话</a-button>
+        <a-button type="primary" @click="logoutMM" :disabled="qrCodeStatus !== '已登录' || (uploadProgress > 0 && uploadProgress < 100) || spinning" danger ghost>登出会话</a-button>
         <a-button type="primary" @click="pushZip" :disabled="qrCodeStatus !== '已登录' || (uploadProgress > 0 && uploadProgress < 100)" :loading="spinning">推送</a-button>
       </template>
     </a-modal>
