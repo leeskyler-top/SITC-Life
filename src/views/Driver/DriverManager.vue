@@ -47,10 +47,14 @@ const connectMMFileTrans = () => {
   socket.on('upload_progress', function (data) {
     uploadProgress.value = Math.round(data.progress * 100, 2);
   });
+
+  socket.on('login_timeout', function (data) {
+    qrCodeVisible.value = false;
+    message.warn("微信登录超时，请重新操作！")
+  });
 }
 
 const uploadProgress = ref(0);
-
 
 
 const loginToWebSocket = () => {
@@ -309,10 +313,9 @@ const logoutMM = () => {
   // 进行登出操作
   api.delete(wechat_file_server + wfts_proxy_path + "/logout", {
     headers,
-    data: { session_id }  // 将 session_id 放入请求体中
+    data: {session_id}  // 将 session_id 放入请求体中
   }).then(res => {
     // 请求成功，处理注销后的操作
-    localStorage.removeItem("session_id");
     qrCodeVisible.value = false;
     if (socket) {
       socket.disconnect();
@@ -322,7 +325,6 @@ const logoutMM = () => {
     message.success("成功登出，请刷新页面");
   }).catch(err => {
     // 发生错误时处理
-    localStorage.removeItem("session_id");
     if (socket) {
       socket.disconnect();
       socket = null; // 重置 socket 变量
@@ -444,7 +446,7 @@ const formState = reactive({
         </a-row>
         <a-row style="padding: 32px; box-sizing: border-box;" v-if="uploadProgress > 0 && uploadProgress < 100">
           <span :style="{ marginLeft: 8 }">上传进度 : {{ uploadProgress }}%</span>
-          <a-progress :percent="uploadProgress" />
+          <a-progress :percent="uploadProgress"/>
         </a-row>
         <a-list :data-source="currentDir" v-if="currentDir?.length !== 0">
 
@@ -571,9 +573,8 @@ const formState = reactive({
       </a-col>
       <template #footer>
         <a-button type="primary" @click="handleCancel" ghost>关闭</a-button>
-        <a-button type="primary" @click="logoutMM" :disabled="qrCodeStatus !== '已登录'" danger ghost>登出会话</a-button>
-        <a-button type="primary" @click="pushZip" :disabled="qrCodeStatus !== '已登录'" :loading="spinning">推送
-        </a-button>
+        <a-button type="primary" @click="logoutMM" :disabled="qrCodeStatus !== '已登录' || (uploadProgress > 0 && uploadProgress < 100)" danger ghost>登出会话</a-button>
+        <a-button type="primary" @click="pushZip" :disabled="qrCodeStatus !== '已登录' || (uploadProgress > 0 && uploadProgress < 100)" :loading="spinning">推送</a-button>
       </template>
     </a-modal>
 
