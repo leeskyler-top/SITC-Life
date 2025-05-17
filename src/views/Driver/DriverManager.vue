@@ -65,7 +65,7 @@ const loginToWebSocket = () => {
     let data = res.data
     let msg = data.message
     message.success(msg)
-    if (data.message === 'Already Login') {
+    if (data.message === 'Already Login.') {
       qrCodeStatus.value = "已登录"
     } else {
       qrCodeStatus.value = "需要重新登录"
