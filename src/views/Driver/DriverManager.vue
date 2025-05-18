@@ -1,10 +1,11 @@
 <script setup>
-import {ExclamationCircleOutlined, HomeOutlined} from "@ant-design/icons-vue";
+import {ExclamationCircleOutlined, HomeOutlined, CopyOutlined} from "@ant-design/icons-vue";
 import {createVNode, onMounted, reactive, ref} from "vue";
 import api from "@/api";
 import {message, Modal, notification} from "ant-design-vue";
 import my_config from "@/my_config";
 import io from 'socket.io-client';
+import {useClipboard} from "@vueuse/core";
 
 const spinning = ref(false);
 const userData = ref();
@@ -18,6 +19,7 @@ const qrCodeStatus = ref('初始化/未检查');
 const wechat_file_server = my_config.wechat_file_transfer_server;
 const socket_io_path = my_config.wfts_socket_path;
 const wfts_proxy_path = my_config.wfts_proxy_path
+const pan_baseurl = my_config.pan_baseurl
 
 let socket = null;
 
@@ -208,6 +210,7 @@ const openLink = () => {
     let {data, msg} = res.data;
     spinning.value = false;
     linkData.value = data;
+    linkData.value.link = pan_baseurl + linkData.value.link
     showLink();
     message.success(msg)
   }).catch(err => {
@@ -412,6 +415,15 @@ const formState = reactive({
 });
 
 
+const copyLink = (text) => {
+  const { copy, copied } = useClipboard({ source: text });
+  copy();
+  if (copied) {
+    message.success("复制成功")
+  }
+}
+
+
 </script>
 
 <template>
@@ -533,8 +545,26 @@ const formState = reactive({
     </a-modal>
     <a-modal v-model:visible="visibleLink" title="链接信息">
       <a-card>
-        <p>链接：<span>https://pan.shitac.net/link/{{ linkData.link }}</span></p>
-        <p>密码：<span>{{ linkData.password }}</span></p>
+        <p>链接：
+        <a-input-group>
+          <a-input v-model:value="linkData.link" style="width: calc(100% - 32px)" :readonly="true" @click="copyLink(linkData.link)" />
+          <a-tooltip title="复制网盘链接" @click="copyLink(linkData.link)">
+            <a-button>
+              <template #icon><CopyOutlined /></template>
+            </a-button>
+          </a-tooltip>
+        </a-input-group>
+        </p>
+        <p v-if="linkData.password">密码：
+          <a-input-group>
+            <a-input value="****" style="width: 60px;" :disabled="true" :readonly="true" />
+            <a-tooltip title="复制链接密码" @click="copyLink(linkData.password)">
+              <a-button>
+                <template #icon><CopyOutlined /></template>
+              </a-button>
+            </a-tooltip>
+          </a-input-group>
+        </p>
       </a-card>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
