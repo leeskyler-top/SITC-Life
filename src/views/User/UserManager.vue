@@ -1,8 +1,9 @@
 <script setup>
 import {reactive, ref, onMounted, createVNode, computed} from 'vue';
-import {ExclamationCircleOutlined, SearchOutlined, HomeOutlined} from '@ant-design/icons-vue';
+import {ExclamationCircleOutlined, SearchOutlined, HomeOutlined, CopyOutlined} from '@ant-design/icons-vue';
 import {message, Modal} from "ant-design-vue";
 import api from "@/api";
+import {useClipboard} from "@vueuse/core";
 
 const isShow = ref(true);
 
@@ -351,6 +352,14 @@ const resetPwd = id => {
   });
 }
 
+const copyLink = (text, msg) => {
+  const { copy, copied } = useClipboard({ source: text });
+  copy();
+  if (copied) {
+    message.success("复制" + msg + "成功")
+  }
+}
+
 const currentUser = ref();
 const showPassword = id => {
   let user = myData.value.find(i => i.id === id);
@@ -596,6 +605,14 @@ const scroll = computed(() => {
       </a-card>
       <a-card>
         <p>密码已重置，密码为: {{ new_password }}</p>
+        <a-input-group>
+          <a-input-password v-model:value="new_password" style="width: 80px;" @click="copyLink(new_password, '新用户密码')" :readonly="true" />
+          <a-tooltip title="复制新用户密码" @click="copyLink(new_password, '新用户密码')">
+            <a-button>
+              <template #icon><CopyOutlined /></template>
+            </a-button>
+          </a-tooltip>
+        </a-input-group>
       </a-card>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
