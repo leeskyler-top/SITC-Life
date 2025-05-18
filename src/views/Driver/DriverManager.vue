@@ -415,11 +415,11 @@ const formState = reactive({
 });
 
 
-const copyLink = (text) => {
+const copyLink = (text, msg) => {
   const { copy, copied } = useClipboard({ source: text });
   copy();
   if (copied) {
-    message.success("复制成功")
+    message.success("复制" + msg + "成功")
   }
 }
 
@@ -547,8 +547,8 @@ const copyLink = (text) => {
       <a-card>
         <p>链接：
         <a-input-group>
-          <a-input v-model:value="linkData.link" style="width: calc(100% - 32px)" :readonly="true" @click="copyLink(linkData.link)" />
-          <a-tooltip title="复制网盘链接" @click="copyLink(linkData.link)">
+          <a-input v-model:value="linkData.link" style="width: calc(100% - 32px)" :readonly="true" @click="copyLink(linkData.link, '网盘链接')" />
+          <a-tooltip title="复制网盘链接" @click="copyLink(linkData.link, '网盘链接')">
             <a-button>
               <template #icon><CopyOutlined /></template>
             </a-button>
@@ -557,8 +557,8 @@ const copyLink = (text) => {
         </p>
         <p v-if="linkData.password">密码：
           <a-input-group>
-            <a-input value="****" style="width: 60px;" :disabled="true" :readonly="true" />
-            <a-tooltip title="复制链接密码" @click="copyLink(linkData.password)">
+            <a-input-password v-model:value="linkData.password" style="width: 80px;" @click="copyLink(linkData.password, '网盘密码')" :readonly="true" />
+            <a-tooltip title="复制链接密码" @click="copyLink(linkData.password, '网盘密码')">
               <a-button>
                 <template #icon><CopyOutlined /></template>
               </a-button>
