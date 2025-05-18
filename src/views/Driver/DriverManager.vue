@@ -540,7 +540,7 @@ const copyLink = (text, msg) => {
       </a-form>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
-        <a-button type="primary" danger @click="openLink">创建</a-button>
+        <a-button type="primary" danger @click="openLink" :loading="spinning">创建</a-button>
       </template>
     </a-modal>
     <a-modal v-model:visible="visibleLink" title="链接信息">
