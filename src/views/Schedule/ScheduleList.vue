@@ -358,7 +358,7 @@ const scroll = computed(() => {
   if (isShow.value === true) {
     return false
   } else {
-    return {x: 1500}
+    return {x: 900}
   }
 })
 

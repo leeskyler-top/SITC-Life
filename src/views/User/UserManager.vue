@@ -180,6 +180,89 @@ const columns = [
   }
 ];
 
+const deleted_columns = [
+  {
+    title: '学籍号',
+    dataIndex: 'studentId',
+    width: '10%',
+    customFilterDropdown: true,
+    onFilter: (value, record) =>
+        record.studentId.toString().toLowerCase().includes(value.toLowerCase()),
+  },
+  {
+    title: '姓名',
+    dataIndex: 'name',
+    width: '10%',
+    customFilterDropdown: true,
+    onFilter: (value, record) =>
+        record.name.toString().toLowerCase().includes(value.toLowerCase()),
+  },
+  {
+    title: '班级',
+    dataIndex: 'classname',
+    width: '10%',
+    customFilterDropdown: true,
+    onFilter: (value, record) =>
+        record.classname.toString().toLowerCase().includes(value.toLowerCase())
+  },
+  {
+    title: '入部时间',
+    dataIndex: 'join_at',
+    width: '10%',
+    customFilterDropdown: true,
+    onFilter: (value, record) =>
+        record.join_at.toString().toLowerCase().includes(value.toLowerCase())
+  },
+  {
+    title: '操作',
+    width: '3%',
+    dataIndex: 'operation',
+    fixed: 'right'
+  }
+];
+
+const deletedUsers = ref([]);
+
+const showDeletedUsers = () => {
+  listDeletedUsers();
+  visibleDeletedUsers.value = true;
+}
+
+const listDeletedUsers = () => {
+  api.get("/user/deleted").then(res => {
+    let {msg, data} = res.data;
+    deletedUsers.value = data;
+    message.success(msg)
+  }).catch((err) => {
+    let {msg} = err.response.data;
+    message.error(msg);
+  });
+}
+
+const restoreUser = (user_id) => {
+  api.patch("/user/restore/" + user_id).then(res => {
+    let {msg} = res.data;
+    deletedUsers.value = deletedUsers.value.filter(user => user.id !== user_id)
+    message.success(msg)
+  }).catch((err) => {
+    let {msg} = err.response.data;
+    message.error(msg);
+  });
+}
+
+
+// 存在数据错误风险 暂不开放
+const deleteUserPermanently = (user_id) => {
+  api.delete("/user/deleted/delete" + user_id).then(res => {
+    let {msg} = res.data;
+    deletedUsers.value.filter(user => user.id !== user_id)
+    message.success(msg)
+  }).catch((err) => {
+    let {msg} = err.response.data;
+    message.error(msg);
+  });
+}
+
 const handleSearch = (selectedKeys, confirm, dataIndex) => {
   confirm();
   state.searchText = selectedKeys[0];
@@ -201,7 +284,7 @@ const deleteUser = id => {
   });
 };
 
-function downloadUser() {
+const downloadUser = () => {
   api.get('/user/export', {
     responseType: 'blob'  // 设置响应类型为 blob
   })
@@ -225,7 +308,7 @@ function downloadUser() {
 
 const visible = ref(false);
 const visiblePassword = ref(false);
-
+const visibleDeletedUsers = ref(false);
 const currentId = ref();
 
 const showModal = id => {
@@ -313,13 +396,14 @@ const formState = reactive({
 const handleCancel = () => {
   visible.value = false;
   visiblePassword.value = false;
+  visibleDeletedUsers.value = false;
 };
 
 const scroll = computed(() => {
   if (isShow.value === true) {
     return false
   } else {
-    return {x: 1500}
+    return {x: 1000}
   }
 })
 
@@ -339,6 +423,7 @@ const scroll = computed(() => {
             <a-button type="primary" style="margin: 8px; " ghost>添加用户</a-button>
           </router-link>
           <a-button type="primary" style="margin: 8px; " @click="downloadUser" ghost>下载用户</a-button>
+          <a-button type="primary" style="margin: 8px; " @click="showDeletedUsers" danger ghost>恢复用户</a-button>
         </a-row>
 
         <a-table :columns="columns" :data-source="dataSource" :scroll="scroll" bordered>
@@ -488,7 +573,7 @@ const scroll = computed(() => {
           <a-textarea v-model:value="formState.note"/>
         </a-form-item>
         <a-form-item name="join_at" label="加入部门时间" :rules="[{ required: true }]">
-          <a-date-picker v-model:value="formState.join_at" placeholder="选择年-月-日" valueFormat="YYYY-MM-DD" />
+          <a-date-picker v-model:value="formState.join_at" placeholder="选择年-月-日" valueFormat="YYYY-MM-DD"/>
         </a-form-item>
 
 
@@ -506,7 +591,7 @@ const scroll = computed(() => {
         <p>班级：<span>{{ currentUser.classname }}</span></p>
         <p>系部：<span>{{ currentUser.department }}</span></p>
         <p>性别：<span>{{ currentUser.gender }}</span></p>
-        <p>政治面貌：<span>{{ currentUser.politicalLandscape}}</span></p>
+        <p>政治面貌：<span>{{ currentUser.politicalLandscape }}</span></p>
         <p>职务：<span>{{ currentUser.position }}</span></p>
       </a-card>
       <a-card>
@@ -516,6 +601,58 @@ const scroll = computed(() => {
         <a-button type="primary" @click="handleCancel">关闭</a-button>
       </template>
     </a-modal>
+
+    <a-modal title="查询已删除账户" v-model:visible="visibleDeletedUsers">
+      <a-table :columns="deleted_columns" :data-source="deletedUsers" :scroll="scroll" bordered>
+        <template
+            #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
+        >
+          <div style="padding: 8px">
+            <a-input
+                ref="searchInput"
+                :placeholder="`Search ${column.dataIndex}`"
+                :value="selectedKeys[0]"
+                style="width: 188px; margin-bottom: 8px; display: block"
+                @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
+                @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
+            />
+            <a-button
+                type="primary"
+                size="small"
+                style="width: 90px; margin-right: 8px"
+                @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
+            >
+              <template #icon>
+                <search-outlined/>
+              </template>
+              Search
+            </a-button>
+            <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
+              Reset
+            </a-button>
+          </div>
+        </template>
+        <template #bodyCell="{ column, text, record }">
+          <template v-if="['studentId', 'name', 'classname', 'department'].includes(column.dataIndex)">
+            <div>
+              {{ text }}
+            </div>
+          </template>
+
+          <template v-else-if="column.dataIndex === 'operation'">
+            <div class="editable-row-operations">
+              <span>
+                <a-button type="primary" @click="restoreUser(record.id)" size="small" ghost>恢复</a-button>
+              </span>
+            </div>
+          </template>
+        </template>
+      </a-table>
+      <template #footer>
+        <a-button type="primary" danger @click="handleCancel">关闭</a-button>
+      </template>
+    </a-modal>
+
   </a-layout-content>
 
 </template>
