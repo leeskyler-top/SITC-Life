@@ -30,6 +30,7 @@ const myData = ref([]);
 const spinning = ref(false);
 const loading = ref(false);
 const visibleCheckIn = ref(false);
+const visibleCheckInEdit = ref(false);
 const activeKey = ref('');
 
 const scheduleForm = reactive({
@@ -144,6 +145,7 @@ const visible = ref(false);
 const visiblePassword = ref(false);
 
 const currentId = ref();
+const currentCheckInId = ref();
 
 const showModal = id => {
   let schedule = myData.value.find(i => i.id === id);
@@ -154,6 +156,56 @@ const showModal = id => {
     formState.schedule_type = schedule.schedule_type;
   }
   visible.value = true;
+}
+
+const checkin = reactive({
+  "name": null,
+  "check_in_start_time": null,
+  "check_in_end_time": null,
+  "need_check_schedule_time": null
+})
+
+const showCheckInEdit = (id) => {
+  currentCheckInId.value = id;
+  let current_check_in = myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value)
+  if (current_check_in) {
+    checkin.name = current_check_in.name
+    checkin.check_in_start_time = current_check_in.check_in_start_time
+    checkin.check_in_end_time = current_check_in.check_in_end_time
+    checkin.need_check_schedule_time = current_check_in.need_check_schedule_time
+  }
+  visibleCheckInEdit.value = true;
+
+}
+
+const handleCancelEdit = (id) => {
+  visibleCheckInEdit.value = false;
+  checkin.name = null
+  checkin.check_in_start_time = null
+  checkin.check_in_end_time = null
+  checkin.need_check_schedule_time = null
+}
+
+const changeCheckIn = () => {
+  loading.value = true;
+  api.patch("/checkin/" + currentCheckInId.value, checkin).then(res => {
+    let {msg} = res.data;
+    myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_start_time = checkin.check_in_start_time
+    myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).name = checkin.name
+    myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_end_time = checkin.check_in_end_time
+    myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = checkin.need_check_schedule_time
+    loading.value = false;
+    visibleCheckInEdit.value = false;
+    checkin.name = null;
+    checkin.check_in_start_time = null;
+    checkin.check_in_end_time = null;
+    checkin.need_check_schedule_time = null;
+    message.success(msg)
+  }).catch(err => {
+    let {msg} = err.response.data;
+    loading.value = false;
+    message.error(msg)
+  })
 }
 
 const visiblePeople = ref(false); // 控制用户选择模态框的可见性
@@ -318,8 +370,30 @@ const revokeCheckIn = (id) => {
   })
 }
 
-const showConfirm = (op, id) => {
-  if (op === "refuse") {
+const changeRecord = (id, op) => {
+  let time
+  if (op === 'fixRecord') {
+    time = myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_start_time
+  } else {
+    let date = new Date();
+    time = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours()}:${date.getUTCMinutes().toString().padStart(2, '0')}:${date.getUTCSeconds().toString().padStart(2, '0')}`;
+  }
+  loading.value = true;
+  api.post("/checkin/change_record/" + id, {
+    'check_in_time': time
+  }).then(res => {
+    let {msg} = res.data;
+    loading.value = false;
+    message.success(msg);
+  }).catch(err => {
+    let {msg} = err.response.data;
+    loading.value = false;
+    message.error(msg);
+  })
+}
+
+const showConfirm = (id, op) => {
+  if (op === "revokeUser") {
     Modal.confirm({
       title: '确认操作',
       icon: createVNode(ExclamationCircleOutlined),
@@ -330,9 +404,32 @@ const showConfirm = (op, id) => {
         revokeCheckIn(id)
       }
     });
-  } else if ("openCheckIn") {
+  } else if (op === "openCheckIn") {
     visibleCheckIn.value = true;
     currentId.value = id;
+  } else if (op === "checkIn") {
+    Modal.confirm({
+      title: '确认操作',
+      icon: createVNode(ExclamationCircleOutlined),
+      content: '协助签到？',
+      okText: '确认',
+      cancelText: '取消',
+      onOk() {
+        changeRecord(id, op)
+      }
+    })
+  } else if (op === 'fixRecord') {
+    currentCheckInId.value = id[0]
+    Modal.confirm({
+      title: '确认操作',
+      icon: createVNode(ExclamationCircleOutlined),
+      content: '确定补签？',
+      okText: '确认',
+      cancelText: '取消',
+      onOk() {
+        changeRecord(id[1], op)
+      }
+    })
   }
 }
 const formItemLayout = {
@@ -426,7 +523,7 @@ const scroll = computed(() => {
                           <a @click="showModal(record.id)">编辑</a>
                       </span>
                 <span>
-                          <a @click="showConfirm('openCheckIn', record.id)">查看签到</a>
+                          <a @click="showConfirm(record.id, 'openCheckIn')">查看签到</a>
                       </span>
                 <span>
                         <a-popconfirm title="确定删除此值班计划？" @confirm="deleteSchedule(record.id)"><a
@@ -533,32 +630,100 @@ const scroll = computed(() => {
       </template>
     </a-modal>
 
-<!--    查看签到-->
+    <!--    查看签到-->
     <a-modal v-model:visible="visibleCheckIn" title="签到管理">
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
       </template>
       <a-spin :spinning="loading" tip="Loading...">
         <a-collapse v-model:activeKey="activeKey" accordion>
-          <a-collapse-panel v-for="checkIn in myData.find(s => s.id === currentId).check_ins" :key="checkIn.id" :header="checkIn.name">
+          <a-collapse-panel v-for="checkIn in myData.find(s => s.id === currentId).check_ins" :key="checkIn.id"
+                            :header="checkIn.name">
             <a-card>
               <p>签到开始时间: {{ checkIn.check_in_start_time }}</p>
               <p>签到结束时间: {{ checkIn.check_in_end_time }}</p>
               <p>当前状态: {{ checkIn.status }}</p>
               <div>
-                <a-button type="primary" @click="showEdit(checkIn.id)">变更结束时间</a-button>
-                <a-button v-if="checkIn.is_main_check_in === false" type="primary" danger @click="showConfirm('deleteCheckIn', checkIn.id)">删除签到</a-button>
+                <a-button type="primary" @click="showCheckInEdit(checkIn.id)">变更结束时间</a-button>
+                <a-button v-if="checkIn.is_main_check_in === false" type="primary" danger
+                          @click="showConfirm('deleteCheckIn', checkIn.id)">删除签到
+                </a-button>
               </div>
             </a-card>
             <a-card v-for="checkInUser in checkIn.check_in_users" :key="checkInUser.id">
-              <a-descriptions :title="checkInUser.user.studentId + '-' + checkInUser.user.name" layout="vertical">
-                <a-descriptions-item label="签到时间" v-if="checkInUser.status === 'signed'">{{ checkInUser.check_in_time }}</a-descriptions-item>
+              <a-descriptions bordered :title="checkInUser.user.studentId + '-' + checkInUser.user.name"
+                              layout="vertical" size="small">
+                <a-descriptions-item label="签到时间" :span="2" v-if="['迟到','正常'].includes(checkInUser.status)">
+                  {{ checkInUser.check_in_time }}
+                </a-descriptions-item>
                 <a-descriptions-item label="签到状态">{{ checkInUser.status }}</a-descriptions-item>
+                <a-descriptions-item label="操作" :span="4" style="display:flex; gap: 4px;"
+                                     v-if="['迟到','正常', '未签到', '缺勤'].includes(checkInUser.status)">
+                  <a-button type="primary" danger
+                            size="small" :loading="loading" @click="showConfirm(checkInUser.id, 'revokeUser')"
+                            v-if="['正常', '迟到'].includes(checkInUser.status)" ghost>驳回
+                  </a-button>
+                  <a-button type="primary"
+                            size="small" :loading="loading" @click="showConfirm([checkIn.id, checkInUser.id], 'fixRecord')"
+                            style="margin-left: 3px;" v-if="['缺勤', '迟到'].includes(checkInUser.status)" ghost>补签
+                  </a-button>
+                  <a-button type="primary"
+                            size="small" :loading="loading" @click="showConfirm(checkInUser.id, 'checkIn')"
+                            style="margin-left: 3px;" v-if="['未签到'].includes(checkInUser.status)" ghost>协助签到
+                  </a-button>
+                </a-descriptions-item>
+
               </a-descriptions>
             </a-card>
           </a-collapse-panel>
         </a-collapse>
       </a-spin>
+    </a-modal>
+    <a-modal v-model:visible="visibleCheckInEdit" title="签到控制">
+
+      <a-form
+          :model="checkin"
+          name="validate_other"
+          style="max-width: 100%;"
+
+      >
+        <a-form-item name="name" label="签到名称">
+          <a-input v-model:value="checkin.name"/>
+        </a-form-item>
+        <a-form-item has-feedback
+                     :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_start_time']"
+                     label="开始时间">
+          <a-date-picker
+              v-model:value="checkin.check_in_start_time"
+              show-time
+              format="YYYY-MM-DD HH:mm:ss"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              placeholder="不得早于当前时间"
+          />
+        </a-form-item>
+        <a-form-item has-feedback
+                     :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_end_time']"
+                     label="结束时间">
+          <a-date-picker
+              v-model:value="checkin.check_in_end_time"
+              show-time
+              format="YYYY-MM-DD HH:mm:ss"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              placeholder="不得早于当前时间"
+          />
+        </a-form-item>
+        <a-form-item
+            name="need_check_schedule_time"
+            label="检查计划开始时间"
+            :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_end_time']"
+        >
+          <a-switch v-model:checked="checkin.need_check_schedule_time"/>
+        </a-form-item>
+      </a-form>
+      <template #footer>
+        <a-button type="primary" @click="handleCancelEdit">关闭</a-button>
+        <a-button type="primary" danger :loading="loading" @click="changeCheckIn">变更</a-button>
+      </template>
     </a-modal>
 
 
