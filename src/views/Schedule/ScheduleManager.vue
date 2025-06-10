@@ -241,7 +241,7 @@ const isUserOnDuty = (date) => {
     return schedule.check_ins.some(checkIn => {
       return checkIn.is_main_check_in && checkIn.check_in_users.some(checkInUser => {
         return checkInUser.user.studentId === userData.value.studentId &&
-            moment(checkIn.check_in_start_time).isSame(date, 'day'); // 确保是同一天
+            moment(schedule.schedule_start_time).isSame(date, 'day'); // 确保是同一天
       });
     });
   });

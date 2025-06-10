@@ -33,6 +33,8 @@ const visibleCheckIn = ref(false);
 const visibleCheckInEdit = ref(false);
 const activeKey = ref('');
 
+const scheduleTypes = ["放学", "午间", "晚间", "早间", "其它"];
+
 const scheduleForm = reactive({
   "schedule_name": "日常值班",
   "schedule_start_time": "",
@@ -644,7 +646,7 @@ const scroll = computed(() => {
               <p>签到结束时间: {{ checkIn.check_in_end_time }}</p>
               <p>当前状态: {{ checkIn.status }}</p>
               <div>
-                <a-button type="primary" @click="showCheckInEdit(checkIn.id)">变更结束时间</a-button>
+                <a-button type="primary" @click="showCheckInEdit(checkIn.id)">签到控制</a-button>
                 <a-button v-if="checkIn.is_main_check_in === false" type="primary" danger
                           @click="showConfirm('deleteCheckIn', checkIn.id)">删除签到
                 </a-button>
