@@ -61,9 +61,8 @@ const listSchedules = () => {
 };
 const changeSchedule = () => {
   api.patch("/schedule/" + currentId.value, formState).then((res) => {
-    let {msg} = res.data;
-    let currentSchedule = myData.value.find(item => item.id === currentId.value)
-    Object.assign(currentSchedule, formState);
+    let {msg, data} = res.data;
+    Object.assign(myData.value.find(schedule => schedule.id === currentId.value), data)
     visible.value = false;
     message.success(msg);
   }).catch((err) => {
@@ -191,11 +190,9 @@ const handleCancelEdit = (id) => {
 const changeCheckIn = () => {
   loading.value = true;
   api.patch("/checkin/" + currentCheckInId.value, checkin).then(res => {
-    let {msg} = res.data;
-    myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_start_time = checkin.check_in_start_time
-    myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).name = checkin.name
-    myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_end_time = checkin.check_in_end_time
-    myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = checkin.need_check_schedule_time
+    let {msg, data} = res.data;
+    console.log(data)
+    Object.assign(myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value), data)
     loading.value = false;
     visibleCheckInEdit.value = false;
     checkin.name = null;
@@ -362,7 +359,9 @@ const listUsers = () => {
 const revokeCheckIn = (id) => {
   loading.value = true;
   api.get("/checkin/cancel/" + id).then(res => {
-    let {msg} = res.data;
+    let {msg, data} = res.data;
+    console.log(currentCheckInId.value)
+    Object.assign(myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_users.find(checkInUser => checkInUser.id === id), data);
     loading.value = false;
     message.success(msg);
   }).catch(err => {
@@ -384,8 +383,9 @@ const changeRecord = (id, op) => {
   api.post("/checkin/change_record/" + id, {
     'check_in_time': time
   }).then(res => {
-    let {msg} = res.data;
+    let {msg, data} = res.data;
     loading.value = false;
+    Object.assign(myData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_users.find(checkInUser => checkInUser.id === id), data);
     message.success(msg);
   }).catch(err => {
     let {msg} = err.response.data;
@@ -396,6 +396,7 @@ const changeRecord = (id, op) => {
 
 const showConfirm = (id, op) => {
   if (op === "revokeUser") {
+    currentCheckInId.value = id[0]
     Modal.confirm({
       title: '确认操作',
       icon: createVNode(ExclamationCircleOutlined),
@@ -403,13 +404,14 @@ const showConfirm = (id, op) => {
       okText: '确认',
       cancelText: '取消',
       onOk() {
-        revokeCheckIn(id)
+        revokeCheckIn(id[1])
       }
     });
   } else if (op === "openCheckIn") {
     visibleCheckIn.value = true;
     currentId.value = id;
   } else if (op === "checkIn") {
+    currentCheckInId.value = id[0]
     Modal.confirm({
       title: '确认操作',
       icon: createVNode(ExclamationCircleOutlined),
@@ -417,7 +419,7 @@ const showConfirm = (id, op) => {
       okText: '确认',
       cancelText: '取消',
       onOk() {
-        changeRecord(id, op)
+        changeRecord(id[1], op)
       }
     })
   } else if (op === 'fixRecord') {
@@ -662,7 +664,7 @@ const scroll = computed(() => {
                 <a-descriptions-item label="操作" :span="4" style="display:flex; gap: 4px;"
                                      v-if="['迟到','正常', '未签到', '缺勤'].includes(checkInUser.status)">
                   <a-button type="primary" danger
-                            size="small" :loading="loading" @click="showConfirm(checkInUser.id, 'revokeUser')"
+                            size="small" :loading="loading" @click="showConfirm([checkIn.id, checkInUser.id], 'revokeUser')"
                             v-if="['正常', '迟到'].includes(checkInUser.status)" ghost>驳回
                   </a-button>
                   <a-button type="primary"
@@ -670,7 +672,7 @@ const scroll = computed(() => {
                             style="margin-left: 3px;" v-if="['缺勤', '迟到'].includes(checkInUser.status)" ghost>补签
                   </a-button>
                   <a-button type="primary"
-                            size="small" :loading="loading" @click="showConfirm(checkInUser.id, 'checkIn')"
+                            size="small" :loading="loading" @click="showConfirm([checkIn.id, checkInUser.id], 'checkIn')"
                             style="margin-left: 3px;" v-if="['未签到'].includes(checkInUser.status)" ghost>协助签到
                   </a-button>
                 </a-descriptions-item>

@@ -89,6 +89,12 @@ const handleCancel = () => {
   visible.value = false;
 };
 
+const currentCheckInId = ref()
+
+const showASL = (id) => {
+  currentCheckInId.value = id;
+}
+
 // 查看签到确认框
 const showConfirm = (id) => {
   Modal.confirm({
@@ -126,6 +132,12 @@ const showConfirm = (id) => {
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
               <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
+              <a-descriptions-item label="操作">
+                <a-row>
+                  <a-button type="primary" @click="showASL(item.check_in_id)">请假申请
+                  </a-button>
+                </a-row>
+              </a-descriptions-item>
             </a-descriptions>
             <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentWaitingPage" simple
                           pageSize="5"
@@ -147,7 +159,7 @@ const showConfirm = (id) => {
               <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
               <a-descriptions-item label="操作">
                 <a-row>
-                  <a-button type="primary" @click="checkin(item.check_in_id)" :disabled="item.status !== '未签到'">签到
+                  <a-button type="primary" @click="checkin(item.check_in_id)">签到
                   </a-button>
                 </a-row>
               </a-descriptions-item>
@@ -170,12 +182,6 @@ const showConfirm = (id) => {
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
               <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
-              <a-descriptions-item label="操作">
-                <a-row>
-                  <a-button type="primary" @click="checkin(item.id)" :disabled="item.status !== 'unsigned'">签到
-                  </a-button>
-                </a-row>
-              </a-descriptions-item>
             </a-descriptions>
             <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentEndedPage" simple pageSize="5"
                           :total="filteredCheckInDataEnded.length"/>
