@@ -594,7 +594,6 @@ const scroll = computed(() => {
     </a-modal>
     <a-modal v-model:visible="visiblePassword" title="重置密码">
       <a-card>
-        <p>用户id：<span>{{ currentUser.id }}</span></p>
         <p>学籍号：<span>{{ currentUser.studentId }}</span></p>
         <p>姓名：<span>{{ currentUser.name }}</span></p>
         <p>班级：<span>{{ currentUser.classname }}</span></p>
@@ -604,9 +603,9 @@ const scroll = computed(() => {
         <p>职务：<span>{{ currentUser.position }}</span></p>
       </a-card>
       <a-card>
-        <p>密码已重置，密码为: {{ new_password }}</p>
+        <p>密码已重置，请查看：</p>
         <a-input-group>
-          <a-input-password v-model:value="new_password" style="width: 80px;" @click="copyLink(new_password, '新用户密码')" :readonly="true" />
+          <a-input-password v-model:value="new_password" style="width: 110px;" @click="copyLink(new_password, '新用户密码')" :readonly="true" />
           <a-tooltip title="复制新用户密码" @click="copyLink(new_password, '新用户密码')">
             <a-button>
               <template #icon><CopyOutlined /></template>
