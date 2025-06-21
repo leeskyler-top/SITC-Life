@@ -39,7 +39,7 @@ const filteredCheckInDataStarted = computed(() => {
 });
 
 const filteredCheckInDataEnded = computed(() => {
-  return check_in_data.value.filter(item => item.status === "缺勤");
+  return check_in_data.value.filter(item => ['缺勤', '病假', '事假', '公务假', '符合要求的赛事或集训'].includes(item.status));
 });
 
 const spinning = ref(false);
@@ -87,12 +87,29 @@ const handleTabChange = (key) => {
 const visible = ref(false);
 const handleCancel = () => {
   visible.value = false;
+  visibleASL.value = false;
 };
 
-const currentCheckInId = ref()
+const formItemLayout = {
+  labelCol: {
+    span: 6,
+  },
+  wrapperCol: {
+    span: 14,
+  },
+};
+
+const ASLForm = reactive({
+  "asl_type": "病假",
+  "asl_reason": "",
+})
+
+const visibleASL = ref(false);
+const currentCheckInId = ref(null)
 
 const showASL = (id) => {
   currentCheckInId.value = id;
+  visibleASL.value = true;
 }
 
 // 查看签到确认框
@@ -189,6 +206,37 @@ const showConfirm = (id) => {
         </a-spin>
       </a-tab-pane>
     </a-tabs>
+    <a-modal v-model:visible="visibleASL" title="请假申请">
+      <a-form
+          :model="ASLForm"
+          name="validate_other"
+          v-bind="formItemLayout"
+      >
+
+        <a-form-item
+            name="asl_type"
+            label="请假类型"
+            has-feedback
+            :rules="[{ required: true, message: '请选择类型' }]"
+        >
+          <a-select v-model:value="ASLForm.asl_type" placeholder="选择请假类型">
+            <a-select-option value="病假">病假</a-select-option>
+            <a-select-option value="事假">事假</a-select-option>
+            <a-select-option value="公务假">公务假</a-select-option>
+            <a-select-option value="符合要求的赛事或集训">符合要求的赛事或集训</a-select-option>
+          </a-select>
+        </a-form-item>
+
+        <a-form-item name="asl_reason" label="请假具体原因" :rules="[{ required: true }]">
+          <a-textarea v-model:value="ASLForm.asl_reason"/>
+        </a-form-item>
+
+      </a-form>
+      <template #footer>
+        <a-button type="primary" @click="handleCancel">关闭</a-button>
+        <a-button type="primary" danger @click="handleASL">变更</a-button>
+      </template>
+    </a-modal>
   </a-layout-content>
 </template>
 

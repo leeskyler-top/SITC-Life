@@ -109,8 +109,8 @@ watchEffect(() => {
         radius: chartType.value === 'pie' ? '50%' : undefined,  // 仅在饼图时设置半径
         data: [
           { name: '信息技术系', value: myData.value.Information_Count },
-          { name: '智能制造系', value: myData.value.Manufacting_Count },
-          { name: '商务管理系', value: myData.value.Bussiness_Count },
+          { name: '智能制造系', value: myData.value.Manufacturing_Count },
+          { name: '商务管理系', value: myData.value.Business_Count },
           { name: '材料与检测系', value: myData.value.Material_Count },
           { name: '公共基础部', value: myData.value.Public_Count }
         ],

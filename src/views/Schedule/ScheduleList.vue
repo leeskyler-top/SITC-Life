@@ -473,18 +473,18 @@ const scroll = computed(() => {
       <span>值班计划列表</span><span style=" margin-bottom: 4px;"><router-link to="/"><HomeOutlined/> 首页</router-link></span>
     </h2>
     <div style="padding: 8px; background-color: #FFFFFF">
-      <a-spin :spinning="spinning" tip="Loading...">
-        <a-row justify="end">
-          <a-button type="primary" style="margin: 8px" @click="showAddScheduleModal = true" ghost>
-            添加值班计划
-          </a-button>
-          <router-link to="/schedule/batch">
-            <a-button type="primary" style="margin: 8px">
-              批量添加值班计划
-            </a-button>
-          </router-link>
-        </a-row>
 
+      <a-row justify="end">
+        <a-button type="primary" style="margin: 8px" @click="showAddScheduleModal = true" ghost>
+          添加值班计划
+        </a-button>
+        <router-link to="/schedule/batch">
+          <a-button type="primary" style="margin: 8px">
+            批量添加值班计划
+          </a-button>
+        </router-link>
+      </a-row>
+      <a-spin :spinning="spinning" tip="Loading...">
         <a-table :columns="columns" :data-source="dataSource" :scroll="scroll" bordered>
           <template
               #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
@@ -664,15 +664,18 @@ const scroll = computed(() => {
                 <a-descriptions-item label="操作" :span="4" style="display:flex; gap: 4px;"
                                      v-if="['迟到','正常', '未签到', '缺勤'].includes(checkInUser.status)">
                   <a-button type="primary" danger
-                            size="small" :loading="loading" @click="showConfirm([checkIn.id, checkInUser.id], 'revokeUser')"
+                            size="small" :loading="loading"
+                            @click="showConfirm([checkIn.id, checkInUser.id], 'revokeUser')"
                             v-if="['正常', '迟到'].includes(checkInUser.status)" ghost>驳回
                   </a-button>
                   <a-button type="primary"
-                            size="small" :loading="loading" @click="showConfirm([checkIn.id, checkInUser.id], 'fixRecord')"
+                            size="small" :loading="loading"
+                            @click="showConfirm([checkIn.id, checkInUser.id], 'fixRecord')"
                             style="margin-left: 3px;" v-if="['缺勤', '迟到'].includes(checkInUser.status)" ghost>补签
                   </a-button>
                   <a-button type="primary"
-                            size="small" :loading="loading" @click="showConfirm([checkIn.id, checkInUser.id], 'checkIn')"
+                            size="small" :loading="loading"
+                            @click="showConfirm([checkIn.id, checkInUser.id], 'checkIn')"
                             style="margin-left: 3px;" v-if="['未签到'].includes(checkInUser.status)" ghost>协助签到
                   </a-button>
                 </a-descriptions-item>
