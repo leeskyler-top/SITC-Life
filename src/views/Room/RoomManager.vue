@@ -285,7 +285,7 @@ const scroll = computed(() => {
         <a-row justify="end">
           <a-button type="primary" style="margin: 8px; " @click="showCreateModal" v-if="['部长', '副部长', '部门负责人', '汇总负责人'].includes(userData?.position) || userData?.is_admin === true" ghost>添加一个模板</a-button>
           <a-button type="primary" style="margin: 8px; " @click="downloadTemplate" ghost>下载已有模板</a-button>
-          <a-button type="primary" danger style="margin: 8px;" @click="showConfirm" v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true" ghost>清空所有模板</a-button>
+          <a-button type="primary" danger style="margin: 8px;" @click="showConfirm" v-if="userData?.is_admin === true" ghost>清空所有模板</a-button>
         </a-row>
 
         <a-table :columns="columns" :data-source="dataSource" :scroll="scroll" bordered>

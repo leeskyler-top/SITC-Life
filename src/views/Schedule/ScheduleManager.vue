@@ -8,6 +8,7 @@ import api from "@/api";
 const spinning = ref(false);
 const schedules = ref([]);
 const showAddScheduleModal = ref(false);
+const is_admin = ref(localStorage.is_admin === 'true');
 const scheduleForm = reactive({
   "schedule_name": "日常值班",
   "schedule_start_time": "",
@@ -127,7 +128,6 @@ const listMyInfo = () => {
     let {data} = res.data;
     if (data.is_admin === true) {
       data.is_admin = '是';
-      listUsers();
     } else {
       data.is_admin = '否';
     }
@@ -135,6 +135,9 @@ const listMyInfo = () => {
       data.resident = '是';
     } else {
       data.resident = '否';
+    }
+    if (['部长', '副部长', '部门负责人'].includes(data.position) || data.is_admin === true) {
+      listUsers();
     }
     userData.value = data;
   }).catch((err) => {
@@ -383,7 +386,7 @@ const deleteSchedules = async () => {
     </h2>
     <div style="padding: 8px; background-color: #FFFFFF; min-height: 500px">
       <a-row justify="end"
-             v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || userData?.is_admin === true">
+             v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || is_admin === true">
         <a-button v-if="!batchEditMode" type="primary" style="margin: 8px" @click="showAddScheduleModal = true" ghost>
           添加值班计划
         </a-button>

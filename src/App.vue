@@ -347,7 +347,7 @@ const getCurrentYear = () => {
               <a-menu-item key="schedule-list" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
                 <RouterLink to="/schedule/list">值班列表</RouterLink>
               </a-menu-item>
-              <a-menu-item key="schedule-batch" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
+              <a-menu-item key="schedule-batch" v-if="is_admin === 'true'">
                 <RouterLink to="/schedule/batch">批量计划</RouterLink>
               </a-menu-item>
             </a-sub-menu>
@@ -361,10 +361,10 @@ const getCurrentYear = () => {
               <a-menu-item key="3">
                 <RouterLink to="/user/detail">用户资料</RouterLink>
               </a-menu-item>
-              <div v-if="is_admin === 'true'">
-                <a-menu-item key="4">
+                <a-menu-item key="4" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
                   <router-link to="/user/manager">用户管理</router-link>
                 </a-menu-item>
+              <div v-if="is_admin === 'true'">
                 <a-menu-item key="5">
                   <router-link to="/user/add">用户添加</router-link>
                 </a-menu-item>
@@ -443,7 +443,7 @@ const getCurrentYear = () => {
                         <a-menu-item key="schedule-list" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
                           <RouterLink to="/schedule/list">值班列表</RouterLink>
                         </a-menu-item>
-                        <a-menu-item key="schedule-batch" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
+                        <a-menu-item key="schedule-batch" v-if="is_admin === 'true'">
                           <RouterLink to="/schedule/batch">批量计划</RouterLink>
                         </a-menu-item>
                       </a-sub-menu>
@@ -457,10 +457,10 @@ const getCurrentYear = () => {
                         <a-menu-item key="3">
                           <RouterLink to="/user/detail">用户资料</RouterLink>
                         </a-menu-item>
-                        <div v-if="is_admin === 'true'">
                           <a-menu-item key="4">
                             <router-link to="/user/manager">用户管理</router-link>
                           </a-menu-item>
+                        <div v-if="is_admin === 'true'">
                           <a-menu-item key="5">
                             <router-link to="/user/add">用户添加</router-link>
                           </a-menu-item>

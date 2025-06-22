@@ -7,6 +7,8 @@ import {useClipboard} from "@vueuse/core";
 
 const isShow = ref(true);
 
+const is_admin = ref(localStorage.is_admin === 'true');
+
 function handleResize(event) {
   // 页面宽度小于525px时，不显示表格
   if (document.documentElement.clientWidth < 979) {
@@ -170,6 +172,7 @@ const columns = [
     dataIndex: 'join_at',
     width: '8%',
     customFilterDropdown: true,
+    sorter: (a, b) => (new Date(a.join_at).getTime()) - (new Date(b.join_at).getTime()),
     onFilter: (value, record) =>
         record.join_at.toString().toLowerCase().includes(value.toLowerCase())
   },
@@ -429,10 +432,10 @@ const scroll = computed(() => {
       <a-spin :spinning="spinning" tip="Loading...">
         <a-row justify="end">
           <router-link to="/user/add">
-            <a-button type="primary" style="margin: 8px; " ghost>添加用户</a-button>
+            <a-button type="primary" style="margin: 8px; " ghost v-if="is_admin">添加用户</a-button>
           </router-link>
-          <a-button type="primary" style="margin: 8px; " @click="downloadUser" ghost>下载用户</a-button>
-          <a-button type="primary" style="margin: 8px; " @click="showDeletedUsers" danger ghost>恢复用户</a-button>
+          <a-button type="primary" style="margin: 8px; " @click="downloadUser" ghost v-if="is_admin">下载用户</a-button>
+          <a-button type="primary" style="margin: 8px; " @click="showDeletedUsers" danger ghost v-if="is_admin">恢复用户</a-button>
         </a-row>
 
         <a-table :columns="columns" :data-source="dataSource" :scroll="scroll" bordered>
@@ -471,7 +474,7 @@ const scroll = computed(() => {
               </div>
             </template>
 
-            <template v-else-if="column.dataIndex === 'operation'">
+            <template v-else-if="column.dataIndex === 'operation' && is_admin">
               <div class="editable-row-operations">
                       <span>
                           <a @click="showModal(record.id)">编辑</a>
@@ -480,7 +483,7 @@ const scroll = computed(() => {
                           <a @click="showConfirm(record.id)">重置密码</a>
                       </span>
                 <span>
-                        <a-popconfirm title="确定删除此用户？" @confirm="deleteUser(record.id)"><a
+                        <a-popconfirm title="确定删除此用户？" @confirm="deleteUser(record.id)" ><a
                             style="color: red">删除</a></a-popconfirm>
                       </span>
               </div>

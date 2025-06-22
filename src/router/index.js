@@ -2,13 +2,19 @@ import {createRouter, createWebHashHistory} from 'vue-router'
 
 const admin = {
     auth: true,
-    is_admin: 'true',
+    is_admin: true,
+    user_position: ['部长', '副部长', '部门负责人', '实习汇总负责人', '汇总负责人', '普通部员', '实习部员', '其他人员']
 }
 
 const user = {
     auth: true,
+    user_position: ['部长', '副部长', '部门负责人', '实习汇总负责人', '汇总负责人', '普通部员', '实习部员', '其他人员']
 }
 
+const leader = {
+    auth: true,
+    user_position: ['部长', '副部长', '部门负责人']
+}
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -27,7 +33,7 @@ const router = createRouter({
         {
             path: '/user/manager',
             component: () => import("@/views/User/UserManager.vue"),
-            meta: {...admin}
+            meta: {...leader}
         },
         {
             path: '/user/add',
@@ -62,7 +68,7 @@ const router = createRouter({
         {
             path: '/schedule/list',
             component: () => import("@/views/Schedule/ScheduleList.vue"),
-            meta: {...admin}
+            meta: {...leader}
         },
         {
             path: '/schedule/batch',
@@ -73,11 +79,6 @@ const router = createRouter({
             path: '/checkin/list',
             component: () => import("@/views/CheckIn/CheckInList.vue"),
             meta: {...user}
-        },
-        {
-            path: '/checkin/manager',
-            component: () => import("@/views/CheckIn/CheckInManager.vue"),
-            meta: {...admin}
         },
         {
             path: '/cloud/manager',
@@ -92,7 +93,7 @@ const router = createRouter({
         {
             path: '/analyzer/view',
             component: () => import("@/views/Analyzer/DataView.vue"),
-            meta: {...admin}
+            meta: {...leader}
         },
         {
             path: '/analyzer/transfer',
@@ -111,8 +112,13 @@ router.beforeEach((to, from) => {
     if (to.path !== '/' && to.meta.auth && !localStorage.refresh_token) {
         return "/"
     }
-    if (to.meta.is_admin === 'true' && localStorage.is_admin !== 'true') {
+    if (to.meta.is_admin && localStorage.is_admin !== 'true') {
         return from.path;
+    }
+    if (to.meta.auth && !to.meta?.user_position?.includes(localStorage.user_position)) {
+        if (localStorage.is_admin !== ' true') {
+            return from.path;
+        }
     }
 })
 export default router

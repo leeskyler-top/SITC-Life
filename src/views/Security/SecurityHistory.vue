@@ -104,6 +104,7 @@ const columns = [
     dataIndex: 'created_at',
     width: '12%',
     customFilterDropdown: true,
+    sorter: (a, b) => (new Date(a.created_at).getTime()) - (new Date(b.created_at).getTime()),
     onFilter: (value, record) =>
         record.created_at.toString().toLowerCase().includes(value.toLowerCase()),
   },
