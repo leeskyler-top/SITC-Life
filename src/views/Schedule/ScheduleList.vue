@@ -36,6 +36,7 @@ const visibleCheckIn = ref(false);
 const visibleCurrentCheckIn = ref(false);
 const visibleCheckInEdit = ref(false);
 const visibleCreateCheckIn = ref(false);
+const visibleSchedules = ref(false);
 const activeKey = ref('schedules');
 
 const handleTabChange = (key) => {
@@ -272,6 +273,7 @@ const handleReset = clearFilters => {
   clearFilters({confirm: true});
   state.searchText = '';
 };
+
 const deleteSchedule = id => {
   api.delete("/schedule/" + id).then((res) => {
     let {msg} = res.data;
@@ -284,9 +286,8 @@ const deleteSchedule = id => {
 };
 
 const visible = ref(false);
-const visiblePassword = ref(false);
-
 const currentId = ref();
+const currentSelectedScheduleId = ref();
 const currentCheckInId = ref();
 
 const showModal = id => {
@@ -382,8 +383,10 @@ const fetchCheckInUsers = () => {
 
 const current_users = ref([])
 
-const showPeople = () => {
-  fetchCheckInUsers(); // 获取并设置用户
+const showPeople = (op = null) => {
+  if (!op) {
+    fetchCheckInUsers(); // 获取并设置用户
+  }
   visiblePeople.value = true; // 显示用户选择模态框
 
   // 重新整合用户，确保选中的用户在最前面
@@ -418,7 +421,7 @@ const rowSelection = computed(() => {
 });
 
 const handleCloseUser = (confirm) => {
-  if (confirm === 'T') {
+  if (confirm === 'T' && visibleCreateCheckIn.value === false) {
     // 该部分逻辑与之前相同
     const schedule = scheduleData.value.find(s => s.id === currentId.value);
     let checkIn = schedule?.check_ins?.find(checkIn => checkIn.is_main_check_in);
@@ -434,9 +437,11 @@ const handleCloseUser = (confirm) => {
       const {msg} = err.response.data;
       message.error(msg); // Handle error appropriately
     });
+    user_ids.value = [];         // 清空选中的用户
+  } else if (confirm === 'F') {
+    user_ids.value = [];         // 清空选中的用户
   }
   visiblePeople.value = false; // 关闭用户选择模态框
-  user_ids.value = [];         // 清空选中的用户
 };
 
 // 在模态框显示时加载用户
@@ -534,7 +539,7 @@ const changeRecord = (id, op) => {
     time = scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_start_time
   } else {
     let date = new Date();
-    time = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours()}:${date.getUTCMinutes().toString().padStart(2, '0')}:${date.getUTCSeconds().toString().padStart(2, '0')}`;
+    time = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}:${date.getUTCSeconds().toString().padStart(2, '0')}`;
   }
   loading.value = true;
   api.post("/checkin/change_record/" + id, {
@@ -627,6 +632,59 @@ const scroll = computed(() => {
   }
 })
 
+const createSchedule = () => {
+  showAddScheduleModal.value = false;
+  api.post("/schedule", scheduleForm).then(res => {
+    let {msg, data} = res.data
+    scheduleData.value.push(data)
+    message.success(msg)
+  }).catch(err => {
+    let {msg} = err.response.data
+    message.error(msg)
+  });
+}
+
+const showCreateCheckInModal = () => {
+  currentSelectedScheduleId.value = null;
+  visibleCreateCheckIn.value = true;
+}
+
+const selectSchedule = (id) => {
+  currentSelectedScheduleId.value = id;
+  visibleSchedules.value = false;
+}
+
+const createCheckIn = () => {
+  let new_checkin = checkin;
+  if (!new_checkin.need_check_schedule_time) {
+    new_checkin.need_check_schedule_time = false;
+  }
+  new_checkin.check_in_users = user_ids.value;
+  loading.value = true;
+  api.post("/checkin/create/" + currentSelectedScheduleId.value, checkin).then(res => {
+    loading.value = false;
+    let {msg, data} = res.data;
+    checkInData.value.push(data);
+    visibleCreateCheckIn.value = false;
+    handleCancelEdit();
+    message.success(msg);
+  }).catch(err => {
+    let {msg} = err.response.data;
+    loading.value = false;
+    message.error(msg);
+  });
+}
+
+const deleteCheckIn = (id) => {
+  api.delete("/checkin/" + id).then(res => {
+    checkInData.value = checkInData.value.filter(checkin => checkin.id !== id)
+    message.success("子签到已删除");
+  }).catch(err => {
+    let {msg} = err.response.data;
+    message.error(msg)
+  })
+}
+
 </script>
 
 <template>
@@ -708,7 +766,7 @@ const scroll = computed(() => {
         </a-tab-pane>
         <a-tab-pane key="checkins" tab="所有签到">
           <a-row justify="end">
-            <a-button type="primary" style="margin: 8px" @click="showAddScheduleModal = true" ghost>
+            <a-button type="primary" style="margin: 8px" @click="showCreateCheckInModal" ghost>
               添加子签到
             </a-button>
           </a-row>
@@ -758,7 +816,7 @@ const scroll = computed(() => {
                           <a @click="showModal(record.schedule_id)">查看值班</a>
                       </span>
                     <span>
-                        <a-popconfirm title="确定删除此值班计划？" @confirm="deleteSchedule(record.id)"><a
+                        <a-popconfirm title="确定删除此值班计划？" v-if="record.is_main_check_in === '否'" @confirm="deleteCheckIn(record.id)"><a
                             style="color: red">删除</a></a-popconfirm>
                       </span>
                   </div>
@@ -770,20 +828,6 @@ const scroll = computed(() => {
       </a-tabs>
 
     </div>
-
-    <a-modal title="用户列表" v-model:visible="visiblePeople">
-      <a-table
-          :row-selection="rowSelection"
-          :columns="user_columns"
-          :data-source="current_users"
-          :row-key="record => record.id"
-      >
-      </a-table>
-      <template #footer>
-        <a-button type="primary" danger @click="handleCloseUser('F')">放弃选择</a-button>
-        <a-button type="primary" @click="handleCloseUser('T')">保存</a-button>
-      </template>
-    </a-modal>
 
     <a-modal v-model:visible="visible" title="修改值班计划信息">
       <a-form
@@ -822,13 +866,65 @@ const scroll = computed(() => {
         </a-form-item>
 
         <a-form-item label="值班人员管理">
-          <a-button @click="showPeople">编辑人员</a-button>
+          <a-button @click="showPeople(null)">编辑人员</a-button>
+        </a-form-item>
+      </a-form>
+      <template #footer>
+        <a-button type="primary" @click="handleCancel">关闭</a-button>
+        <a-button type="primary" danger @click="changeSchedule">变更</a-button>
+      </template>
+    </a-modal>
+    <a-modal v-model:visible="visibleCreateCheckIn" title="添加子签到">
+
+      <a-form
+          :model="checkin"
+          name="validate_other"
+          style="max-width: 100%;"
+      >
+        <a-form-item name="name" label="签到名称" :rules="[{ required: true, message: '请输入签到名称' }]">
+          <a-input v-model:value="checkin.name"/>
+        </a-form-item>
+        <a-form-item has-feedback
+                     :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_start_time']"
+                     label="开始时间">
+          <a-date-picker
+              v-model:value="checkin.check_in_start_time"
+              show-time
+              format="YYYY-MM-DD HH:mm:ss"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              placeholder="不得早于当前时间"
+          />
+        </a-form-item>
+        <a-form-item has-feedback
+                     :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_end_time']"
+                     label="结束时间">
+          <a-date-picker
+              v-model:value="checkin.check_in_end_time"
+              show-time
+              format="YYYY-MM-DD HH:mm:ss"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              placeholder="不得早于当前时间"
+          />
+        </a-form-item>
+        <a-form-item
+            name="need_check_schedule_time"
+            label="检查计划开始时间"
+            :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_end_time']"
+        >
+          <a-switch v-model:checked="checkin.need_check_schedule_time" />
+        </a-form-item>
+        <a-form-item label="绑定签到人员">
+          <a-button @click="showPeople('newCheckIn')">选择人员</a-button>
+        </a-form-item>
+        <a-form-item label="绑定值班计划">
+          <a-button @click="visibleSchedules=true;">选择值班计划</a-button>
+          <p>当前选择的值班ID: {{ currentSelectedScheduleId }} </p>
         </a-form-item>
 
       </a-form>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
-        <a-button type="primary" danger @click="changeSchedule">变更</a-button>
+        <a-button type="primary" danger :loading="loading" @click="createCheckIn">变更</a-button>
       </template>
     </a-modal>
 
@@ -1006,60 +1102,105 @@ const scroll = computed(() => {
       </a-form>
       <template #footer>
         <a-button type="primary" @click="handleCancelEdit">关闭</a-button>
-        <a-button type="primary" danger :loading="loading" @click="changeCheckIn">变更</a-button>
+        <a-button type="primary" danger :loading="loading" @click="changeCheckIn()">变更</a-button>
       </template>
     </a-modal>
 
-    <a-modal v-model:visible="visibleCreateCheckIn" title="添加子签到">
-
-      <a-form
-          :model="checkin"
-          name="validate_other"
-          style="max-width: 100%;"
-      >
-        <a-form-item name="name" label="签到名称">
-          <a-input v-model:value="checkin.name"/>
-        </a-form-item>
-        <a-form-item has-feedback
-                     :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_start_time']"
-                     label="开始时间">
-          <a-date-picker
-              v-model:value="checkin.check_in_start_time"
-              show-time
-              format="YYYY-MM-DD HH:mm:ss"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              placeholder="不得早于当前时间"
-          />
-        </a-form-item>
-        <a-form-item has-feedback
-                     :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_end_time']"
-                     label="结束时间">
-          <a-date-picker
-              v-model:value="checkin.check_in_end_time"
-              show-time
-              format="YYYY-MM-DD HH:mm:ss"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              placeholder="不得早于当前时间"
-          />
-        </a-form-item>
-        <a-form-item
-            name="need_check_schedule_time"
-            label="检查计划开始时间"
-            :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_end_time']"
-        >
-          <a-switch v-model:checked="checkin.need_check_schedule_time"/>
-        </a-form-item>
-        <a-form-item label="绑定签到人员">
-          <a-button @click="showPeople">编辑人员</a-button>
-        </a-form-item>
-
-      </a-form>
+    <a-modal title="用户列表" v-model:visible="visiblePeople" :z-index="3000">
+      <a-card>
+        <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>
+        <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>
+      </a-card>
+      <a-table :row-selection="rowSelection" :columns="user_columns" :data-source="current_users" :row-key="record => record.id">
+        <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
+          <div style="padding: 8px">
+            <a-input
+                ref="searchInput"
+                :placeholder="`Search ${column.dataIndex}`"
+                :value="selectedKeys[0]"
+                style="width: 188px; margin-bottom: 8px; display: block"
+                @change="e => setSelectedKeys(e.target.value ? [e.target.value] : [])"
+                @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
+            />
+            <a-button
+                type="primary"
+                size="small"
+                style="width: 90px; margin-right: 8px"
+                @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
+            >
+              <template #icon>
+                <search-outlined/>
+              </template>
+              Search
+            </a-button>
+            <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">Reset</a-button>
+          </div>
+        </template>
+        <template #bodyCell="{ column, text, record }">
+          <template v-if="['studentId', 'name', 'classname', 'department', 'resident'].includes(column.dataIndex)">
+            <div>
+              {{ text }}
+            </div>
+          </template>
+        </template>
+      </a-table>
       <template #footer>
-        <a-button type="primary" @click="handleCancelEdit">关闭</a-button>
-        <a-button type="primary" danger :loading="loading" @click="changeCheckIn">变更</a-button>
+        <a-button type="primary" danger @click="handleCloseUser('F')">放弃选择</a-button>
+        <a-button type="primary" @click="handleCloseUser('T')">保存</a-button>
       </template>
     </a-modal>
 
+
+
+
+    <a-modal title="查询值班计划" v-model:visible="visibleSchedules">
+      <a-table :columns="scheduleColumns" :data-source="scheduleData" :scroll="scroll" bordered>
+        <template
+            #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
+        >
+          <div style="padding: 8px">
+            <a-input
+                ref="searchInput"
+                :placeholder="`Search ${column.dataIndex}`"
+                style="width: 188px; margin-bottom: 8px; display: block"
+                @pressEnter="handleSearch(selectedKeys, confirm, column.dataIndex)"
+            />
+            <a-button
+                type="primary"
+                size="small"
+                style="width: 90px; margin-right: 8px"
+                @click="handleSearch(selectedKeys, confirm, column.dataIndex)"
+            >
+              <template #icon>
+                <search-outlined/>
+              </template>
+              Search
+            </a-button>
+            <a-button size="small" style="width: 90px" @click="handleReset(clearFilters)">
+              Reset
+            </a-button>
+          </div>
+        </template>
+        <template #bodyCell="{ column, text, record }">
+          <template v-if="['id', 'schedule_name', 'schedule_start_time', 'schedule_type'].includes(column.dataIndex)">
+            <div>
+              {{ text }}
+            </div>
+          </template>
+
+          <template v-else-if="column.dataIndex === 'operation'">
+            <div class="editable-row-operations">
+              <span>
+                <a-button type="primary" @click="selectSchedule(record.id)" size="small" ghost>绑定值班计划</a-button>
+              </span>
+            </div>
+          </template>
+        </template>
+      </a-table>
+      <template #footer>
+        <a-button type="primary" danger @click="visibleSchedules=false;">关闭</a-button>
+      </template>
+    </a-modal>
 
   </a-layout-content>
 

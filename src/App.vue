@@ -572,4 +572,8 @@ const getCurrentYear = () => {
   filter: blur(8px);
 }
 
+.ant-dropdown {
+  z-index: 5051 !important;
+}
+
 </style>
