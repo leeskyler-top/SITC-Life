@@ -136,7 +136,8 @@ const listMyInfo = () => {
     } else {
       data.resident = '否';
     }
-    if (['部长', '副部长', '部门负责人'].includes(data.position) || data.is_admin === true) {
+    console.log(data.is_admin)
+    if (['部长', '副部长', '部门负责人'].includes(data.position) || data.is_admin === '是') {
       listUsers();
     }
     userData.value = data;

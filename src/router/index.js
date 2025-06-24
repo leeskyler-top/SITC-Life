@@ -1,5 +1,9 @@
 import {createRouter, createWebHashHistory} from 'vue-router'
 
+const public_page = {
+    auth: false
+}
+
 const admin = {
     auth: true,
     is_admin: true,
@@ -23,7 +27,7 @@ const router = createRouter({
             path: '/',
             name: 'home',
             component: () => import("@/Home.vue"),
-            meta: null
+            meta: {...public_page}
         },
         {
             path: '/user/detail',
@@ -116,7 +120,7 @@ router.beforeEach((to, from) => {
         return from.path;
     }
     if (to.meta.auth && !to.meta?.user_position?.includes(localStorage.user_position)) {
-        if (localStorage.is_admin !== ' true') {
+        if (localStorage.is_admin !== 'true') {
             return from.path;
         }
     }

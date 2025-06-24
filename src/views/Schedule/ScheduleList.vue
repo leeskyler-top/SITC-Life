@@ -601,6 +601,18 @@ const showConfirm = (id, op) => {
         changeRecord(id[1], op)
       }
     })
+  } else if (op === 'deleteCheckIn') {
+    currentCheckInId.value = id[0]
+    Modal.confirm({
+      title: '确认操作',
+      icon: createVNode(ExclamationCircleOutlined),
+      content: '确定删除此签到？',
+      okText: '确认',
+      cancelText: '取消',
+      onOk() {
+        deleteCheckIn(currentCheckInId.value)
+      }
+    })
   }
 }
 const formItemLayout = {
@@ -644,9 +656,14 @@ const createSchedule = () => {
   });
 }
 
-const showCreateCheckInModal = () => {
+const showCreateCheckInModal = (id=null) => {
   currentSelectedScheduleId.value = null;
   visibleCreateCheckIn.value = true;
+  if (!id) {
+    currentSelectedScheduleId.value = null;
+  } else {
+    currentSelectedScheduleId.value = id;
+  }
 }
 
 const selectSchedule = (id) => {
@@ -677,7 +694,11 @@ const createCheckIn = () => {
 
 const deleteCheckIn = (id) => {
   api.delete("/checkin/" + id).then(res => {
-    checkInData.value = checkInData.value.filter(checkin => checkin.id !== id)
+    if (currentId.value) {
+      scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins = scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.filter(checkin => checkin.id !== id)
+    } else {
+      checkInData.value = checkInData.value.filter(checkin => checkin.id !== id)
+    }
     message.success("子签到已删除");
   }).catch(err => {
     let {msg} = err.response.data;
@@ -816,7 +837,7 @@ const deleteCheckIn = (id) => {
                           <a @click="showModal(record.schedule_id)">查看值班</a>
                       </span>
                     <span>
-                        <a-popconfirm title="确定删除此值班计划？" v-if="record.is_main_check_in === '否'" @confirm="deleteCheckIn(record.id)"><a
+                        <a-popconfirm title="确定删除此签到？" v-if="record.is_main_check_in === '否'" @confirm="deleteCheckIn(record.id)"><a
                             style="color: red">删除</a></a-popconfirm>
                       </span>
                   </div>
@@ -966,21 +987,31 @@ const deleteCheckIn = (id) => {
         <a-button type="primary" @click="handleCancel">关闭</a-button>
       </template>
       <a-spin :spinning="loading" tip="Loading...">
-        <a-collapse v-model:activeKey="activeKey" accordion>
-          <a-collapse-panel v-for="checkIn in scheduleData.find(s => s.id === currentId).check_ins" :key="checkIn.id"
-                            :header="checkIn.name">
+        <a-card>
+          <h3>值班名称: {{ scheduleData.find(s => s.id === currentId).schedule_name }}</h3>
+          <p>值班计划ID：{{ scheduleData.find(s => s.id === currentId).id }}</p>
+          <p>值班时间: {{ scheduleData.find(s => s.id === currentId).schedule_start_time }}</p>
+          <p>值班类型: {{ scheduleData.find(s => s.id === currentId).schedule_type }}</p>
+          <div>
+            <a-button type="primary" style="margin: 8px" @click="showCreateCheckInModal(scheduleData.find(s => s.id === currentId).id)" ghost>
+              添加子签到
+            </a-button>
+          </div>
+        </a-card>
+        <a-collapse accordion>
+          <a-collapse-panel v-for="checkIn in scheduleData.find(s => s.id === currentId).check_ins"
+                            :header="checkIn?.name">
             <a-card>
-              <p>签到开始时间: {{ checkIn.check_in_start_time }}</p>
-              <p>签到结束时间: {{ checkIn.check_in_end_time }}</p>
-              <p>当前状态: {{ checkIn.status }}</p>
+              <p>签到开始时间: {{ checkIn?.check_in_start_time }}</p>
+              <p>签到结束时间: {{ checkIn?.check_in_end_time }}</p>
               <div>
-                <a-button type="primary" @click="showCheckInEdit(checkIn.id)">签到控制</a-button>
-                <a-button v-if="checkIn.is_main_check_in === false" type="primary" danger
-                          @click="showConfirm('deleteCheckIn', checkIn.id)">删除签到
+                <a-button type="primary" @click="showCheckInEdit(checkIn?.id)">签到控制</a-button>
+                <a-button v-if="checkIn.is_main_check_in === false" style="margin-left: 4px;" type="primary" danger
+                          @click="showConfirm([checkIn?.id], 'deleteCheckIn')">删除签到
                 </a-button>
               </div>
             </a-card>
-            <a-card v-for="checkInUser in checkIn.check_in_users" :key="checkInUser.id">
+            <a-card v-for="checkInUser in checkIn.check_in_users">
               <a-descriptions bordered :title="checkInUser.user.studentId + '-' + checkInUser.user.name"
                               layout="vertical" size="small">
                 <a-descriptions-item label="签到时间" :span="2" v-if="['迟到','正常'].includes(checkInUser.status)">
@@ -1021,15 +1052,14 @@ const deleteCheckIn = (id) => {
           <h3>签到名称：{{ currentCheckIn.name }}</h3>
           <p>签到开始时间: {{ currentCheckIn.check_in_start_time }}</p>
           <p>签到结束时间: {{ currentCheckIn.check_in_end_time }}</p>
-          <p>当前状态: {{ currentCheckIn.status }}</p>
           <div>
             <a-button type="primary" @click="showCheckInEdit(currentCheckIn.id, 'currentCheckIn')">签到控制</a-button>
             <a-button v-if="currentCheckIn.is_main_check_in === false" type="primary" danger
-                      @click="showConfirm('deleteCheckIn', currentCheckIn.id)">删除签到
+                      @click="showConfirm([currentCheckIn.id], 'deleteCheckIn')">删除签到
             </a-button>
           </div>
         </a-card>
-        <a-card v-for="checkInUser in currentCheckIn.check_in_users" :key="checkInUser.id">
+        <a-card v-for="checkInUser in currentCheckIn.check_in_users">
           <a-descriptions bordered :title="checkInUser.user.studentId + '-' + checkInUser.user.name"
                           layout="vertical" size="small">
             <a-descriptions-item label="签到时间" :span="2" v-if="['迟到','正常'].includes(checkInUser.status)">
