@@ -12,7 +12,7 @@ import {
   CloudServerOutlined,
   PieChartOutlined
 } from '@ant-design/icons-vue';
-import {message, legacyLogicalPropertiesTransformer} from "ant-design-vue";
+import {theme, message, legacyLogicalPropertiesTransformer} from "ant-design-vue";
 import {ref, computed, reactive, watch, onMounted} from 'vue';
 import api from './api.js';
 import router from "@/router";
@@ -247,267 +247,277 @@ const getCurrentYear = () => {
 
 </script>
 <template>
-  <a-style-provider hash-priority="high" :transformers="[legacyLogicalPropertiesTransformer]">
-    <div v-if="!refresh_token" class="login">
-      <a-form
-          :model="formState"
-          name="basic"
-          :label-col="{ span: 8 }"
-          :wrapper-col="{ span: 16 }"
-          autocomplete="off"
-          @submit="login"
-          style="background-color: #FFFFFF;     z-index: 1;
+  <a-config-provider :theme="{
+      token: {
+        // colorPrimary: '#e7662c',
+      },
+      // algorithm: theme.darkAlgorithm
+    }">
+    <a-style-provider hash-priority="high" :transformers="[legacyLogicalPropertiesTransformer]">
+      <div v-if="!refresh_token" class="login">
+        <a-form
+            :model="formState"
+            name="basic"
+            :label-col="{ span: 8 }"
+            :wrapper-col="{ span: 16 }"
+            autocomplete="off"
+            @submit="login"
+            style="background-color: #FFFFFF;     z-index: 1;
              padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; border-radius: 3px; box-shadow: #FFFFFF 0 0 1px 1px;
 "
 
-      >
-        <h2 align="center">欢迎登录</h2>
-        <p align="center">SITC 团委学生会 生活部</p>
-        <a-form-item
-            label="账户"
-            name="studentId"
-            :rules="[{ required: true, message: '请输入账户!' }]"
-            style="margin-top: 16px;"
         >
-          <a-input v-model:value="formState.studentId"/>
-        </a-form-item>
-
-        <a-form-item
-            label="密码"
-            name="password"
-            :rules="[{ required: true, message: '请输入密码!' }]"
-        >
-          <a-input-password v-model:value="formState.password"/>
-        </a-form-item>
-        <div style="display: flex; align-items: center; justify-content: center; margin-top: 16px;">
-          <a-form-item>
-            <a-button type="primary" html-type="submit" :loading="signin"
-                      :disabled="!formState.studentId || !formState.password">登录
-            </a-button>
+          <h2 align="center">欢迎登录</h2>
+          <p align="center">SITC 团委学生会 生活部</p>
+          <a-form-item
+              label="账户"
+              name="studentId"
+              :rules="[{ required: true, message: '请输入账户!' }]"
+              style="margin-top: 16px;"
+          >
+            <a-input v-model:value="formState.studentId"/>
           </a-form-item>
-        </div>
 
-      </a-form>
-      <footer id="login-footer">
-        <div>
-          <a href="https://beian.miit.gov.cn"
-             style="text-decoration: none; color: rgba(255,255,255,0.7); font-size: 15px;">
-            沪ICP备2023001976号-1
-          </a>
-        </div>
-      </footer>
-    </div>
-    <div v-if="refresh_token" style="height: 100%;">
-      <a-layout style="min-height: 100vh">
-        <a-layout-sider v-model:collapsed="collapsed" collapsible v-if="isShow">
-          <div class="logo"
-               :style="{height: '64px',display: 'flex', alignItems: 'center', justifyContent: 'center'}">
-            <img src="./assets/imgs/logo.jpg" @load="stopLoadingLogo" :style="{ display: logoLoading }"
-                 height="60" width="60"
-                 style="border-radius: 50%; background-color: #FFFFFF"/>
-            <a-spin :spinning="logoLoading === 'none'"></a-spin>
-
+          <a-form-item
+              label="密码"
+              name="password"
+              :rules="[{ required: true, message: '请输入密码!' }]"
+          >
+            <a-input-password v-model:value="formState.password"/>
+          </a-form-item>
+          <div style="display: flex; align-items: center; justify-content: center; margin-top: 16px;">
+            <a-form-item>
+              <a-button type="primary" html-type="submit" :loading="signin"
+                        :disabled="!formState.studentId || !formState.password">登录
+              </a-button>
+            </a-form-item>
           </div>
-          <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
-            <a-menu-item key="1" @click.prevent="$router.push('/')">
-              <dashboard-outlined/>
-              <span>工作台</span>
-            </a-menu-item>
-            <a-menu-item key="cloud" @click.prevent="$router.push('/cloud/manager')">
-              <CloudServerOutlined/>
-              <span>网盘管理</span>
-            </a-menu-item>
-            <a-menu-item key="semester" @click.prevent="$router.push('/semester/manager')">
-              <carry-out-outlined/>
-              <span>学期配置</span>
-            </a-menu-item>
-            <a-sub-menu key="room">
-              <template #title>
-                <BankOutlined/>
-                <span>房间配置</span>
-              </template>
-              <a-menu-item key="template-list">
-                <RouterLink to="/template/manager">模板管理</RouterLink>
+
+        </a-form>
+        <footer id="login-footer">
+          <div>
+            <a href="https://beian.miit.gov.cn"
+               style="text-decoration: none; color: rgba(255,255,255,0.7); font-size: 15px;">
+              沪ICP备2023001976号-1
+            </a>
+          </div>
+        </footer>
+      </div>
+      <div v-if="refresh_token" style="height: 100%;">
+        <a-layout style="min-height: 100vh">
+          <a-layout-sider v-model:collapsed="collapsed" collapsible v-if="isShow">
+            <div class="logo"
+                 :style="{height: '64px',display: 'flex', alignItems: 'center', justifyContent: 'center'}">
+              <img src="./assets/imgs/logo.jpg" @load="stopLoadingLogo" :style="{ display: logoLoading }"
+                   height="60" width="60"
+                   style="border-radius: 50%; background-color: #FFFFFF"/>
+              <a-spin :spinning="logoLoading === 'none'"></a-spin>
+
+            </div>
+            <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
+              <a-menu-item key="1" @click.prevent="$router.push('/')">
+                <dashboard-outlined/>
+                <span>工作台</span>
               </a-menu-item>
-              <a-menu-item key="template-upload" v-if="is_admin === 'true'">
-                <RouterLink to="/template/batch">模板上传</RouterLink>
+              <a-menu-item key="cloud" @click.prevent="$router.push('/cloud/manager')">
+                <CloudServerOutlined/>
+                <span>网盘管理</span>
               </a-menu-item>
-            </a-sub-menu>
-            <a-sub-menu key="checkIn">
-              <template #title>
-                <ScheduleOutlined/>
-                <span>签到</span>
-              </template>
-              <a-menu-item key="checkin-list">
-                <RouterLink to="/checkin/list">签到</RouterLink>
+              <a-menu-item key="semester" @click.prevent="$router.push('/semester/manager')">
+                <carry-out-outlined/>
+                <span>学期配置</span>
               </a-menu-item>
-              <a-menu-item key="schedule-manager">
-                <RouterLink to="/schedule/manager">值班管理</RouterLink>
-              </a-menu-item>
-              <a-menu-item key="schedule-list" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
-                <RouterLink to="/schedule/list">值班列表</RouterLink>
-              </a-menu-item>
-              <a-menu-item key="schedule-batch" v-if="is_admin === 'true'">
-                <RouterLink to="/schedule/batch">批量计划</RouterLink>
-              </a-menu-item>
-            </a-sub-menu>
-            <a-sub-menu key="user">
-              <template #title>
+              <a-sub-menu key="room">
+                <template #title>
+                  <BankOutlined/>
+                  <span>房间配置</span>
+                </template>
+                <a-menu-item key="template-list">
+                  <RouterLink to="/template/manager">模板管理</RouterLink>
+                </a-menu-item>
+                <a-menu-item key="template-upload" v-if="is_admin === 'true'">
+                  <RouterLink to="/template/batch">模板上传</RouterLink>
+                </a-menu-item>
+              </a-sub-menu>
+              <a-sub-menu key="checkIn">
+                <template #title>
+                  <ScheduleOutlined/>
+                  <span>签到</span>
+                </template>
+                <a-menu-item key="checkin-list">
+                  <RouterLink to="/checkin/list">签到</RouterLink>
+                </a-menu-item>
+                <a-menu-item key="schedule-manager">
+                  <RouterLink to="/schedule/manager">值班管理</RouterLink>
+                </a-menu-item>
+                <a-menu-item key="schedule-list"
+                             v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
+                  <RouterLink to="/schedule/list">值班列表</RouterLink>
+                </a-menu-item>
+                <a-menu-item key="schedule-batch" v-if="is_admin === 'true'">
+                  <RouterLink to="/schedule/batch">批量计划</RouterLink>
+                </a-menu-item>
+              </a-sub-menu>
+              <a-sub-menu key="user">
+                <template #title>
                           <span>
                             <user-outlined/>
                             <span>用户</span>
                           </span>
-              </template>
-              <a-menu-item key="3">
-                <RouterLink to="/user/detail">用户资料</RouterLink>
-              </a-menu-item>
-                <a-menu-item key="4" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
+                </template>
+                <a-menu-item key="3">
+                  <RouterLink to="/user/detail">用户资料</RouterLink>
+                </a-menu-item>
+                <a-menu-item key="4"
+                             v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
                   <router-link to="/user/manager">用户管理</router-link>
                 </a-menu-item>
-              <div v-if="is_admin === 'true'">
-                <a-menu-item key="5">
-                  <router-link to="/user/add">用户添加</router-link>
-                </a-menu-item>
-                <a-menu-item key="6">
-                  <router-link to="/user/batch">批量添加</router-link>
-                </a-menu-item>
-              </div>
+                <div v-if="is_admin === 'true'">
+                  <a-menu-item key="5">
+                    <router-link to="/user/add">用户添加</router-link>
+                  </a-menu-item>
+                  <a-menu-item key="6">
+                    <router-link to="/user/batch">批量添加</router-link>
+                  </a-menu-item>
+                </div>
 
-            </a-sub-menu>
-            <a-menu-item key="security-history" v-if="is_admin === 'true'"
-                         @click.prevent="$router.push('/security/history')">
-              <alert-outlined/>
-              <span>安全审计记录</span>
-            </a-menu-item>
-            <a-menu-item key="data-analyzer"
-                         v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'"
-                         @click.prevent="$router.push('/analyzer/view')">
-              <PieChartOutlined/>
-              <span>数据统计</span>
-            </a-menu-item>
-          </a-menu>
-        </a-layout-sider>
-        <a-layout>
-          <a-layout-header style="background: #fff; padding: 0">
-            <div class="header-bar">
-              <div class="welcome-display" style="margin-left: 28px;">
-                <span>SITC 团委学生会生活部-管理系统</span>
-              </div>
-              <div style="margin-left: 24px; margin-right: 28px;">
-                <span style="margin-right: 8px;">你好！{{ name }}</span>
-                <span @click="logout"><a>登出</a></span>
-              </div>
-              <div style="margin-right: 28px;" v-if="!isShow">
-                <a-dropdown>
-                  <a class="ant-dropdown-link" @click.prevent>
-                    菜单
-                    <DownOutlined/>
-                  </a>
-                  <template #overlay>
-                    <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
-                      <a-menu-item key="home" @click.prevent="$router.push('/')">
-                        <dashboard-outlined/>
-                        <span>工作台</span>
-                      </a-menu-item>
-                      <a-menu-item key="cloud" @click.prevent="$router.push('/cloud/manager')">
-                        <CloudServerOutlined/>
-                        <span>网盘管理</span>
-                      </a-menu-item>
-                      <a-menu-item key="semester" @click.prevent="$router.push('/semester/manager')">
-                        <carry-out-outlined/>
-                        <span>学期配置</span>
-                      </a-menu-item>
-                      <a-sub-menu key="room">
-                        <template #title>
-                          <BankOutlined/>
-                          <span>房间配置</span>
-                        </template>
-                        <a-menu-item key="template-list">
-                          <RouterLink to="/template/manager">模板管理</RouterLink>
+              </a-sub-menu>
+              <a-menu-item key="security-history" v-if="is_admin === 'true'"
+                           @click.prevent="$router.push('/security/history')">
+                <alert-outlined/>
+                <span>安全审计记录</span>
+              </a-menu-item>
+              <a-menu-item key="data-analyzer"
+                           v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'"
+                           @click.prevent="$router.push('/analyzer/view')">
+                <PieChartOutlined/>
+                <span>数据统计</span>
+              </a-menu-item>
+            </a-menu>
+          </a-layout-sider>
+          <a-layout>
+            <a-layout-header style="background: #fff; padding: 0">
+              <div class="header-bar">
+                <div class="welcome-display" style="margin-left: 28px;">
+                  <span>SITC 团委学生会生活部-管理系统</span>
+                </div>
+                <div style="margin-left: 24px; margin-right: 28px;">
+                  <span style="margin-right: 8px;">你好！{{ name }}</span>
+                  <span @click="logout"><a>登出</a></span>
+                </div>
+                <div style="margin-right: 28px;" v-if="!isShow">
+                  <a-dropdown>
+                    <a class="ant-dropdown-link" @click.prevent>
+                      菜单
+                      <DownOutlined/>
+                    </a>
+                    <template #overlay>
+                      <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
+                        <a-menu-item key="home" @click.prevent="$router.push('/')">
+                          <dashboard-outlined/>
+                          <span>工作台</span>
                         </a-menu-item>
-                        <a-menu-item key="template-upload" v-if="is_admin === 'true'">
-                          <RouterLink to="/template/batch">模板上传</RouterLink>
+                        <a-menu-item key="cloud" @click.prevent="$router.push('/cloud/manager')">
+                          <CloudServerOutlined/>
+                          <span>网盘管理</span>
                         </a-menu-item>
-                      </a-sub-menu>
-                      <a-sub-menu key="checkIn">
-                        <template #title>
-                          <ScheduleOutlined/>
-                          <span>签到</span>
-                        </template>
-                        <a-menu-item key="checkin-list">
-                          <RouterLink to="/checkin/list">签到</RouterLink>
+                        <a-menu-item key="semester" @click.prevent="$router.push('/semester/manager')">
+                          <carry-out-outlined/>
+                          <span>学期配置</span>
                         </a-menu-item>
-                        <a-menu-item key="schedule-manager">
-                          <RouterLink to="/schedule/manager">值班管理</RouterLink>
-                        </a-menu-item>
-                        <a-menu-item key="schedule-list" v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
-                          <RouterLink to="/schedule/list">值班列表</RouterLink>
-                        </a-menu-item>
-                        <a-menu-item key="schedule-batch" v-if="is_admin === 'true'">
-                          <RouterLink to="/schedule/batch">批量计划</RouterLink>
-                        </a-menu-item>
-                      </a-sub-menu>
-                      <a-sub-menu key="user">
-                        <template #title>
+                        <a-sub-menu key="room">
+                          <template #title>
+                            <BankOutlined/>
+                            <span>房间配置</span>
+                          </template>
+                          <a-menu-item key="template-list">
+                            <RouterLink to="/template/manager">模板管理</RouterLink>
+                          </a-menu-item>
+                          <a-menu-item key="template-upload" v-if="is_admin === 'true'">
+                            <RouterLink to="/template/batch">模板上传</RouterLink>
+                          </a-menu-item>
+                        </a-sub-menu>
+                        <a-sub-menu key="checkIn">
+                          <template #title>
+                            <ScheduleOutlined/>
+                            <span>签到</span>
+                          </template>
+                          <a-menu-item key="checkin-list">
+                            <RouterLink to="/checkin/list">签到</RouterLink>
+                          </a-menu-item>
+                          <a-menu-item key="schedule-manager">
+                            <RouterLink to="/schedule/manager">值班管理</RouterLink>
+                          </a-menu-item>
+                          <a-menu-item key="schedule-list"
+                                       v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
+                            <RouterLink to="/schedule/list">值班列表</RouterLink>
+                          </a-menu-item>
+                          <a-menu-item key="schedule-batch" v-if="is_admin === 'true'">
+                            <RouterLink to="/schedule/batch">批量计划</RouterLink>
+                          </a-menu-item>
+                        </a-sub-menu>
+                        <a-sub-menu key="user">
+                          <template #title>
                                           <span>
                                             <user-outlined/>
                                             <span>用户</span>
                                           </span>
-                        </template>
-                        <a-menu-item key="3">
-                          <RouterLink to="/user/detail">用户资料</RouterLink>
-                        </a-menu-item>
+                          </template>
+                          <a-menu-item key="3">
+                            <RouterLink to="/user/detail">用户资料</RouterLink>
+                          </a-menu-item>
                           <a-menu-item key="4">
                             <router-link to="/user/manager">用户管理</router-link>
                           </a-menu-item>
-                        <div v-if="is_admin === 'true'">
-                          <a-menu-item key="5">
-                            <router-link to="/user/add">用户添加</router-link>
-                          </a-menu-item>
-                          <a-menu-item key="6">
-                            <router-link to="/user/batch">批量添加</router-link>
-                          </a-menu-item>
-                        </div>
+                          <div v-if="is_admin === 'true'">
+                            <a-menu-item key="5">
+                              <router-link to="/user/add">用户添加</router-link>
+                            </a-menu-item>
+                            <a-menu-item key="6">
+                              <router-link to="/user/batch">批量添加</router-link>
+                            </a-menu-item>
+                          </div>
 
-                      </a-sub-menu>
-                      <a-menu-item key="security-history" v-if="is_admin === 'true'"
-                                   @click.prevent="$router.push('/security/history')">
-                        <alert-outlined/>
-                        <span>安全历史</span>
-                      </a-menu-item>
-                      <a-menu-item key="data-analyzer"
-                                   v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'"
-                                   @click.prevent="$router.push('/analyzer/view')">
-                        <PieChartOutlined/>
-                        <span>数据统计</span>
-                      </a-menu-item>
-                    </a-menu>
-                  </template>
-                </a-dropdown>
+                        </a-sub-menu>
+                        <a-menu-item key="security-history" v-if="is_admin === 'true'"
+                                     @click.prevent="$router.push('/security/history')">
+                          <alert-outlined/>
+                          <span>安全历史</span>
+                        </a-menu-item>
+                        <a-menu-item key="data-analyzer"
+                                     v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'"
+                                     @click.prevent="$router.push('/analyzer/view')">
+                          <PieChartOutlined/>
+                          <span>数据统计</span>
+                        </a-menu-item>
+                      </a-menu>
+                    </template>
+                  </a-dropdown>
 
+                </div>
               </div>
-            </div>
-          </a-layout-header>
-          <a-layout-content style="margin: 0 16px">
-            <RouterView></RouterView>
-          </a-layout-content>
-          <a-layout-footer style="text-align: center">
-            <div>上海信息技术学校团委学生会生活部 &copy; {{ year }}</div>
-            <div style="margin-top: 4px;">
-              <a href="https://beian.miit.gov.cn" style="text-decoration: none; color: black">
-                沪ICP备2023001976号-1
-              </a>
-              |
-              <a
-                  href="https://github.com/leeskyler-top/SITC-Life-Driver"
-                  style="text-decoration: none; color: black">Github 仓库
-              </a>
-            </div>
-          </a-layout-footer>
+            </a-layout-header>
+            <a-layout-content style="margin: 0 16px">
+              <RouterView></RouterView>
+            </a-layout-content>
+            <a-layout-footer style="text-align: center">
+              <div>上海信息技术学校团委学生会生活部 &copy; {{ year }}</div>
+              <div style="margin-top: 4px;">
+                <a href="https://beian.miit.gov.cn" style="text-decoration: none; color: black">
+                  沪ICP备2023001976号-1
+                </a>
+                |
+                <a
+                    href="https://github.com/leeskyler-top/SITC-Life-Driver"
+                    style="text-decoration: none; color: black">Github 仓库
+                </a>
+              </div>
+            </a-layout-footer>
+          </a-layout>
         </a-layout>
-      </a-layout>
-    </div>
-  </a-style-provider>
+      </div>
+    </a-style-provider>
+  </a-config-provider>
 
 </template>
 

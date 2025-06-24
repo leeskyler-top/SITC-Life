@@ -385,7 +385,7 @@ const deleteSchedules = async () => {
         <router-link to="/"><HomeOutlined/> 首页</router-link>
       </span>
     </h2>
-    <div style="padding: 8px; background-color: #FFFFFF; min-height: 500px">
+    <div style="padding: 8px; min-height: 500px">
       <a-row justify="end"
              v-if="['部长', '副部长', '部门负责人'].includes(userData?.position) || is_admin === true">
         <a-button v-if="!batchEditMode" type="primary" style="margin: 8px" @click="showAddScheduleModal = true" ghost>

@@ -339,16 +339,14 @@ const changeCheckIn = () => {
   api.patch("/checkin/" + currentCheckInId.value, checkin).then(res => {
     let {msg, data} = res.data;
     console.log(data)
-    if (currentCheckIn.value?.id === currentCheckInId.value) {
-      let currentSchedule = checkInData.value.find(checkin => checkin.id === currentCheckInId.value).schedule;
-      Object.assign(checkInData.value.find(checkin => checkin.id === currentCheckInId.value), data);
-      checkInData.value.find(checkin => checkin.id === currentCheckInId.value).schedule = currentSchedule;
-    } else {
+    if (activeKey.value === 'schedules') {
       Object.assign(scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value), data)
+    } else if (activeKey.value === 'checkins') {
+      Object.assign(checkInData.value.find(checkin => checkin.id === currentCheckInId), data);
+      currentCheckIn.value = checkInData.value.find(checkin => checkin.id === currentCheckInId.value);
+      checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in === true ? checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in = "是" : checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in = "否"
+      checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time === true ? checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = "是" : checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = "否"
     }
-    currentCheckIn.value = checkInData.value.find(checkin => checkin.id === currentCheckInId.value);
-    checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in === true ? checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in = "是" : checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in = "否"
-    checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time === true ? checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = "是" : checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = "否"
     loading.value = false;
     visibleCheckInEdit.value = false;
     checkin.name = null;
@@ -357,6 +355,7 @@ const changeCheckIn = () => {
     checkin.need_check_schedule_time = null;
     message.success(msg)
   }).catch(err => {
+    console.log(err);
     let {msg} = err.response.data;
     loading.value = false;
     message.error(msg)
@@ -369,22 +368,28 @@ const user_ids = ref([]); // 存储选中的用户
 
 
 // 获取需要显示的用户
-const fetchCheckInUsers = () => {
-  const schedule = scheduleData.value.find(s => s.id === currentId.value);
-  if (schedule) {
-    const checkIn = schedule.check_ins.find(checkIn => checkIn.is_main_check_in);
-    if (checkIn) {
-      // 设置 user_ids 为当前 checkIn 的用户列表
-      user_ids.value = checkIn.check_in_users.map(checkInUser => checkInUser.user.id);
-    }
+const fetchCheckInUsers = (displayMainCheckIn = false, id = null) => {
+  if (activeKey.value === 'schedules' && displayMainCheckIn) {
+    const schedule = scheduleData.value.find(s => s.id === currentId.value);
+    user_ids.value = schedule.check_ins.find(checkin => checkin.is_main_check_in).check_in_users.map(checkInUser => checkInUser.user.id);
+    currentCheckInId.value = schedule.check_ins.find(checkin => checkin.is_main_check_in).id
+  } else if (activeKey.value === 'schedules' && !displayMainCheckIn) {
+    const schedule = scheduleData.value.find(s => s.id === currentId.value);
+    user_ids.value = schedule.check_ins.find(checkin => checkin.id === id).check_in_users.map(checkInUser => checkInUser.user.id);
+    currentCheckInId.value = id;
+  } else if (activeKey.value === 'checkins') {
+    user_ids.value = checkInData.value.find(checkin => checkin.id === id).check_in_users.map(checkInUser => checkInUser.user.id)
+    currentCheckInId.value = id;
   }
 };
 
 const current_users = ref([])
 
-const showPeople = (op = null) => {
-  if (!op) {
-    fetchCheckInUsers(); // 获取并设置用户
+const showPeople = (op = null, id = null) => {
+  if (op === 'showMainCheckInUsers') {
+    fetchCheckInUsers(true); // 获取并设置用户
+  } else if (op === 'showCheckInUser' && id) {
+    fetchCheckInUsers(false, id);
   }
   visiblePeople.value = true; // 显示用户选择模态框
 
@@ -421,17 +426,14 @@ const rowSelection = computed(() => {
 
 const handleCloseUser = (confirm) => {
   if (confirm === 'T' && visibleCreateCheckIn.value === false) {
-    // 该部分逻辑与之前相同
-    const schedule = scheduleData.value.find(s => s.id === currentId.value);
-    let checkIn = schedule?.check_ins?.find(checkIn => checkIn.is_main_check_in);
-
     // Sending the API request to assign users
-    api.post('/checkin/assign/' + checkIn?.id, {
+    api.post('/checkin/assign/' + currentCheckInId.value, {
       "user_ids": user_ids.value
     }).then(res => {
-      message.success('已执行排班，并通知了对方');
+      message.success('已通知对方');
       openNotification("排班系统执行情况", res.data.msg);
-      fetchSchedules(); // 刷新排班数据
+      listSchedules();
+      listCheckIns();
     }).catch(err => {
       const {msg} = err.response.data;
       message.error(msg); // Handle error appropriately
@@ -887,7 +889,7 @@ const deleteCheckIn = (id) => {
         </a-form-item>
 
         <a-form-item label="值班人员管理">
-          <a-button @click="showPeople(null)">编辑人员</a-button>
+          <a-button @click="showPeople('showMainCheckInUsers')">编辑人员</a-button>
         </a-form-item>
       </a-form>
       <template #footer>
@@ -1007,6 +1009,9 @@ const deleteCheckIn = (id) => {
               <p>签到结束时间: {{ checkIn?.check_in_end_time }}</p>
               <div>
                 <a-button type="primary" @click="showCheckInEdit(checkIn?.id)">签到控制</a-button>
+                <a-button v-if="checkIn.is_main_check_in === false" style="margin-left: 4px;" type="primary" ghost
+                          @click="showPeople('showCheckInUser', checkIn?.id)">编辑人员
+                </a-button>
                 <a-button v-if="checkIn.is_main_check_in === false" style="margin-left: 4px;" type="primary" danger
                           @click="showConfirm([checkIn?.id], 'deleteCheckIn')">删除签到
                 </a-button>
@@ -1055,7 +1060,10 @@ const deleteCheckIn = (id) => {
           <p>签到结束时间: {{ currentCheckIn.check_in_end_time }}</p>
           <div>
             <a-button type="primary" @click="showCheckInEdit(currentCheckIn.id, 'currentCheckIn')">签到控制</a-button>
-            <a-button v-if="currentCheckIn.is_main_check_in === false" type="primary" danger
+            <a-button v-if="currentCheckIn.is_main_check_in === '否'" style="margin-left: 4px;" type="primary" ghost
+                      @click="showPeople('showCheckInUser', currentCheckIn.id)">编辑人员
+            </a-button>
+            <a-button v-if="currentCheckIn.is_main_check_in === '否'" type="primary" danger
                       @click="showConfirm([currentCheckIn.id], 'deleteCheckIn')">删除签到
             </a-button>
           </div>
