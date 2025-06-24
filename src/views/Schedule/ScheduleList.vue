@@ -18,12 +18,6 @@ function handleResize(event) {
   }
 }
 
-onMounted(() => {
-  handleResize();
-  listSchedules();
-  listUsers();
-});
-
 window.addEventListener('resize', handleResize);
 
 
@@ -37,14 +31,16 @@ const visibleCurrentCheckIn = ref(false);
 const visibleCheckInEdit = ref(false);
 const visibleCreateCheckIn = ref(false);
 const visibleSchedules = ref(false);
-const activeKey = ref('schedules');
+const activeKey = ref(!localStorage.schedule_page_tab ? 'schedules' : localStorage.schedule_page_tab);
 
 const handleTabChange = (key) => {
   // 根据切换的标签 key 执行相应的操作，节流，节省请求次数。
   if (key === 'schedules') {
     listSchedules();
+    localStorage.schedule_page_tab = 'schedules';
   } else if (key === 'checkins') {
     listCheckIns();
+    localStorage.schedule_page_tab = 'checkins';
   }
 }
 const scheduleTypes = ["放学", "午间", "晚间", "早间", "其它"];
@@ -611,7 +607,8 @@ const showConfirm = (id, op) => {
       okText: '确认',
       cancelText: '取消',
       onOk() {
-        deleteCheckIn(currentCheckInId.value)
+        deleteCheckIn(currentCheckInId.value);
+        visibleCurrentCheckIn.value = false;
       }
     })
   }
@@ -682,7 +679,11 @@ const createCheckIn = () => {
   api.post("/checkin/create/" + currentSelectedScheduleId.value, checkin).then(res => {
     loading.value = false;
     let {msg, data} = res.data;
-    checkInData.value.push(data);
+    if (activeKey.value === 'checkins') {
+      checkInData.value.push(data);
+    } else if (activeKey.value === 'schedules') {
+      scheduleData.value.find(schedule => schedule.id === currentSelectedScheduleId.value).check_ins.push(data)
+    }
     visibleCreateCheckIn.value = false;
     handleCancelEdit();
     message.success(msg);
@@ -695,9 +696,9 @@ const createCheckIn = () => {
 
 const deleteCheckIn = (id) => {
   api.delete("/checkin/" + id).then(res => {
-    if (currentId.value) {
+    if (activeKey.value === 'schedules' && currentId.value) {
       scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins = scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.filter(checkin => checkin.id !== id)
-    } else {
+    } else if (activeKey.value === 'checkins') {
       checkInData.value = checkInData.value.filter(checkin => checkin.id !== id)
     }
     message.success("子签到已删除");
@@ -706,6 +707,19 @@ const deleteCheckIn = (id) => {
     message.error(msg)
   })
 }
+
+onMounted(() => {
+  handleResize();
+  if (!localStorage.schedule_page_tab) {
+    listSchedules();
+  } else if (localStorage.schedule_page_tab === 'checkins') {
+    listCheckIns();
+  } else {
+    listSchedules();
+  }
+  listUsers();
+});
+
 
 </script>
 
@@ -1064,7 +1078,8 @@ const deleteCheckIn = (id) => {
                       @click="showPeople('showCheckInUser', currentCheckIn.id)">编辑人员
             </a-button>
             <a-button v-if="currentCheckIn.is_main_check_in === '否'" type="primary" danger
-                      @click="showConfirm([currentCheckIn.id], 'deleteCheckIn')">删除签到
+                      @click="showConfirm([currentCheckIn.id], 'deleteCheckIn');">
+              删除签到
             </a-button>
           </div>
         </a-card>
