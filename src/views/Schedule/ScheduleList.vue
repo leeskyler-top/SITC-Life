@@ -328,7 +328,6 @@ const showCheckInEdit = (id, op = null) => {
 
 const handleCancelEdit = (id) => {
   visibleCheckInEdit.value = false;
-  currentCheckIn.value = {};
   checkin.name = null
   checkin.check_in_start_time = null
   checkin.check_in_end_time = null
@@ -523,7 +522,7 @@ const revokeCheckIn = (id) => {
   api.get("/checkin/cancel/" + id).then(res => {
     let {msg, data} = res.data;
     console.log(currentCheckInId.value)
-    Object.assign(scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_users.find(checkInUser => checkInUser.id === id), data);
+    activeKey.value === 'schedules' ? Object.assign(scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_users.find(checkInUser => checkInUser.id === id), data) : Object.assign(checkInData.value.find(checkin => checkin.id === currentCheckInId.value)?.check_in_users?.find(checkInUser => checkInUser.id === id), data);
     loading.value = false;
     message.success(msg);
   }).catch(err => {
@@ -536,7 +535,7 @@ const revokeCheckIn = (id) => {
 const changeRecord = (id, op) => {
   let time
   if (op === 'fixRecord') {
-    time = scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_start_time
+    time = activeKey.value === 'schedules' ? scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_start_time : checkInData.value.find(checkin => checkin.id === currentCheckInId.value).check_in_start_time
   } else {
     let date = new Date();
     time = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}:${date.getUTCSeconds().toString().padStart(2, '0')}`;
@@ -547,7 +546,7 @@ const changeRecord = (id, op) => {
   }).then(res => {
     let {msg, data} = res.data;
     loading.value = false;
-    Object.assign(scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_users.find(checkInUser => checkInUser.id === id), data);
+    activeKey.value === 'schedules' ? Object.assign(scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_users.find(checkInUser => checkInUser.id === id), data) : Object.assign(checkInData.value.find(checkin => checkin.id === currentCheckInId.value)?.check_in_users?.find(checkInUser => checkInUser.id === id), data);
     message.success(msg);
   }).catch(err => {
     let {msg} = err.response.data;
@@ -656,7 +655,7 @@ const createSchedule = () => {
   });
 }
 
-const showCreateCheckInModal = (id=null) => {
+const showCreateCheckInModal = (id = null) => {
   currentSelectedScheduleId.value = null;
   visibleCreateCheckIn.value = true;
   if (!id) {
@@ -837,7 +836,8 @@ const deleteCheckIn = (id) => {
                           <a @click="showModal(record.schedule_id)">查看值班</a>
                       </span>
                     <span>
-                        <a-popconfirm title="确定删除此签到？" v-if="record.is_main_check_in === '否'" @confirm="deleteCheckIn(record.id)"><a
+                        <a-popconfirm title="确定删除此签到？" v-if="record.is_main_check_in === '否'"
+                                      @confirm="deleteCheckIn(record.id)"><a
                             style="color: red">删除</a></a-popconfirm>
                       </span>
                   </div>
@@ -932,7 +932,7 @@ const deleteCheckIn = (id) => {
             label="检查计划开始时间"
             :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_end_time']"
         >
-          <a-switch v-model:checked="checkin.need_check_schedule_time" />
+          <a-switch v-model:checked="checkin.need_check_schedule_time"/>
         </a-form-item>
         <a-form-item label="绑定签到人员">
           <a-button @click="showPeople('newCheckIn')">选择人员</a-button>
@@ -993,7 +993,8 @@ const deleteCheckIn = (id) => {
           <p>值班时间: {{ scheduleData.find(s => s.id === currentId).schedule_start_time }}</p>
           <p>值班类型: {{ scheduleData.find(s => s.id === currentId).schedule_type }}</p>
           <div>
-            <a-button type="primary" style="margin: 8px" @click="showCreateCheckInModal(scheduleData.find(s => s.id === currentId).id)" ghost>
+            <a-button type="primary" style="margin: 8px"
+                      @click="showCreateCheckInModal(scheduleData.find(s => s.id === currentId).id)" ghost>
               添加子签到
             </a-button>
           </div>
@@ -1141,7 +1142,8 @@ const deleteCheckIn = (id) => {
         <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>
         <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>
       </a-card>
-      <a-table :row-selection="rowSelection" :columns="user_columns" :data-source="current_users" :row-key="record => record.id">
+      <a-table :row-selection="rowSelection" :columns="user_columns" :data-source="current_users"
+               :row-key="record => record.id">
         <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
           <div style="padding: 8px">
             <a-input
@@ -1179,8 +1181,6 @@ const deleteCheckIn = (id) => {
         <a-button type="primary" @click="handleCloseUser('T')">保存</a-button>
       </template>
     </a-modal>
-
-
 
 
     <a-modal title="查询值班计划" v-model:visible="visibleSchedules">
