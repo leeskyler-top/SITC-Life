@@ -206,7 +206,7 @@ const showConfirm = (id) => {
         </a-spin>
       </a-tab-pane>
     </a-tabs>
-    <a-modal v-model:visible="visibleASL" title="请假申请">
+    <a-modal v-model:open="visibleASL" title="请假申请">
       <a-form
           :model="ASLForm"
           name="validate_other"

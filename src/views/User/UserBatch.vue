@@ -115,7 +115,7 @@ const formItemLayout = {
         </a-form>
       </a-col>
     </a-row>
-    <a-modal v-model:visible="visibleUsers" title="新增用户情况">
+    <a-modal v-model:open="visibleUsers" title="新增用户情况">
       <a-card style="margin-top: 4px;">
         <a-card v-for="result in results">
           {{ result }}

@@ -136,7 +136,6 @@ const listMyInfo = () => {
     } else {
       data.resident = '否';
     }
-    console.log(data.is_admin)
     if (['部长', '副部长', '部门负责人'].includes(data.position) || data.is_admin === '是') {
       listUsers();
     }
@@ -482,7 +481,7 @@ const deleteSchedules = async () => {
 
     <a-modal
         title="添加值班计划"
-        v-model:visible="showAddScheduleModal"
+        v-model:open="showAddScheduleModal"
     >
       <a-form layout="vertical" :model="scheduleForm">
         <a-form-item label="值班计划名称" name="schedule_name" :rules="[{ required: true, message: '请填写值班名称' }]">
@@ -511,7 +510,7 @@ const deleteSchedules = async () => {
       </template>
     </a-modal>
     <!-- User Selection Modal -->
-    <a-modal title="用户列表" v-model:visible="visibleUsers">
+    <a-modal title="用户列表" v-model:open="visibleUsers">
       <a-card>
         <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>
         <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>

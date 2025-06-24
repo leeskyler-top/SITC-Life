@@ -341,7 +341,7 @@ const scroll = computed(() => {
         </a-table>
       </a-spin>
     </div>
-    <a-modal v-model:visible="visible" title="修改当前房间">
+    <a-modal v-model:open="visible" title="修改当前房间">
       <a-form
           :model="formState"
           name="validate_other"
@@ -364,7 +364,7 @@ const scroll = computed(() => {
         <a-button type="primary" danger @click="changeRoom">变更</a-button>
       </template>
     </a-modal>
-    <a-modal v-model:visible="visibleCreate" title="创建当前房间">
+    <a-modal v-model:open="visibleCreate" title="创建当前房间">
       <a-form
           :model="formState"
           name="validate_other"

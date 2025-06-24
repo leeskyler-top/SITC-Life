@@ -94,7 +94,7 @@ const formItemLayout = {
         </a-form>
       </a-col>
     </a-row>
-    <a-modal v-model:visible="visibleSchedules" title="新增值班计划情况">
+    <a-modal v-model:open="visibleSchedules" title="新增值班计划情况">
       <a-card style="margin-top: 4px;">
         <a-card v-for="result in results">
           {{ result }}

@@ -852,7 +852,7 @@ const deleteCheckIn = (id) => {
 
     </div>
 
-    <a-modal v-model:visible="visible" title="修改值班计划信息">
+    <a-modal v-model:open="visible" title="修改值班计划信息">
       <a-form
           :model="formState"
           name="validate_other"
@@ -897,7 +897,7 @@ const deleteCheckIn = (id) => {
         <a-button type="primary" danger @click="changeSchedule">变更</a-button>
       </template>
     </a-modal>
-    <a-modal v-model:visible="visibleCreateCheckIn" title="添加子签到">
+    <a-modal v-model:open="visibleCreateCheckIn" title="添加子签到">
 
       <a-form
           :model="checkin"
@@ -953,7 +953,7 @@ const deleteCheckIn = (id) => {
 
     <a-modal
         title="添加值班计划"
-        v-model:visible="showAddScheduleModal"
+        v-model:open="showAddScheduleModal"
     >
       <a-form layout="vertical" :model="scheduleForm">
         <a-form-item label="值班计划名称" name="schedule_name" :rules="[{ required: true, message: '请填写值班名称' }]">
@@ -984,7 +984,7 @@ const deleteCheckIn = (id) => {
     </a-modal>
 
     <!--    查看签到-->
-    <a-modal v-model:visible="visibleCheckIn" title="签到管理">
+    <a-modal v-model:open="visibleCheckIn" title="签到管理">
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
       </template>
@@ -1049,7 +1049,7 @@ const deleteCheckIn = (id) => {
         </a-collapse>
       </a-spin>
     </a-modal>
-    <a-modal v-model:visible="visibleCurrentCheckIn" title="当前签到管理">
+    <a-modal v-model:open="visibleCurrentCheckIn" title="当前签到管理">
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
       </template>
@@ -1099,7 +1099,7 @@ const deleteCheckIn = (id) => {
       </a-spin>
     </a-modal>
 
-    <a-modal v-model:visible="visibleCheckInEdit" title="签到控制">
+    <a-modal v-model:open="visibleCheckInEdit" title="签到控制">
 
       <a-form
           :model="checkin"
@@ -1145,7 +1145,7 @@ const deleteCheckIn = (id) => {
       </template>
     </a-modal>
 
-    <a-modal title="用户列表" v-model:visible="visiblePeople" :z-index="3000">
+    <a-modal title="用户列表" v-model:open="visiblePeople" :z-index="3000">
       <a-card>
         <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>
         <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>
@@ -1191,7 +1191,7 @@ const deleteCheckIn = (id) => {
     </a-modal>
 
 
-    <a-modal title="查询值班计划" v-model:visible="visibleSchedules">
+    <a-modal title="查询值班计划" v-model:open="visibleSchedules">
       <a-table :columns="scheduleColumns" :data-source="scheduleData" :scroll="scroll" bordered>
         <template
             #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"

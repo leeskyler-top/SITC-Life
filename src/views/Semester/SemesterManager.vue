@@ -127,7 +127,7 @@ onMounted(() => {
         </a-descriptions>
       </a-spin>
     </div>
-    <a-modal v-model:visible="visible" title="修改学期配置">
+    <a-modal v-model:open="visible" title="修改学期配置">
       <a-form
           :model="formState"
           name="validate_other"

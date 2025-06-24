@@ -505,20 +505,20 @@ const copyLink = (text, msg) => {
         </a-list>
       </a-spin>
     </div>
-    <a-modal v-model:visible="visible" title="要生成当前学期哪个月份的文件夹？">
+    <a-modal v-model:open="visible" title="要生成当前学期哪个月份的文件夹？">
       <a-input-number id="inputNumber" v-model:value="currentMonth" :min="1" :max="12"/>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
         <a-button type="primary" danger @click="genMonthDir" :loading="spinning">变更</a-button>
       </template>
     </a-modal>
-    <a-modal v-model:visible="visibleGenCurrentMonth" title="要生成当前学期当前月份的文件夹？">
+    <a-modal v-model:open="visibleGenCurrentMonth" title="要生成当前学期当前月份的文件夹？">
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
         <a-button type="primary" danger @click="genCurrentMonthDir" :loading="spinning">变更</a-button>
       </template>
     </a-modal>
-    <a-modal v-model:visible="visibleCreate" title="获取链接">
+    <a-modal v-model:open="visibleCreate" title="获取链接">
       <a-form
           :model="formState"
           name="validate_other"
@@ -543,7 +543,7 @@ const copyLink = (text, msg) => {
         <a-button type="primary" danger @click="openLink" :loading="spinning">创建</a-button>
       </template>
     </a-modal>
-    <a-modal v-model:visible="visibleLink" title="链接信息">
+    <a-modal v-model:open="visibleLink" title="链接信息">
       <a-card>
         <p>链接：
         <a-input-group>
@@ -571,7 +571,7 @@ const copyLink = (text, msg) => {
       </template>
     </a-modal>
 
-    <a-modal v-model:visible="qrCodeVisible" title="微信传输助手二维码上传">
+    <a-modal v-model:open="qrCodeVisible" title="微信传输助手二维码上传">
       <a-card title="使用方法" style="margin-bottom: 8px;">
         <p>
           1. 请使用手机微信扫描下方二维码登录文件传输助手。

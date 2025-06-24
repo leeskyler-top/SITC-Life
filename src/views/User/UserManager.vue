@@ -492,7 +492,7 @@ const scroll = computed(() => {
         </a-table>
       </a-spin>
     </div>
-    <a-modal v-model:visible="visible" title="修改用户信息">
+    <a-modal v-model:open="visible" title="修改用户信息">
       <a-form
           :model="formState"
           name="validate_other"
@@ -595,7 +595,7 @@ const scroll = computed(() => {
         <a-button type="primary" danger @click="changeUser">变更</a-button>
       </template>
     </a-modal>
-    <a-modal v-model:visible="visiblePassword" title="重置密码">
+    <a-modal v-model:open="visiblePassword" title="重置密码">
       <a-card>
         <p>学籍号：<span>{{ currentUser.studentId }}</span></p>
         <p>姓名：<span>{{ currentUser.name }}</span></p>
@@ -621,7 +621,7 @@ const scroll = computed(() => {
       </template>
     </a-modal>
 
-    <a-modal title="查询已删除账户" v-model:visible="visibleDeletedUsers">
+    <a-modal title="查询已删除账户" v-model:open="visibleDeletedUsers">
       <a-table :columns="deleted_columns" :data-source="deletedUsers" :scroll="scroll" bordered>
         <template
             #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
