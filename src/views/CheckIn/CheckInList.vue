@@ -102,14 +102,41 @@ const formItemLayout = {
 const ASLForm = reactive({
   "asl_type": "病假",
   "asl_reason": "",
+  "image_url": []
 })
 
 const visibleASL = ref(false);
-const currentCheckInId = ref(null)
+const currentCheckInUserId = ref(null)
 
 const showASL = (id) => {
-  currentCheckInId.value = id;
+  currentCheckInUserId.value = id;
   visibleASL.value = true;
+}
+
+
+const handleASL = () => {
+  let formData = new FormData();
+  for (let item of ASLForm.image_url) {
+    formData.append('image_url', item.originFileObj)
+  }
+  formData.append("asl_type", ASLForm.asl_type)
+  formData.append("asl_reason", ASLForm.asl_reason)
+  api.post("/asl/my/" + currentCheckInUserId.value, formData, {
+    headers: {
+      'Content-Type': "multipart/form-data"
+    }
+  }).then(res => {
+    let {msg} = res.data;
+    spinning.value = false;
+    ASLForm.asl_type = null;
+    ASLForm.asl_reason = null;
+    ASLForm.image_url = [];
+    message.success(msg);
+  }).catch(err => {
+    let {msg} = err.response.data;
+    spinning.value = false;
+    message.error(msg);
+  });
 }
 
 // 查看签到确认框
@@ -143,23 +170,26 @@ const showConfirm = (id) => {
           <div v-if="filteredCheckInDataWaiting.length === 0">
             <Empty description="没有等待开始的签到"/>
           </div>
-          <a-space direction="vertical" :size="5">
-            <a-descriptions v-for="item in currentWaitingPageData" :title="'签到名称：' + item.check_in.name"
-                            style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+          <a-card v-for="item in currentWaitingPageData">
+            <a-descriptions :title="item.check_in.name">
+              <a-descriptions-item label="值班ID">{{ item.schedule.id }}</a-descriptions-item>
+              <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
+              <a-descriptions-item label="值班开始时间"><span :style=" item.check_in.need_check_schedule_time ? {'color': 'red', 'font-weight': 'bold'} : {} ">{{ item.schedule.schedule_start_time }}</span></a-descriptions-item>
+              <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
-              <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
-              <a-descriptions-item label="操作">
+              <a-descriptions-item label="操作" v-if="item.check_in.is_main_check_in">
                 <a-row>
-                  <a-button type="primary" @click="showASL(item.check_in_id)">请假申请
+                  <a-button type="primary" @click="showASL(item.id)" :disabled="item.asl.filter(asl => asl.status === '已批准' || asl.status === '待审核').length !== 0">请假申请
                   </a-button>
                 </a-row>
               </a-descriptions-item>
             </a-descriptions>
-            <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentWaitingPage" simple
-                          pageSize="5"
-                          :total="filteredCheckInDataWaiting.length"/>
-          </a-space>
+
+          </a-card>
+          <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentWaitingPage" simple
+                        pageSize="5"
+                        :total="filteredCheckInDataWaiting.length"/>
         </a-spin>
       </a-tab-pane>
 
@@ -168,9 +198,13 @@ const showConfirm = (id) => {
           <div v-if="filteredCheckInDataStarted.length === 0">
             <Empty description="没有正在进行的签到"/>
           </div>
-          <a-space direction="vertical" :size="5">
-            <a-descriptions v-for="item in currentStartedPageData" :title="'签到名称：' + item.check_in.name"
+          <a-card v-for="item in currentStartedPageData">
+            <a-descriptions  :title="'签到名称：' + item.check_in.name"
                             style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+              <a-descriptions-item label="值班ID">{{ item.schedule.id }}</a-descriptions-item>
+              <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
+              <a-descriptions-item label="值班开始时间"><span :style=" item.need_check_schedule_time ? {'color': red} : {} ">{{ item.schedule.schedule_start_time }}</span></a-descriptions-item>
+              <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
               <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
@@ -181,10 +215,11 @@ const showConfirm = (id) => {
                 </a-row>
               </a-descriptions-item>
             </a-descriptions>
-            <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentStartedPage" simple
-                          pageSize="5"
-                          :total="filteredCheckInDataStarted.length"/>
-          </a-space>
+
+          </a-card>
+          <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentStartedPage" simple
+                        pageSize="5"
+                        :total="filteredCheckInDataStarted.length"/>
         </a-spin>
       </a-tab-pane>
 
@@ -193,16 +228,21 @@ const showConfirm = (id) => {
           <div v-if="filteredCheckInDataEnded.length === 0">
             <Empty description="没有已结束的签到"/>
           </div>
-          <a-space direction="vertical" :size="5">
-            <a-descriptions v-for="item in currentEndedPageData" :title="'签到名称：' + item.check_in.name"
+          <a-card v-for="item in currentEndedPageData">
+            <a-descriptions  :title="'签到名称：' + item.check_in.name"
                             style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+              <a-descriptions-item label="值班ID">{{ item.schedule.id }}</a-descriptions-item>
+              <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
+              <a-descriptions-item label="值班开始时间"><span :style=" item.need_check_schedule_time ? {'color': red} : {} ">{{ item.schedule.schedule_start_time }}</span></a-descriptions-item>
+              <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
               <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
             </a-descriptions>
-            <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentEndedPage" simple pageSize="5"
-                          :total="filteredCheckInDataEnded.length"/>
-          </a-space>
+
+          </a-card>
+          <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentEndedPage" simple pageSize="5"
+                        :total="filteredCheckInDataEnded.length"/>
         </a-spin>
       </a-tab-pane>
     </a-tabs>
@@ -231,10 +271,28 @@ const showConfirm = (id) => {
           <a-textarea v-model:value="ASLForm.asl_reason"/>
         </a-form-item>
 
+        <a-form-item has-feedback
+                     :rules="ASLForm.asl_reason !== '事假' ? [{ required: true, message: '至少上传一张图片' }] : []" name="image_url" label="上传图片" extra="证明材料">
+          <a-upload
+              v-model:fileList="ASLForm.image_url"
+              name="pic1"
+              list-type="picture"
+              :before-upload="true"
+          >
+            <a-button>
+              <template #icon>
+                <UploadOutlined/>
+              </template>
+              单击上传
+            </a-button>
+          </a-upload>
+        </a-form-item>
+
+
       </a-form>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
-        <a-button type="primary" danger @click="handleASL">变更</a-button>
+        <a-button type="primary" danger @click="handleASL" :loading="spinning">变更</a-button>
       </template>
     </a-modal>
   </a-layout-content>

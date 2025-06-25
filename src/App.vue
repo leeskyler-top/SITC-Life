@@ -347,6 +347,9 @@ const getCurrentYear = () => {
                 <a-menu-item key="checkin-list">
                   <RouterLink to="/checkin/list">签到</RouterLink>
                 </a-menu-item>
+                <a-menu-item key="checkin-asl">
+                  <RouterLink to="/checkin/asl">请假管理</RouterLink>
+                </a-menu-item>
                 <a-menu-item key="schedule-manager">
                   <RouterLink to="/schedule/manager">值班管理</RouterLink>
                 </a-menu-item>
@@ -444,6 +447,9 @@ const getCurrentYear = () => {
                           </template>
                           <a-menu-item key="checkin-list">
                             <RouterLink to="/checkin/list">签到</RouterLink>
+                          </a-menu-item>
+                          <a-menu-item key="checkin-asl">
+                            <RouterLink to="/checkin/asl">请假管理</RouterLink>
                           </a-menu-item>
                           <a-menu-item key="schedule-manager">
                             <RouterLink to="/schedule/manager">值班管理</RouterLink>
