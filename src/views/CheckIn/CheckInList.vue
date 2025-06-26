@@ -340,7 +340,7 @@ const loadImages = async () => {
 
 const cancelApplication = (id) => {
   spinning.value = true;
-  api.get("/asl/my/cancel" + id).then(res => {
+  api.get("/asl/my/cancel/" + id).then(res => {
     let {msg} = res.data;
     spinning.value = false;
     applicationsData.value.find(asl => asl.id === id).status = '已取消';
