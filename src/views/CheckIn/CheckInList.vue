@@ -352,6 +352,16 @@ const cancelApplication = (id) => {
   })
 }
 
+const handleReset = clearFilters => {
+  clearFilters({confirm: true});
+  state.searchText = '';
+};
+
+const handleSearch = (selectedKeys, confirm, dataIndex) => {
+  confirm();
+  state.searchText = selectedKeys[0];
+  state.searchedColumn = dataIndex;
+};
 
 </script>
 
@@ -376,13 +386,18 @@ const cancelApplication = (id) => {
               <a-descriptions-item label="值班ID">{{ item.schedule.id }}</a-descriptions-item>
               <a-descriptions-item label="签到ID">{{ item.check_in.id }}</a-descriptions-item>
               <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
-              <a-descriptions-item label="值班开始时间"><span :style=" item.check_in.need_check_schedule_time ? {'color': 'red', 'font-weight': 'bold'} : {} ">{{ item.schedule.schedule_start_time }}</span></a-descriptions-item>
+              <a-descriptions-item label="值班开始时间"><span
+                  :style=" item.check_in.need_check_schedule_time ? {'color': 'red', 'font-weight': 'bold'} : {} ">{{
+                  item.schedule.schedule_start_time
+                }}</span></a-descriptions-item>
               <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
               <a-descriptions-item label="操作" v-if="item.check_in.is_main_check_in">
                 <a-row>
-                  <a-button type="primary" @click="showASL(item.id)" :disabled="item.asl.filter(asl => asl.status === '已批准' || asl.status === '待审核').length !== 0">请假申请
+                  <a-button type="primary" @click="showASL(item.id)"
+                            :disabled="item.asl.filter(asl => asl.status === '已批准' || asl.status === '待审核').length !== 0">
+                    请假申请
                   </a-button>
                 </a-row>
               </a-descriptions-item>
@@ -401,12 +416,16 @@ const cancelApplication = (id) => {
             <Empty description="没有正在进行的签到"/>
           </div>
           <a-card v-for="item in currentStartedPageData">
-            <a-descriptions  :title="'签到名称：' + item.check_in.name"
+            <a-descriptions :title="'签到名称：' + item.check_in.name"
                             style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
               <a-descriptions-item label="签到流水ID">{{ item.id }}</a-descriptions-item>
               <a-descriptions-item label="值班ID">{{ item.schedule.id }}</a-descriptions-item>
-              <a-descriptions-item label="签到ID">{{ item.check_in.id }}</a-descriptions-item>              <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
-              <a-descriptions-item label="值班开始时间"><span :style=" item.need_check_schedule_time ? {'color': red} : {} ">{{ item.schedule.schedule_start_time }}</span></a-descriptions-item>
+              <a-descriptions-item label="签到ID">{{ item.check_in.id }}</a-descriptions-item>
+              <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
+              <a-descriptions-item label="值班开始时间"><span
+                  :style=" item.need_check_schedule_time ? {'color': red} : {} ">{{
+                  item.schedule.schedule_start_time
+                }}</span></a-descriptions-item>
               <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
@@ -437,7 +456,10 @@ const cancelApplication = (id) => {
               <a-descriptions-item label="值班ID">{{ item.schedule.id }}</a-descriptions-item>
               <a-descriptions-item label="签到ID">{{ item.check_in.id }}</a-descriptions-item>
               <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
-              <a-descriptions-item label="值班开始时间"><span :style=" item.check_in.need_check_schedule_time ? {'color': 'red', 'font-weight': 'bold'} : {} ">{{ item.schedule.schedule_start_time }}</span></a-descriptions-item>
+              <a-descriptions-item label="值班开始时间"><span
+                  :style=" item.check_in.need_check_schedule_time ? {'color': 'red', 'font-weight': 'bold'} : {} ">{{
+                  item.schedule.schedule_start_time
+                }}</span></a-descriptions-item>
               <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
@@ -491,7 +513,8 @@ const cancelApplication = (id) => {
                 <div class="editable-row-operations">
             <span>
               <a-button size="small" type="primary" ghost @click="showInfo(record.id)">查看</a-button>
-              <a-button size="small" type="primary" ghost danger @click="showConfirm(record.id)" :disabled="record.status !== '待审核'">取消</a-button>
+              <a-button size="small" type="primary" ghost danger @click="showConfirm(record.id)"
+                        :disabled="record.status !== '待审核'">取消</a-button>
             </span>
                 </div>
               </template>
@@ -526,7 +549,8 @@ const cancelApplication = (id) => {
         </a-form-item>
 
         <a-form-item has-feedback
-                     :rules="ASLForm.asl_reason !== '事假' ? [{ required: true, message: '至少上传一张图片' }] : []" name="image_url" label="上传图片" extra="证明材料">
+                     :rules="ASLForm.asl_reason !== '事假' ? [{ required: true, message: '至少上传一张图片' }] : []"
+                     name="image_url" label="上传图片" extra="证明材料">
           <a-upload
               v-model:fileList="ASLForm.image_url"
               name="pic1"
