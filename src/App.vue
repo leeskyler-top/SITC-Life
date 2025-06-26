@@ -347,7 +347,8 @@ const getCurrentYear = () => {
                 <a-menu-item key="checkin-list">
                   <RouterLink to="/checkin/list">签到</RouterLink>
                 </a-menu-item>
-                <a-menu-item key="checkin-asl">
+                <a-menu-item key="checkin-asl"
+                             v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
                   <RouterLink to="/checkin/asl">请假管理</RouterLink>
                 </a-menu-item>
                 <a-menu-item key="schedule-manager">
@@ -448,7 +449,8 @@ const getCurrentYear = () => {
                           <a-menu-item key="checkin-list">
                             <RouterLink to="/checkin/list">签到</RouterLink>
                           </a-menu-item>
-                          <a-menu-item key="checkin-asl">
+                          <a-menu-item key="checkin-asl"
+                                       v-if="['部长', '副部长', '部门负责人'].includes(user_position) || is_admin === 'true'">
                             <RouterLink to="/checkin/asl">请假管理</RouterLink>
                           </a-menu-item>
                           <a-menu-item key="schedule-manager">

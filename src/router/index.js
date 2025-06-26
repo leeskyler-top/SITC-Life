@@ -87,7 +87,7 @@ const router = createRouter({
         {
             path: '/checkin/asl',
             component: () => import("@/views/CheckIn/ASKForLeaveManager.vue"),
-            meta: {...user}
+            meta: {...leader}
         },
         {
             path: '/cloud/manager',
