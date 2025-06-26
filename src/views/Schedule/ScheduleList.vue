@@ -1070,6 +1070,8 @@ onMounted(() => {
       <a-spin :spinning="loading" tip="Loading...">
         <a-card>
           <h3>签到名称：{{ currentCheckIn.name }}</h3>
+          <p>签到ID：{{ currentCheckIn.id }}</p>
+          <p>值班ID：{{ currentCheckIn.schedule.id }}</p>
           <p>签到开始时间: {{ currentCheckIn.check_in_start_time }}</p>
           <p>签到结束时间: {{ currentCheckIn.check_in_end_time }}</p>
           <div>
@@ -1077,7 +1079,7 @@ onMounted(() => {
             <a-button v-if="currentCheckIn.is_main_check_in === '否'" style="margin-left: 4px;" type="primary" ghost
                       @click="showPeople('showCheckInUser', currentCheckIn.id)">编辑人员
             </a-button>
-            <a-button v-if="currentCheckIn.is_main_check_in === '否'" type="primary" danger
+            <a-button v-if="currentCheckIn.is_main_check_in === '否'" style="margin-left: 4px;" type="primary" danger
                       @click="showConfirm([currentCheckIn.id], 'deleteCheckIn');">
               删除签到
             </a-button>
@@ -1086,6 +1088,9 @@ onMounted(() => {
         <a-card v-for="checkInUser in currentCheckIn.check_in_users">
           <a-descriptions bordered :title="checkInUser.user.studentId + '-' + checkInUser.user.name"
                           layout="vertical" size="small">
+            <a-descriptions-item label="签到流水ID">
+              {{ checkInUser.id }}
+            </a-descriptions-item>
             <a-descriptions-item label="签到时间" :span="2" v-if="['迟到','正常'].includes(checkInUser.status)">
               {{ checkInUser.check_in_time }}
             </a-descriptions-item>

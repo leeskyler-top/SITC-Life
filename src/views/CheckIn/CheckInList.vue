@@ -172,7 +172,9 @@ const showConfirm = (id) => {
           </div>
           <a-card v-for="item in currentWaitingPageData">
             <a-descriptions :title="item.check_in.name">
+              <a-descriptions-item label="签到流水ID">{{ item.id }}</a-descriptions-item>
               <a-descriptions-item label="值班ID">{{ item.schedule.id }}</a-descriptions-item>
+              <a-descriptions-item label="签到ID">{{ item.check_in.id }}</a-descriptions-item>
               <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
               <a-descriptions-item label="值班开始时间"><span :style=" item.check_in.need_check_schedule_time ? {'color': 'red', 'font-weight': 'bold'} : {} ">{{ item.schedule.schedule_start_time }}</span></a-descriptions-item>
               <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
@@ -201,8 +203,9 @@ const showConfirm = (id) => {
           <a-card v-for="item in currentStartedPageData">
             <a-descriptions  :title="'签到名称：' + item.check_in.name"
                             style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+              <a-descriptions-item label="签到流水ID">{{ item.id }}</a-descriptions-item>
               <a-descriptions-item label="值班ID">{{ item.schedule.id }}</a-descriptions-item>
-              <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
+              <a-descriptions-item label="签到ID">{{ item.check_in.id }}</a-descriptions-item>              <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
               <a-descriptions-item label="值班开始时间"><span :style=" item.need_check_schedule_time ? {'color': red} : {} ">{{ item.schedule.schedule_start_time }}</span></a-descriptions-item>
               <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
@@ -231,8 +234,9 @@ const showConfirm = (id) => {
           <a-card v-for="item in currentEndedPageData">
             <a-descriptions  :title="'签到名称：' + item.check_in.name"
                             style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
+              <a-descriptions-item label="签到流水ID">{{ item.id }}</a-descriptions-item>
               <a-descriptions-item label="值班ID">{{ item.schedule.id }}</a-descriptions-item>
-              <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
+              <a-descriptions-item label="签到ID">{{ item.check_in.id }}</a-descriptions-item>              <a-descriptions-item label="值班名称">{{ item.schedule.schedule_name }}</a-descriptions-item>
               <a-descriptions-item label="值班开始时间"><span :style=" item.need_check_schedule_time ? {'color': red} : {} ">{{ item.schedule.schedule_start_time }}</span></a-descriptions-item>
               <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
