@@ -1,7 +1,7 @@
 <script setup>
 
 import {reactive, ref, onMounted, computed} from 'vue';
-import {HomeOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import {HomeOutlined, SearchOutlined, UploadOutlined} from '@ant-design/icons-vue';
 import {Empty, message} from "ant-design-vue";
 import api from "@/api";
 import my_config from "@/my_config";
@@ -16,6 +16,15 @@ function handleResize(event) {
     isShow.value = true;
   }
 }
+
+const formItemLayout = {
+  labelCol: {
+    span: 6,
+  },
+  wrapperCol: {
+    span: 14,
+  },
+};
 
 window.addEventListener('resize', handleResize);
 
@@ -104,11 +113,11 @@ const columns = [
   },
   {
     title: '审批状态',
-    dataIndex: ['check_in_user', 'status'],
+    dataIndex: ['status'],
     width: '6.75%',
     customFilterDropdown: true,
     onFilter: (value, record) =>
-        record.check_in_user.status.toString().toLowerCase().includes(value.toLowerCase()),
+        record.status.toString().toLowerCase().includes(value.toLowerCase()),
   },
   {
     title: '请假类型',
@@ -199,6 +208,114 @@ const scroll = computed(() => {
     return {x: 1500}
   }
 })
+
+const visibleInfo = ref(false);
+const currentASLApplicationId = ref(null);
+const currentASLApplicationData = ref({})
+const visiblePhotos = ref(false);
+ const showInfo = async (id) => {
+  currentASLApplicationId.value = id;
+  currentASLApplicationData.value = applicationsData.value.find(asl => asl.id === id);
+  ASLForm.asl_type = currentASLApplicationData.value.asl_type;
+  ASLForm.reject_reason = !currentASLApplicationData.value.reject_reason ? "" : currentASLApplicationData.value.reject_reason;
+  visibleInfo.value = true;
+
+   // 处理图片
+   if (currentASLApplicationData.value.image_url && currentASLApplicationData.value.image_url.length > 0) {
+     await loadImages();
+   } else {
+     images.value = [];
+   }
+}
+const handleClose = () => {
+  visibleInfo.value = false;
+  currentASLApplicationId.value = null;
+  ASLForm.asl_type = null;
+  ASLForm.status = "已拒绝";
+  ASLForm.reject_reason = "";
+}
+
+const ASLForm = reactive({
+  "asl_type": null,
+  "reject_reason": "",
+  "status": "已拒绝"
+})
+
+const handleASL = () => {
+  spinning.value = true;
+  api.patch("/asl/" + currentASLApplicationId.value, ASLForm).then(res => {
+    let {msg} = res.data
+    spinning.value = false;
+    currentASLApplicationData.value.asl_type = ASLForm.asl_type;
+    currentASLApplicationData.value.reject_reason = ASLForm.reject_reason;
+    currentASLApplicationData.value.status = ASLForm.status;
+    handleClose();
+    message.success(msg)
+  }).catch(err => {
+    let {msg} = err.response.data;
+    spinning.value = false;
+    message.error(msg);
+  })
+}
+
+const images = ref([]);
+
+const loadImages = async () => {
+  images.value = []; // 清空旧图片
+  spinning.value = true;
+
+  try {
+    // 并行加载所有图片
+    const imagePromises = currentASLApplicationData.value.image_url.map(async (photoName) => {
+      try {
+        const response = await api.get(`/asl/photo/${currentASLApplicationId.value}/${photoName}`, {
+          responseType: 'blob' // 重要：指定响应类型为 blob
+        });
+
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(response.data);
+        });
+      } catch (error) {
+        console.error(`加载图片 ${photoName} 失败:`, error);
+        return null;
+      }
+    });
+
+    // 等待所有图片加载完成
+    const loadedImages = await Promise.all(imagePromises);
+    images.value = loadedImages.filter(img => img !== null);
+
+  } catch (error) {
+    console.error('加载图片时出错:', error);
+    message.error('加载图片失败');
+  } finally {
+    spinning.value = false;
+  }
+}
+
+const showCleanPhoto = ref(false);
+
+const cleanImageDate = reactive({
+  'target_date': null
+});
+
+const cleanPhotos = () => {
+  spinning.value = true;
+  api.post("/asl/cleanup-images", cleanImageDate).then(res => {
+    let {msg} = res.data;
+    spinning.value = false;
+    showCleanPhoto.value = false;
+    message.success(msg)
+  }).catch(err => {
+    let {msg} = err.response.data;
+    spinning.value = false;
+    message.error(msg)
+  })
+}
+
+
 </script>
 
 <template>
@@ -210,8 +327,11 @@ const scroll = computed(() => {
     </h2>
 
     <div style="padding: 8px; background-color: #FFFFFF">
+      <a-row justify="end">
+        <a-button type="primary" style="margin: 8px; " @click="showCleanPhoto = true;" v-if="userData.is_admin" danger ghost>清空指定日期前的照片</a-button>
+      </a-row>
       <a-spin :spinning="spinning" tip="Loading...">
-        <a-table bordered :data-source="applicationsData" :columns="columns" :scroll="scroll">
+        <a-table :columns="columns" :data-source="applicationsData" :scroll="scroll" bordered>
           <template
               #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
           >
@@ -241,13 +361,135 @@ const scroll = computed(() => {
             </div>
           </template>
           <template #bodyCell="{ column, text, record }">
-            <div>
-              {{ text }}
-            </div>
+            <template
+                v-if="['studentId','name','schedule_name','schedule_start_time','schedule_type','id','status','asl_type','created_at'].includes(column.dataIndex)">
+              <div>
+                {{ text }}
+              </div>
+            </template>
+
+            <template v-else-if="column.dataIndex === 'operation'">
+              <div class="editable-row-operations">
+            <span>
+              <a-button size="small" type="primary" ghost @click="showInfo(record.id)">审批</a-button>
+            </span>
+              </div>
+            </template>
           </template>
         </a-table>
       </a-spin>
     </div>
+    <a-modal v-model:open="visibleInfo" title="请假审批">
+      <a-card title="值班信息">
+        <p>请假ID: {{ currentASLApplicationData.id }}</p>
+        <p>值班ID: {{ currentASLApplicationData.check_in_user.schedule.id }}</p>
+        <p>签到ID: {{ currentASLApplicationData.check_in_user.check_in.id }}</p>
+        <p>值班名称: {{ currentASLApplicationData.check_in_user.schedule.schedule_name }}</p>
+        <p>值班开始时间: <span
+            :style=" currentASLApplicationData.check_in_user.check_in.need_check_schedule_time ? {'color': 'red', 'font-weight': 'bold'} : {} ">{{
+            currentASLApplicationData.check_in_user.schedule.schedule_start_time
+          }}</span></p>
+        <p>值班类型: {{ currentASLApplicationData.check_in_user.schedule.schedule_type }}</p>
+        <p>签到开始时间: {{ currentASLApplicationData.check_in_user.check_in.check_in_start_time }}</p>
+        <p>签到结束时间: {{ currentASLApplicationData.check_in_user.check_in.check_in_end_time }}</p>
+        <p>主签到: {{ currentASLApplicationData.check_in_user.check_in.is_main_check_in ? "是" : "否" }}</p>
+
+      </a-card>
+      <a-card :title=" currentASLApplicationData.asl_type + '-' + '请假理由'">
+        <p>请假人学籍号: {{ currentASLApplicationData.check_in_user.user.studentId }}</p>
+        <p>请假人姓名: {{ currentASLApplicationData.check_in_user.user.name }}</p>
+        <p>{{
+            currentASLApplicationData.asl_reason
+          }}</p>
+        查看图片：<a-button type="primary" ghost :disabled="images.length === 0" @click="visiblePhotos = true;">查看照片</a-button>
+      </a-card>
+
+      <a-card title="审批">
+        <a-form
+            :model="ASLForm"
+            name="validate_other"
+            v-bind="formItemLayout"
+        >
+
+          <a-form-item
+              name="asl_type"
+              label="请假类型"
+              has-feedback
+              :rules="[{ required: true, message: '请选择类型' }]"
+          >
+            <a-select v-model:value="ASLForm.asl_type" placeholder="选择请假类型">
+              <a-select-option value="病假">病假</a-select-option>
+              <a-select-option value="事假">事假</a-select-option>
+              <a-select-option value="公务假">公务假</a-select-option>
+              <a-select-option value="符合要求的赛事或集训">符合要求的赛事或集训</a-select-option>
+            </a-select>
+          </a-form-item>
+
+          <a-form-item name="reject_reason" label="审批意见" :rules="ASLForm.asl_type === '已批准' ? [{'required': false}] : [{'required': true}]">
+            <a-textarea v-model:value="ASLForm.reject_reason"/>
+          </a-form-item>
+
+          <a-form-item
+              name="status"
+              label="选择审批结果"
+              has-feedback
+              :rules="[{ required: true, message: '请选择类型' }]"
+          >
+            <a-select v-model:value="ASLForm.status" placeholder="选择审批结果">
+              <a-select-option value="已拒绝">已拒绝</a-select-option>
+              <a-select-option value="已批准">已批准</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-form>
+      </a-card>
+      <template #footer>
+        <a-button type="primary" @click="handleClose">关闭</a-button>
+        <a-button type="primary" danger @click="handleASL" :loading="spinning">变更</a-button>
+      </template>
+    </a-modal>
+    <a-modal v-model:open="visiblePhotos" title="查看图片">
+      <a-spin :spinning="spinning">
+        <a-descriptions-item v-if="!images">
+          <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" style="width: 100%;  "/>
+          </div>
+        </a-descriptions-item>
+        <a-image-preview-group>
+          <a-image v-for="i in images" :width="200"
+                   fallback="data:image/png;base64,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"
+                   :src="i"/>
+        </a-image-preview-group>
+      </a-spin>
+      <template #footer>
+        <a-button type="primary" @click="visiblePhotos = false;">OK</a-button>
+      </template>
+    </a-modal>
+
+    <a-modal v-model:open="showCleanPhoto" title="清理指定日期前的照片">
+      <a-spin :spinning="spinning">
+        <a-form
+            :model="cleanImageDate"
+            name="validate_other"
+            v-bind="formItemLayout"
+        >
+
+          <a-form-item
+              name="target_date"
+              label="指定日期"
+              has-feedback
+              :rules="[{ required: true, message: '请选择类型' }]"
+          >
+            <a-date-picker v-model:value="cleanImageDate.target_date" placeholder="选择年-月-日" valueFormat="YYYY-MM-DD"/>
+          </a-form-item>
+
+        </a-form>
+
+      </a-spin>
+      <template #footer>
+        <a-button type="primary" @click="showCleanPhoto = false">取消</a-button>
+        <a-button type="primary" danger @click="cleanPhotos">删除</a-button>
+      </template>
+    </a-modal>
 
   </a-layout-content>
 </template>
