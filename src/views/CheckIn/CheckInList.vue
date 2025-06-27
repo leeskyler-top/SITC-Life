@@ -74,6 +74,7 @@ const checkin = (id) => {
 };
 
 onMounted(() => {
+  handleResize();
   listMyCheckIns();
 });
 
@@ -262,6 +263,25 @@ const columns = [
     fixed: 'right'
   }
 ];
+
+const isShow = ref(true);
+
+function handleResize(event) {
+  // 页面宽度小于525px时，不显示表格
+  if (document.documentElement.clientWidth < 979) {
+    isShow.value = false;
+  } else {
+    isShow.value = true;
+  }
+}
+
+const scroll = computed(() => {
+  if (isShow.value === true) {
+    return false
+  } else {
+    return {x: 1000}
+  }
+})
 
 const applicationsData = ref([])
 
