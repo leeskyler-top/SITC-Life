@@ -321,14 +321,14 @@ const liseCheckInUsers = () => {
   checkInUserForm.check_in_user_ids = [];
   api.post("/checkin/checkinuser", checkInUserFilter).then(res => {
     let {msg, data} = res.data;
-    data = data.map(item => {
-      if (item.check_in.is_main_check_in === true) {
-        item.check_in.is_main_check_in = '是';
-      } else {
-        item.check_in.is_main_check_in = '否';
-      }
-      return item;
-    })
+    // data = data.map(item => {
+    //   if (item.check_in.is_main_check_in === true) {
+    //     item.check_in.is_main_check_in = '是';
+    //   } else {
+    //     item.check_in.is_main_check_in = '否';
+    //   }
+    //   return item;
+    // })
     console.log(data);
     checkInUsersData.value = data.filter(ciu => ciu.asl.filter(asl => asl.status === '已批准').length === 0);
     spinning.value = false;

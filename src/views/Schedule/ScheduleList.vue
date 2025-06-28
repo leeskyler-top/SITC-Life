@@ -78,19 +78,19 @@ const listCheckIns = () => {
   api.get("/checkin").then((res) => {
     let {msg, data} = res.data;
     message.success(msg);
-    data = data.map(item => {
-      if (item.is_main_check_in === true) {
-        item.is_main_check_in = '是';
-      } else {
-        item.is_main_check_in = '否';
-      }
-      if (item.need_check_schedule_time === true) {
-        item.need_check_schedule_time = '是';
-      } else {
-        item.need_check_schedule_time = '否';
-      }
-      return item;
-    })
+    // data = data.map(item => {
+    //   if (item.is_main_check_in === true) {
+    //     item.is_main_check_in = '是';
+    //   } else {
+    //     item.is_main_check_in = '否';
+    //   }
+    //   if (item.need_check_schedule_time === true) {
+    //     item.need_check_schedule_time = '是';
+    //   } else {
+    //     item.need_check_schedule_time = '否';
+    //   }
+    //   return item;
+    // })
     // 按 schedule_start_time 倒序排列
     checkInData.value = data.sort((a, b) => {
       return moment(b.check_in_start_time).diff(moment(a.check_in_start_time)); // 使用 moment 处理时间比较
@@ -209,6 +209,7 @@ const checkInColumns = [
     dataIndex: ['is_main_check_in'],
     width: '3%',
     customFilterDropdown: true,
+    customRender: ({ text }) => text === true ? '是' : text === false ? '否' : text,
     onFilter: (value, record) =>
         record.is_main_check_in.toString().toLowerCase().includes(value.toLowerCase())
   },
@@ -251,6 +252,7 @@ const checkInColumns = [
     dataIndex: ['need_check_schedule_time'],
     width: '3%',
     customFilterDropdown: true,
+    customRender: ({ text }) => text === true ? '是' : text === false ? '否' : text,
     onFilter: (value, record) =>
         record.need_check_schedule_time.toString().toLowerCase().includes(value.toLowerCase())
   },
@@ -342,8 +344,8 @@ const changeCheckIn = () => {
     } else if (activeKey.value === 'checkins') {
       Object.assign(checkInData.value.find(checkin => checkin.id === currentCheckInId.value), data);
       currentCheckIn.value = checkInData.value.find(checkin => checkin.id === currentCheckInId.value);
-      checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in === true ? checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in = "是" : checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in = "否"
-      checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time === true ? checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = "是" : checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = "否"
+      // checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in === true ? checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in = "是" : checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in = "否"
+      // checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time === true ? checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = "是" : checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = "否"
     }
     loading.value = false;
     visibleCheckInEdit.value = false;
@@ -572,8 +574,8 @@ const showConfirm = (id, op) => {
   } else if (op === "openCurrentCheckIn") {
     visibleCurrentCheckIn.value = true;
     currentCheckIn.value = checkInData.value.find(checkin => checkin.id === id);
-    currentCheckIn.value.is_main_check_in === "是" ? currentCheckIn.value.is_main_check_in = true : currentCheckIn.value.is_main_check_in = "否"
-    currentCheckIn.value.need_check_schedule_time === "是" ? currentCheckIn.value.need_check_schedule_time = true : currentCheckIn.value.need_check_schedule_time = "否"
+    // visibleCurrentCheckIn.value && currentCheckIn.value.is_main_check_in === "是" ? currentCheckIn.value.is_main_check_in = true : currentCheckIn.value.is_main_check_in = false
+    // visibleCurrentCheckIn.value && currentCheckIn.value.need_check_schedule_time === "是" ? currentCheckIn.value.need_check_schedule_time = true : currentCheckIn.value.need_check_schedule_time = false
   } else if (op === "checkIn") {
     currentCheckInId.value = id[0]
     Modal.confirm({
@@ -632,6 +634,10 @@ const handleCancel = () => {
   visibleCheckIn.value = false;
   visibleCurrentCheckIn.value = false;
   visibleCreateCheckIn.value = false;
+  if (currentCheckIn.value) {
+    // currentCheckIn.value.is_main_check_in === true ? currentCheckIn.value.is_main_check_in = '是' : currentCheckIn.value.is_main_check_in = '否'
+    // currentCheckIn.value.need_check_schedule_time === true ? currentCheckIn.value.need_check_schedule_time = '是' : currentCheckIn.value.need_check_schedule_time = '否'
+  }
 };
 
 const scroll = computed(() => {
@@ -930,7 +936,7 @@ const downloadCurrentScheduleCheckInUser = (id) => {
               </template>
               <template #bodyCell="{ column, text, record }">
                 <template
-                    v-if="['name', 'check_in_start_time', 'check_in_end_time', 'is_main_check_in', 'schedule_name', 'schedule_start_time', 'schedule_type', 'need_check_schedule_time'].includes(column.dataIndex)">
+                    v-if="['name', 'check_in_start_time', 'check_in_end_time', 'schedule_name', 'schedule_start_time', 'schedule_type'].includes(column.dataIndex)">
                   <div>
                     {{ text }}
                   </div>
@@ -944,7 +950,7 @@ const downloadCurrentScheduleCheckInUser = (id) => {
                           <a @click="showModal(record.schedule_id)">查看值班</a>
                       </span>
                     <span>
-                        <a-popconfirm title="确定删除此签到？" v-if="record.is_main_check_in === '否'"
+                        <a-popconfirm title="确定删除此签到？" v-if="record.is_main_check_in === '否' || record.is_main_check_in === false"
                                       @confirm="deleteCheckIn(record.id)"><a
                             style="color: red">删除</a></a-popconfirm>
                       </span>
@@ -1174,14 +1180,14 @@ const downloadCurrentScheduleCheckInUser = (id) => {
           <p>签到结束时间: {{ currentCheckIn.check_in_end_time }}</p>
           <div>
             <a-button type="primary" @click="showCheckInEdit(currentCheckIn.id, 'currentCheckIn')">签到控制</a-button>
-            <a-button v-if="currentCheckIn.is_main_check_in === '否'" style="margin-left: 4px;" type="primary" ghost
+            <a-button v-if="currentCheckIn.is_main_check_in === '否' || currentCheckIn.is_main_check_in === false" style="margin-left: 4px;" type="primary" ghost
                       @click="showPeople('showCheckInUser', currentCheckIn.id)">编辑人员
             </a-button>
             <a-button type="primary" style="margin-left: 4px; background-color: #4CAF50;" @click="downloadCurrentCheckIn(currentCheckIn.id)">
               下载签到流水
             </a-button>
 
-            <a-button v-if="currentCheckIn.is_main_check_in === '否'" style="margin-left: 4px;" type="primary" danger
+            <a-button v-if="currentCheckIn.is_main_check_in === '否' || currentCheckIn.is_main_check_in === false" style="margin-left: 4px;" type="primary" danger
                       @click="showConfirm([currentCheckIn.id], 'deleteCheckIn');">
               删除签到
             </a-button>
