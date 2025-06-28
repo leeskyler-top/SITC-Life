@@ -419,6 +419,10 @@ const scroll = computed(() => {
   }
 })
 
+const disableChangeButton = computed(() => {
+  return !formState.name || !formState.phone || !formState.classname || !formState.department || !formState.gender || !formState.join_at
+})
+
 </script>
 
 <template>
@@ -592,7 +596,7 @@ const scroll = computed(() => {
       </a-form>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
-        <a-button type="primary" danger @click="changeUser">变更</a-button>
+        <a-button type="primary" danger @click="changeUser" :disabled="disableChangeButton">变更</a-button>
       </template>
     </a-modal>
     <a-modal v-model:open="visiblePassword" title="重置密码">

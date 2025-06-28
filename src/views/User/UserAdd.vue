@@ -1,5 +1,5 @@
 <script setup>
-import {reactive, ref} from "vue";
+import {computed, reactive, ref} from "vue";
 import api from "@/api";
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
@@ -65,6 +65,10 @@ const addUser = () => {
     message.error(msg);
   });
 }
+
+const disableButton = computed(() => {
+  return !formState.studentId || !formState.name || !formState.department || !formState.classname || !formState.gender || !formState.join_at || !formState.phone
+})
 
 </script>
 
@@ -174,7 +178,7 @@ const addUser = () => {
             <a-date-picker v-model:value="formState.join_at" placeholder="选择年-月-日" valueFormat="YYYY-MM-DD"/>
           </a-form-item>
           <a-form-item :wrapper-col="{ span: 12, offset: 6 }">
-            <a-button type="primary" html-type="submit" :loading="loading">提交</a-button>
+            <a-button type="primary" html-type="submit" :loading="loading" :disabled="disableButton">提交</a-button>
           </a-form-item>
         </a-form>
       </a-col>

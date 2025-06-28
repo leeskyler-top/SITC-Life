@@ -421,7 +421,7 @@ function handleResize(event) {
                            valueFormat="YYYY-MM-DD HH:mm:ss"/>
           </a-form-item>
           <a-form-item>
-            <a-button type="primary" @click="attendanceStats">查询</a-button>
+            <a-button type="primary" @click="attendanceStats" :disabled="!attendanceForm.end_time || !attendanceForm.start_time">查询</a-button>
           </a-form-item>
         </a-form>
 

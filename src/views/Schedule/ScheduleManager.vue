@@ -506,7 +506,7 @@ const deleteSchedules = async () => {
       </a-form>
       <template #footer>
         <a-button type="primary" @click="showAddScheduleModal = false">关闭</a-button>
-        <a-button type="primary" danger @click="createSchedule">变更</a-button>
+        <a-button type="primary" danger @click="createSchedule" :disabled="!scheduleForm.schedule_start_time || !scheduleForm.schedule_name">变更</a-button>
       </template>
     </a-modal>
     <!-- User Selection Modal -->

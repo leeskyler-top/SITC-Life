@@ -383,6 +383,10 @@ const handleSearch = (selectedKeys, confirm, dataIndex) => {
   state.searchedColumn = dataIndex;
 };
 
+const disableButton = computed(() => {
+  return !ASLForm.asl_reason || ((typeof (ASLForm.image_url)) === 'object' && ASLForm.image_url.length === 0 && ASLForm.asl_type !== '事假') || (!ASLForm.image_url && ASLForm.asl_type !== '事假')
+})
+
 </script>
 
 <template>
@@ -585,12 +589,10 @@ const handleSearch = (selectedKeys, confirm, dataIndex) => {
             </a-button>
           </a-upload>
         </a-form-item>
-
-
       </a-form>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
-        <a-button type="primary" danger @click="handleASL" :loading="spinning">变更</a-button>
+        <a-button type="primary" danger @click="handleASL" :loading="spinning" :disabled="disableButton">变更</a-button>
       </template>
     </a-modal>
     <a-modal v-model:open="visibleInfo" title="信息一览">

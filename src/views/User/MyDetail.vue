@@ -164,7 +164,7 @@ onMounted(() => {
             <a-input v-model:value="formState.confirm_password" type="password" autocomplete="off"/>
           </a-form-item>
           <a-form-item>
-            <a-button type="primary" html-type="submit" :loading="loading">提交</a-button>
+            <a-button type="primary" html-type="submit" :loading="loading" :disabled="!formState.old_password || !formState.new_password || !formState.confirm_password || (formState.new_password !== formState.confirm_password)">提交</a-button>
           </a-form-item>
         </a-form>
 

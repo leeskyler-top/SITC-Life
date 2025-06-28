@@ -292,7 +292,13 @@ const currentSelectedScheduleId = ref();
 const currentCheckInId = ref();
 
 const showModal = id => {
-  let schedule = scheduleData.value.find(i => i.id === id);
+  let schedule
+  if (activeKey.value === 'schedules') {
+    schedule = scheduleData.value.find(i => i.id === id);
+  } else {
+    schedule = checkInData.value.find(checkin => checkin.schedule.id === id && checkin.is_main_check_in).check_in_users
+  }
+  console.log(schedule)
   currentId.value = id;
   if (schedule) {
     formState.schedule_name = schedule.schedule_name;
@@ -376,8 +382,11 @@ const fetchCheckInUsers = (displayMainCheckIn = false, id = null) => {
     const schedule = scheduleData.value.find(s => s.id === currentId.value);
     user_ids.value = schedule.check_ins.find(checkin => checkin.id === id).check_in_users.map(checkInUser => checkInUser.user.id);
     currentCheckInId.value = id;
-  } else if (activeKey.value === 'checkins') {
+  } else if (activeKey.value === 'checkins' && !displayMainCheckIn) {
     user_ids.value = checkInData.value.find(checkin => checkin.id === id).check_in_users.map(checkInUser => checkInUser.user.id)
+    currentCheckInId.value = id;
+  } else if (activeKey.value === 'checkins' && displayMainCheckIn) {
+    user_ids.value = checkInData.value.find(checkin => checkin.schedule.id === id && checkin.is_main_check_in).check_in_users.map(checkInUser => checkInUser.user.id)
     currentCheckInId.value = id;
   }
 };
@@ -386,7 +395,7 @@ const current_users = ref([])
 
 const showPeople = (op = null, id = null) => {
   if (op === 'showMainCheckInUsers') {
-    fetchCheckInUsers(true); // 获取并设置用户
+    fetchCheckInUsers(true, currentId.value); // 获取并设置用户
   } else if (op === 'showCheckInUser' && id) {
     fetchCheckInUsers(false, id);
   }
@@ -811,6 +820,10 @@ const downloadCurrentScheduleCheckInUser = (id) => {
 }
 
 
+const disableCreateCheckInButton = computed(() => {
+  return !checkin.name || !checkin.check_in_start_time || !checkin.check_in_end_time || !currentSelectedScheduleId.value
+})
+
 
 </script>
 
@@ -987,7 +1000,7 @@ const downloadCurrentScheduleCheckInUser = (id) => {
 
         <a-form-item
             name="schedule_type"
-            label="性别"
+            label="值班类型"
             has-feedback
             :rules="[{ required: true, message: '请选择类型' }]"
         >
@@ -1006,10 +1019,10 @@ const downloadCurrentScheduleCheckInUser = (id) => {
       </a-form>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
-        <a-button type="primary" danger @click="changeSchedule">变更</a-button>
+        <a-button type="primary" danger @click="changeSchedule" :disabled="!formState.schedule_name || !formState.schedule_start_time">变更</a-button>
       </template>
     </a-modal>
-    <a-modal v-model:open="visibleCreateCheckIn" title="添加子签到">
+    <a-modal v-model:open="visibleCreateCheckIn" title="添加子签到" :z-index="1000">
 
       <a-form
           :model="checkin"
@@ -1058,8 +1071,8 @@ const downloadCurrentScheduleCheckInUser = (id) => {
 
       </a-form>
       <template #footer>
-        <a-button type="primary" @click="handleCancel">关闭</a-button>
-        <a-button type="primary" danger :loading="loading" @click="createCheckIn">变更</a-button>
+        <a-button type="primary" @click="visibleCreateCheckIn=false;">关闭</a-button>
+        <a-button type="primary" danger :loading="loading" @click="createCheckIn" :disabled="disableCreateCheckInButton">变更</a-button>
       </template>
     </a-modal>
 
@@ -1091,7 +1104,7 @@ const downloadCurrentScheduleCheckInUser = (id) => {
       </a-form>
       <template #footer>
         <a-button type="primary" @click="showAddScheduleModal = false">关闭</a-button>
-        <a-button type="primary" danger @click="createSchedule">变更</a-button>
+        <a-button type="primary" danger @click="createSchedule" :disabled="!scheduleForm.schedule_name || !scheduleForm.schedule_start_time">变更</a-button>
       </template>
     </a-modal>
 
@@ -1186,7 +1199,6 @@ const downloadCurrentScheduleCheckInUser = (id) => {
             <a-button type="primary" style="margin-left: 4px; background-color: #4CAF50;" @click="downloadCurrentCheckIn(currentCheckIn.id)">
               下载签到流水
             </a-button>
-
             <a-button v-if="currentCheckIn.is_main_check_in === '否' || currentCheckIn.is_main_check_in === false" style="margin-left: 4px;" type="primary" danger
                       @click="showConfirm([currentCheckIn.id], 'deleteCheckIn');">
               删除签到
@@ -1227,7 +1239,7 @@ const downloadCurrentScheduleCheckInUser = (id) => {
       </a-spin>
     </a-modal>
 
-    <a-modal v-model:open="visibleCheckInEdit" title="签到控制" :z-index="5000">
+    <a-modal v-model:open="visibleCheckInEdit" title="签到控制" :z-index="visibleCurrentCheckIn.value ? 1500 : 1000">
 
       <a-form
           :model="checkin"
@@ -1269,11 +1281,11 @@ const downloadCurrentScheduleCheckInUser = (id) => {
       </a-form>
       <template #footer>
         <a-button type="primary" @click="handleCancelEdit">关闭</a-button>
-        <a-button type="primary" danger :loading="loading" @click="changeCheckIn()">变更</a-button>
+        <a-button type="primary" danger :loading="loading" @click="changeCheckIn()" :disabled="!checkin.name || !checkin.check_in_start_time || !checkin.check_in_end_time">变更</a-button>
       </template>
     </a-modal>
 
-    <a-modal title="用户列表" v-model:open="visiblePeople" :z-index="3000">
+    <a-modal title="用户列表" v-model:open="visiblePeople" :z-index="7000">
       <a-card>
         <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>
         <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>
@@ -1318,7 +1330,7 @@ const downloadCurrentScheduleCheckInUser = (id) => {
       </template>
     </a-modal>
 
-    <a-modal title="查询值班计划" v-model:open="visibleSchedules">
+    <a-modal title="查询值班计划" v-model:open="visibleSchedules" :z-index="6000" >
       <a-table :columns="scheduleColumns" :data-source="scheduleData" :scroll="scroll" bordered>
         <template
             #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"

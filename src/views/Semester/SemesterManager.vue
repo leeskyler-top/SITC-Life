@@ -148,7 +148,7 @@ onMounted(() => {
       </a-form>
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
-        <a-button type="primary" danger @click="updateSemester">变更</a-button>
+        <a-button type="primary" danger @click="updateSemester" :disabled="!formState.semester_name || !formState.start_month || !formState.end_month">变更</a-button>
       </template>
     </a-modal>
   </a-layout-content>

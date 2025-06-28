@@ -662,7 +662,7 @@ const createASL = async () => {
       </a-card>
       <template #footer>
         <a-button type="primary" @click="handleClose">关闭</a-button>
-        <a-button type="primary" danger @click="handleASL" :loading="spinning">变更</a-button>
+        <a-button type="primary" danger @click="handleASL" :loading="spinning" :disabled="ASLForm.status === '已拒绝' && !ASLForm.reject_reason">变更</a-button>
       </template>
     </a-modal>
     <a-modal v-model:open="visiblePhotos" title="查看图片">
@@ -706,7 +706,7 @@ const createASL = async () => {
       </a-spin>
       <template #footer>
         <a-button type="primary" @click="showCleanPhoto = false">取消</a-button>
-        <a-button type="primary" danger @click="cleanPhotos">删除</a-button>
+        <a-button type="primary" danger @click="cleanPhotos" :disabled="!cleanImageDate.target_date">删除</a-button>
       </template>
     </a-modal>
     <a-modal v-model:open="visibleASL" title="补充请假">
@@ -763,7 +763,9 @@ const createASL = async () => {
 
       <template #footer>
         <a-button type="primary" danger @click="visibleASL = false;">取消</a-button>
-        <a-button type="primary" @click="createASL" :disabled="checkInUserForm.check_in_user_ids.length===0">变更
+        <a-button type="primary" @click="createASL"
+                  :disabled="checkInUserForm.check_in_user_ids.length===0 || !newASLForm.asl_type || !newASLForm.asl_reason || !newASLForm.asl_reason">
+          变更
         </a-button>
       </template>
     </a-modal>
@@ -782,7 +784,7 @@ const createASL = async () => {
                          valueFormat="YYYY-MM-DD HH:mm:ss"/>
         </a-form-item>
         <a-form-item>
-          <a-button type="primary" @click="liseCheckInUsers">查询</a-button>
+          <a-button type="primary" @click="liseCheckInUsers" :disabled="!checkInUserFilter.start_time || !checkInUserFilter.end_time">查询</a-button>
         </a-form-item>
         <a-radio-group v-model:value="checkInUserFilter.type" :options="[
                 {
@@ -834,8 +836,8 @@ const createASL = async () => {
         </a-table>
       </a-spin>
       <template #footer>
-        <a-button type="primary" danger @click="visibleCheckInUsers=false;">放弃选择</a-button>
-        <a-button type="primary" @click="visibleCheckInUsers=false;">保存选择</a-button>
+        <a-button type="primary" danger @click="handleCancelSelect">放弃选择</a-button>
+        <a-button type="primary" @click="visibleCheckInUsers=false;" :disabled="(typeof(checkInUserForm.check_in_user_ids) === 'object' && checkInUserForm.check_in_user_ids.length === 0) || !checkInUserForm.check_in_user_ids">保存选择</a-button>
       </template>
     </a-modal>
   </a-layout-content>
