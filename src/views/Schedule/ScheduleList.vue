@@ -4,6 +4,8 @@ import {ExclamationCircleOutlined, SearchOutlined, HomeOutlined} from '@ant-desi
 import {Empty, message, Modal, Table} from "ant-design-vue";
 import api from "@/api";
 import moment from "moment/moment";
+import { saveAs } from 'file-saver' // install file-saver package
+
 
 const isShow = ref(true);
 const is_admin = ref(localStorage.is_admin === 'true');
@@ -31,6 +33,7 @@ const visibleCurrentCheckIn = ref(false);
 const visibleCheckInEdit = ref(false);
 const visibleCreateCheckIn = ref(false);
 const visibleSchedules = ref(false);
+const visibleDownloadModal = ref(false);
 const activeKey = ref(!localStorage.schedule_page_tab ? 'schedules' : localStorage.schedule_page_tab);
 
 const handleTabChange = (key) => {
@@ -661,6 +664,7 @@ const showCreateCheckInModal = (id = null) => {
   }
 }
 
+
 const selectSchedule = (id) => {
   currentSelectedScheduleId.value = id;
   visibleSchedules.value = false;
@@ -718,6 +722,90 @@ onMounted(() => {
 });
 
 
+const checkInUserForm = reactive({
+  "start_time": null,
+  "end_time": null,
+  "type": "checkin_time",
+  "export": true
+});
+
+
+const downloadCheckInUser = () => {
+  api.post("/checkin/checkinuser", checkInUserForm,{
+    responseType: 'blob' // Important for file downloads
+  }).then(res => {
+    // Extract filename from response headers
+    const contentDisposition = res.headers['content-disposition']
+    let filename = '签到记录.xlsx'
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/)
+      if (filenameMatch && filenameMatch[1]) {
+        filename = filenameMatch[1]
+      }
+    }
+
+    // Save the file using file-saver
+    saveAs(new Blob([res.data]), filename)
+
+  }).catch(err => {
+    message.error("下载失败");
+    console.log(err);
+  })
+}
+
+
+const downloadCurrentCheckIn = (id) => {
+  api.post("/checkin/export/" + id, {
+    'export': true
+  },{
+    responseType: 'blob' // Important for file downloads
+  }).then(res => {
+    // Extract filename from response headers
+    const contentDisposition = res.headers['content-disposition']
+    let filename = '签到记录.xlsx'
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/)
+      if (filenameMatch && filenameMatch[1]) {
+        filename = filenameMatch[1]
+      }
+    }
+
+    // Save the file using file-saver
+    saveAs(new Blob([res.data]), filename)
+
+  }).catch(err => {
+    message.error("下载失败");
+    console.log(err);
+  })
+}
+
+const downloadCurrentScheduleCheckInUser = (id) => {
+  api.post("/checkin/checkinuser/schedule/" + id, {
+    'export': true
+  },{
+    responseType: 'blob' // Important for file downloads
+  }).then(res => {
+    // Extract filename from response headers
+    const contentDisposition = res.headers['content-disposition']
+    let filename = '签到记录.xlsx'
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/)
+      if (filenameMatch && filenameMatch[1]) {
+        filename = filenameMatch[1]
+      }
+    }
+
+    // Save the file using file-saver
+    saveAs(new Blob([res.data]), filename)
+
+  }).catch(err => {
+    message.error("下载失败");
+    console.log(err);
+  })
+}
+
+
+
 </script>
 
 <template>
@@ -740,6 +828,9 @@ onMounted(() => {
                 批量添加值班计划
               </a-button>
             </router-link>
+            <a-button type="primary" style="margin: 8px; background-color: #4CAF50;" @click="visibleDownloadModal=true;">
+              下载流水
+            </a-button>
           </a-row>
           <a-spin :spinning="spinning" tip="Loading...">
             <a-table :columns="scheduleColumns" :data-source="dataSource" :scroll="scroll" bordered>
@@ -798,9 +889,13 @@ onMounted(() => {
           </a-spin>
         </a-tab-pane>
         <a-tab-pane key="checkins" tab="所有签到">
+
           <a-row justify="end">
             <a-button type="primary" style="margin: 8px" @click="showCreateCheckInModal" ghost>
               添加子签到
+            </a-button>
+            <a-button type="primary" style="margin: 8px; background-color: #4CAF50;" @click="visibleDownloadModal=true;">
+              下载流水
             </a-button>
           </a-row>
           <a-spin :spinning="spinning" tip="Loading...">
@@ -1010,6 +1105,9 @@ onMounted(() => {
                       @click="showCreateCheckInModal(scheduleData.find(s => s.id === currentId).id)" ghost>
               添加子签到
             </a-button>
+            <a-button type="primary" style="margin-left: 4px; background-color: #4CAF50;" @click="downloadCurrentScheduleCheckInUser(scheduleData.find(s => s.id === currentId).id)">
+              下载值班签到流水
+            </a-button>
           </div>
         </a-card>
         <a-collapse accordion>
@@ -1020,6 +1118,9 @@ onMounted(() => {
               <p>签到结束时间: {{ checkIn?.check_in_end_time }}</p>
               <div>
                 <a-button type="primary" @click="showCheckInEdit(checkIn?.id)">签到控制</a-button>
+                <a-button type="primary" style="margin: 8px; background-color: #4CAF50;" @click="downloadCurrentCheckIn(checkIn?.id)">
+                  下载签到流水
+                </a-button>
                 <a-button v-if="checkIn.is_main_check_in === false" style="margin-left: 4px;" type="primary" ghost
                           @click="showPeople('showCheckInUser', checkIn?.id)">编辑人员
                 </a-button>
@@ -1076,6 +1177,10 @@ onMounted(() => {
             <a-button v-if="currentCheckIn.is_main_check_in === '否'" style="margin-left: 4px;" type="primary" ghost
                       @click="showPeople('showCheckInUser', currentCheckIn.id)">编辑人员
             </a-button>
+            <a-button type="primary" style="margin-left: 4px; background-color: #4CAF50;" @click="downloadCurrentCheckIn(currentCheckIn.id)">
+              下载签到流水
+            </a-button>
+
             <a-button v-if="currentCheckIn.is_main_check_in === '否'" style="margin-left: 4px;" type="primary" danger
                       @click="showConfirm([currentCheckIn.id], 'deleteCheckIn');">
               删除签到
@@ -1253,6 +1358,38 @@ onMounted(() => {
       </a-table>
       <template #footer>
         <a-button type="primary" danger @click="visibleSchedules=false;">关闭</a-button>
+      </template>
+    </a-modal>
+
+    <a-modal title="下载签到流水" v-model:open="visibleDownloadModal">
+      <a-form>
+        <a-form-item label="开始时间">
+          <a-date-picker v-model:value="checkInUserForm.start_time"
+                         format="YYYY-MM-DD HH:mm:ss"
+                         show-time
+                         valueFormat="YYYY-MM-DD HH:mm:ss"/>
+        </a-form-item>
+        <a-form-item label="结束时间">
+          <a-date-picker v-model:value="checkInUserForm.end_time"
+                         format="YYYY-MM-DD HH:mm:ss"
+                         show-time
+                         valueFormat="YYYY-MM-DD HH:mm:ss"/>
+        </a-form-item>
+        <a-radio-group v-model:value="checkInUserForm.type" :options="[
+                {
+                    label: '根据值班时间',
+                    value: 'schedule_time'
+                },
+                {
+                    label: '根据签到时间',
+                    value: 'checkin_time'
+                }
+            ]"/>
+      </a-form>
+
+      <template #footer>
+        <a-button type="primary" danger @click="visibleDownloadModal=false;">关闭</a-button>
+        <a-button type="primary" @click="downloadCheckInUser" :disabled="!checkInUserForm.start_time || !checkInUserForm.end_time">下载</a-button>
       </template>
     </a-modal>
 
