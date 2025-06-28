@@ -316,7 +316,7 @@ const showCheckInEdit = (id, op = null) => {
     checkin.name = current_check_in.name
     checkin.check_in_start_time = current_check_in.check_in_start_time
     checkin.check_in_end_time = current_check_in.check_in_end_time
-    checkin.need_check_schedule_time = current_check_in.need_check_schedule_time
+    checkin.need_check_schedule_time = current_check_in.need_check_schedule_time === '是' || current_check_in.need_check_schedule_time === true;
   }
   visibleCheckInEdit.value = true;
 
@@ -334,11 +334,10 @@ const changeCheckIn = () => {
   loading.value = true;
   api.patch("/checkin/" + currentCheckInId.value, checkin).then(res => {
     let {msg, data} = res.data;
-    console.log(data)
     if (activeKey.value === 'schedules') {
       Object.assign(scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value), data)
     } else if (activeKey.value === 'checkins') {
-      Object.assign(checkInData.value.find(checkin => checkin.id === currentCheckInId), data);
+      Object.assign(checkInData.value.find(checkin => checkin.id === currentCheckInId.value), data);
       currentCheckIn.value = checkInData.value.find(checkin => checkin.id === currentCheckInId.value);
       checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in === true ? checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in = "是" : checkInData.value.find(checkin => checkin.id === currentCheckInId.value).is_main_check_in = "否"
       checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time === true ? checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = "是" : checkInData.value.find(checkin => checkin.id === currentCheckInId.value).need_check_schedule_time = "否"
@@ -351,7 +350,6 @@ const changeCheckIn = () => {
     checkin.need_check_schedule_time = null;
     message.success(msg)
   }).catch(err => {
-    console.log(err);
     let {msg} = err.response.data;
     loading.value = false;
     message.error(msg)
@@ -519,7 +517,6 @@ const revokeCheckIn = (id) => {
   loading.value = true;
   api.get("/checkin/cancel/" + id).then(res => {
     let {msg, data} = res.data;
-    console.log(currentCheckInId.value)
     activeKey.value === 'schedules' ? Object.assign(scheduleData.value.find(schedule => schedule.id === currentId.value).check_ins.find(checkin => checkin.id === currentCheckInId.value).check_in_users.find(checkInUser => checkInUser.id === id), data) : Object.assign(checkInData.value.find(checkin => checkin.id === currentCheckInId.value)?.check_in_users?.find(checkInUser => checkInUser.id === id), data);
     loading.value = false;
     message.success(msg);
@@ -1119,7 +1116,7 @@ onMounted(() => {
       </a-spin>
     </a-modal>
 
-    <a-modal v-model:open="visibleCheckInEdit" title="签到控制">
+    <a-modal v-model:open="visibleCheckInEdit" title="签到控制" :z-index="5000">
 
       <a-form
           :model="checkin"
@@ -1209,7 +1206,6 @@ onMounted(() => {
         <a-button type="primary" @click="handleCloseUser('T')">保存</a-button>
       </template>
     </a-modal>
-
 
     <a-modal title="查询值班计划" v-model:open="visibleSchedules">
       <a-table :columns="scheduleColumns" :data-source="scheduleData" :scroll="scroll" bordered>

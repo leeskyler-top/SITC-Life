@@ -338,7 +338,7 @@ onMounted(() => {
               <a-collapse-panel v-for="item in currentMsgPageData" :key="item.id" :header="item.msg_title"
                                 :style="item.status === false && item.msg_type === 'PRIVATE' ? { fontWeight: 'bold' } : {}"
                                 @click.stop="readMsg(item.id)">
-                <p>{{ item.msg_text }}</p>
+                <div v-html="item.msg_text"></div>
               </a-collapse-panel>
             </a-collapse>
           </a-spin>
