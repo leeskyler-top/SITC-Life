@@ -704,6 +704,7 @@ const scroll = computed(() => {
             <a-table :columns="department_columns"
                      :data-source="checkInData.department_data ? [checkInData.department_data] : []"
                      bordered
+                     :scroll="scroll"
                      style="margin-bottom: 24px;">
             </a-table>
 
