@@ -522,7 +522,6 @@ const createASL = async () => {
     message.success("已执行补充请假")
 
     // 清空选中的ciu ID
-    checkInUserForm.check_in_user_ids.value = [];
     visibleASL.value = false;
     listASLApplications();
     checkInUserForm.check_in_user_ids = [];
@@ -531,7 +530,6 @@ const createASL = async () => {
     console.log(err);
     const {msg} = err.response.data;
     openNotification("补充请假失败", msg); // 使用通知组件
-    checkInUserForm.check_in_user_ids = [];
     checkInUsersData.value = [];
   }
 }
@@ -761,6 +759,7 @@ const createASL = async () => {
                 name="pic1"
                 list-type="picture"
                 :before-upload="true"
+                accept=".jpg,.jpeg,.png,.heic,.heif,.tiff,.jiff"
             >
               <a-button :disabled="checkInUserForm.check_in_user_ids.length >= 6">
                 <template #icon>

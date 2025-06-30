@@ -1109,7 +1109,7 @@ const disableCreateCheckInButton = computed(() => {
     </a-modal>
 
     <!--    查看签到-->
-    <a-modal v-model:open="visibleCheckIn" title="签到管理">
+    <a-modal v-model:open="visibleCheckIn" title="签到管理" :z-index="500">
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
       </template>
@@ -1180,7 +1180,7 @@ const disableCreateCheckInButton = computed(() => {
         </a-collapse>
       </a-spin>
     </a-modal>
-    <a-modal v-model:open="visibleCurrentCheckIn" title="当前签到管理">
+    <a-modal v-model:open="visibleCurrentCheckIn" title="当前签到管理" :z-index="500">
       <template #footer>
         <a-button type="primary" @click="handleCancel">关闭</a-button>
       </template>
@@ -1239,7 +1239,7 @@ const disableCreateCheckInButton = computed(() => {
       </a-spin>
     </a-modal>
 
-    <a-modal v-model:open="visibleCheckInEdit" title="签到控制" :z-index="visibleCurrentCheckIn.value ? 1500 : 1000">
+    <a-modal v-model:open="visibleCheckInEdit" title="签到控制">
 
       <a-form
           :model="checkin"

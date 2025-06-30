@@ -59,11 +59,18 @@ const listMyCheckIns = () => {
   });
 };
 
-const checkin = (id) => {
+const checkin = (id, ciu_id) => {
   spinning.value = true;
   api.get("/checkin/checkin/" + id).then(res => {
     let {msg} = res.data;
-    check_in_data.value = check_in_data.value.filter(x => x.id !== id)
+    const index = check_in_data.value.findIndex(item => item.id === ciu_id)
+    if (index !== -1) {
+      check_in_data.value = [
+        ...check_in_data.value.slice(0, index),
+        { ...check_in_data.value[index], status: '正常' },
+        ...check_in_data.value.slice(index + 1)
+      ]
+    }
     message.success(msg);
   }).catch(err => {
     let {msg} = err.response.data;
@@ -130,11 +137,23 @@ const handleASL = () => {
       'Content-Type': "multipart/form-data"
     }
   }).then(res => {
-    let {msg} = res.data;
+    let {msg, data} = res.data;
     spinning.value = false;
+    // 修复：使用响应式方式更新数组
+    const index = check_in_data.value.findIndex(ciu => ciu.id === currentCheckInUserId.value);
+    if (index !== -1) {
+      let newAsl = [...check_in_data.value[index].asl, {
+        "id": data.id,
+        "asl_reason": ASLForm.asl_reason,
+        "asl_type": ASLForm.asl_type,
+        "status": "待审核"
+      }];
+      check_in_data.value[index].asl = newAsl;
+    }
     ASLForm.asl_type = null;
     ASLForm.asl_reason = null;
     ASLForm.image_url = [];
+    visibleASL.value = false;
     message.success(msg);
   }).catch(err => {
     let {msg} = err.response.data;
@@ -364,6 +383,7 @@ const cancelApplication = (id) => {
     let {msg} = res.data;
     spinning.value = false;
     applicationsData.value.find(asl => asl.id === id).status = '已取消';
+    check_in_data.value.find(ciu => ciu.asl.find(asl => asl.id === id)).asl.find(asl => asl.id === id).status = '已取消';
     message.success(msg);
   }).catch(err => {
     let {msg} = err.response.data;
@@ -456,7 +476,7 @@ const disableButton = computed(() => {
               <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
               <a-descriptions-item label="操作">
                 <a-row>
-                  <a-button type="primary" @click="checkin(item.check_in_id)">签到
+                  <a-button type="primary" @click="checkin(item.check_in_id, item.id)" :disabled="check_in_data.find(ciu => ciu.id === item.id).status !== '未签到'">签到
                   </a-button>
                 </a-row>
               </a-descriptions-item>
@@ -579,6 +599,7 @@ const disableButton = computed(() => {
               v-model:fileList="ASLForm.image_url"
               name="pic1"
               list-type="picture"
+              accept=".jpg,.jpeg,.png,.heic,.heif,.tiff,.jiff"
               :before-upload="true"
           >
             <a-button>

@@ -77,7 +77,7 @@ const formItemLayout = {
         >
           <a-form-item label="文件上传">
             <a-form-item name="csv-file" no-style>
-              <a-upload-dragger accept=".csv" v-model:file-list="file" name="csv_file" :multiple="false"
+              <a-upload-dragger accept=".csv,.txt" v-model:file-list="file" name="csv_file" :multiple="false"
                                 :before-upload="true" max-count="1" @remove="handleRemove"
               >
                 <p class="ant-upload-drag-icon">
