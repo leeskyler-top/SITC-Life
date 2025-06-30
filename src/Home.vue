@@ -61,7 +61,7 @@ const readAllMsg = () => {
 }
 
 const readMsg = (id) => {
-  if (messages.value.find(msg => msg.id === id) && messages.value.find(msg => msg.id === id).status === false) {
+  if (messages.value.find(msg => msg.id === id && msg.msg_type === 'PRIVATE') && messages.value.find(msg => msg.id === id).status === false) {
     api.get("/message/read/" + id).then(res => {
       let updatedMsg = messages.value.find(msg => msg.id === id);
       updatedMsg.status = true;

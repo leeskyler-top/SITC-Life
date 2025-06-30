@@ -296,7 +296,7 @@ const showModal = id => {
   if (activeKey.value === 'schedules') {
     schedule = scheduleData.value.find(i => i.id === id);
   } else {
-    schedule = checkInData.value.find(checkin => checkin.schedule.id === id && checkin.is_main_check_in).check_in_users
+    schedule = checkInData.value.find(checkin => checkin.schedule.id === id && checkin.is_main_check_in).schedule
   }
   console.log(schedule)
   currentId.value = id;

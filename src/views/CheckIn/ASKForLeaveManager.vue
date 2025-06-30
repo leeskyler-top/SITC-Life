@@ -2,7 +2,7 @@
 
 import {reactive, ref, onMounted, computed} from 'vue';
 import {HomeOutlined, SearchOutlined, UploadOutlined} from '@ant-design/icons-vue';
-import {Empty, message, Table} from "ant-design-vue";
+import {Empty, message, Table, notification} from "ant-design-vue";
 import api from "@/api";
 import my_config from "@/my_config";
 
@@ -469,8 +469,16 @@ const handleCancelSelect = () => {
 const newASLForm = reactive({
   "asl_type": null,
   "asl_reason": null,
-  "image_url": null
+  "image_url": []
 })
+
+const openNotification = (title, message) => {
+  notification.open({
+    message: title,
+    description: message,
+    duration: 0,
+  });
+};
 
 const createASL = async () => {
   try {
@@ -517,10 +525,14 @@ const createASL = async () => {
     checkInUserForm.check_in_user_ids.value = [];
     visibleASL.value = false;
     listASLApplications();
+    checkInUserForm.check_in_user_ids = [];
+    checkInUsersData.value = [];
   } catch (err) {
     console.log(err);
     const {msg} = err.response.data;
     openNotification("补充请假失败", msg); // 使用通知组件
+    checkInUserForm.check_in_user_ids = [];
+    checkInUsersData.value = [];
   }
 }
 
@@ -583,7 +595,7 @@ const createASL = async () => {
             <template v-else-if="column.dataIndex === 'operation'">
               <div class="editable-row-operations">
             <span>
-              <a-button size="small" type="primary" ghost @click="showInfo(record.id)">审批</a-button>
+              <a-button size="small" type="primary" ghost @click="showInfo(record.id)" :disabled="record.status === '已取消'">审批</a-button>
             </span>
               </div>
             </template>
@@ -662,7 +674,9 @@ const createASL = async () => {
       </a-card>
       <template #footer>
         <a-button type="primary" @click="handleClose">关闭</a-button>
-        <a-button type="primary" danger @click="handleASL" :loading="spinning" :disabled="ASLForm.status === '已拒绝' && !ASLForm.reject_reason">变更</a-button>
+        <a-button type="primary" danger @click="handleASL" :loading="spinning"
+                  :disabled="ASLForm.status === '已拒绝' && !ASLForm.reject_reason">变更
+        </a-button>
       </template>
     </a-modal>
     <a-modal v-model:open="visiblePhotos" title="查看图片">
@@ -784,7 +798,9 @@ const createASL = async () => {
                          valueFormat="YYYY-MM-DD HH:mm:ss"/>
         </a-form-item>
         <a-form-item>
-          <a-button type="primary" @click="liseCheckInUsers" :disabled="!checkInUserFilter.start_time || !checkInUserFilter.end_time">查询</a-button>
+          <a-button type="primary" @click="liseCheckInUsers"
+                    :disabled="!checkInUserFilter.start_time || !checkInUserFilter.end_time">查询
+          </a-button>
         </a-form-item>
         <a-radio-group v-model:value="checkInUserFilter.type" :options="[
                 {
@@ -837,7 +853,10 @@ const createASL = async () => {
       </a-spin>
       <template #footer>
         <a-button type="primary" danger @click="handleCancelSelect">放弃选择</a-button>
-        <a-button type="primary" @click="visibleCheckInUsers=false;" :disabled="(typeof(checkInUserForm.check_in_user_ids) === 'object' && checkInUserForm.check_in_user_ids.length === 0) || !checkInUserForm.check_in_user_ids">保存选择</a-button>
+        <a-button type="primary" @click="visibleCheckInUsers=false;"
+                  :disabled="(typeof(checkInUserForm.check_in_user_ids) === 'object' && checkInUserForm.check_in_user_ids.length === 0) || !checkInUserForm.check_in_user_ids">
+          保存选择
+        </a-button>
       </template>
     </a-modal>
   </a-layout-content>
