@@ -214,6 +214,15 @@ const checkInColumns = [
         record.is_main_check_in.toString().toLowerCase().includes(value.toLowerCase())
   },
   {
+    title: '内网检查',
+    dataIndex: ['check_internal'],
+    width: '3%',
+    customFilterDropdown: true,
+    customRender: ({ text }) => text === true ? '是' : text === false ? '否' : text,
+    onFilter: (value, record) =>
+        record.check_internal.toString().toLowerCase().includes(value.toLowerCase())
+  },
+  {
     title: '计划ID',
     dataIndex: 'schedule_id',
     width: '2%',
@@ -288,7 +297,7 @@ const deleteSchedule = id => {
 
 const visible = ref(false);
 const currentId = ref();
-const currentSelectedScheduleId = ref();
+const currentSelectedScheduleId = ref(null);
 const currentCheckInId = ref();
 
 const showModal = id => {
@@ -312,7 +321,8 @@ const checkin = reactive({
   "name": null,
   "check_in_start_time": null,
   "check_in_end_time": null,
-  "need_check_schedule_time": null
+  "need_check_schedule_time": null,
+  "check_internal": null
 })
 
 const showCheckInEdit = (id, op = null) => {
@@ -328,6 +338,7 @@ const showCheckInEdit = (id, op = null) => {
     checkin.check_in_start_time = current_check_in.check_in_start_time
     checkin.check_in_end_time = current_check_in.check_in_end_time
     checkin.need_check_schedule_time = current_check_in.need_check_schedule_time === '是' || current_check_in.need_check_schedule_time === true;
+    checkin.check_internal = current_check_in.check_internal === '是' || current_check_in.check_internal === true;
   }
   visibleCheckInEdit.value = true;
 
@@ -339,6 +350,7 @@ const handleCancelEdit = (id) => {
   checkin.check_in_start_time = null
   checkin.check_in_end_time = null
   checkin.need_check_schedule_time = null
+  checkin.check_internal = null;
 }
 
 const changeCheckIn = () => {
@@ -359,6 +371,7 @@ const changeCheckIn = () => {
     checkin.check_in_start_time = null;
     checkin.check_in_end_time = null;
     checkin.need_check_schedule_time = null;
+    checkin.check_internal = null;
     message.success(msg)
   }).catch(err => {
     let {msg} = err.response.data;
@@ -910,7 +923,7 @@ const disableCreateCheckInButton = computed(() => {
         <a-tab-pane key="checkins" tab="所有签到">
 
           <a-row justify="end">
-            <a-button type="primary" style="margin: 8px" @click="showCreateCheckInModal" ghost>
+            <a-button type="primary" style="margin: 8px" @click="showCreateCheckInModal(null)" ghost>
               添加子签到
             </a-button>
             <a-button type="primary" style="margin: 8px; background-color: #4CAF50;" @click="visibleDownloadModal=true;">
@@ -1057,9 +1070,16 @@ const disableCreateCheckInButton = computed(() => {
         <a-form-item
             name="need_check_schedule_time"
             label="检查计划开始时间"
-            :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_end_time']"
+            :rules="[{ required: true, message: '请选择是否检查计划开始时间' }]" :name="['check_in_end_time']"
         >
           <a-switch v-model:checked="checkin.need_check_schedule_time"/>
+        </a-form-item>
+        <a-form-item
+            name="check_internal"
+            label="内网签到"
+            :rules="[{ required: true, message: '请选择是否要求内网签到' }]" :name="['check_internal']"
+        >
+          <a-switch v-model:checked="checkin.check_internal"/>
         </a-form-item>
         <a-form-item label="绑定签到人员">
           <a-button @click="showPeople('newCheckIn')">选择人员</a-button>
@@ -1274,9 +1294,16 @@ const disableCreateCheckInButton = computed(() => {
         <a-form-item
             name="need_check_schedule_time"
             label="检查计划开始时间"
-            :rules="[{ required: true, message: '请选择日期' }]" :name="['check_in_end_time']"
+            :rules="[{ required: true, message: '请选择是否检查计划开始时间' }]" :name="['check_in_end_time']"
         >
           <a-switch v-model:checked="checkin.need_check_schedule_time"/>
+        </a-form-item>
+        <a-form-item
+            name="check_internal"
+            label="内网签到"
+            :rules="[{ required: true, message: '请选择是否要求内网签到' }]" :name="['check_in_end_time']"
+        >
+          <a-switch v-model:checked="checkin.check_internal"/>
         </a-form-item>
       </a-form>
       <template #footer>

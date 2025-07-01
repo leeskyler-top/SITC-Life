@@ -437,6 +437,7 @@ const disableButton = computed(() => {
               <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
+              <a-descriptions-item label="要求内网签到">{{ item.check_in.check_internal ? "是" : "否" }}</a-descriptions-item>
               <a-descriptions-item label="操作" v-if="item.check_in.is_main_check_in">
                 <a-row>
                   <a-button type="primary" @click="showASL(item.id)"
@@ -473,7 +474,7 @@ const disableButton = computed(() => {
               <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
-              <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
+              <a-descriptions-item label="要求内网签到">{{ item.check_in.check_internal ? "是" : "否" }}</a-descriptions-item>
               <a-descriptions-item label="操作">
                 <a-row>
                   <a-button type="primary" @click="checkin(item.check_in_id, item.id)" :disabled="check_in_data.find(ciu => ciu.id === item.id).status !== '未签到'">签到
