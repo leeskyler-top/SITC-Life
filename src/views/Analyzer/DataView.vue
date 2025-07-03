@@ -303,7 +303,8 @@ watchEffect(() => {
         data: [
           {value: normalAttendance, name: '正常出勤'},
           {value: deptData.total_late || 0, name: '迟到'},
-          {value: deptData.total_absenteeism || 0, name: '缺勤'}
+          {value: (deptData.total_absenteeism - deptData.total_absenteeism_status) || 0, name: '请假'},
+          {value: deptData.total_absenteeism_status || 0, name: '旷班'}
         ],
         emphasis: {
           itemStyle: {
@@ -320,6 +321,8 @@ watchEffect(() => {
       const months = checkInData.value.monthly_leave_stats.map(item => item.month);
       const sickLeaves = checkInData.value.monthly_leave_stats.map(item => item.sick_leaves || 0);
       const ordinaryLeaves = checkInData.value.monthly_leave_stats.map(item => item.ordinary_leaves || 0);
+      const officialLeaves = checkInData.value.monthly_leave_stats.map(item => item.official_leaves || 0);
+      const competitionLeaves = checkInData.value.monthly_leave_stats.map(item => item.competition_leaves || 0);
 
       leaveTrendChartOption.value = {
         title: {
@@ -333,7 +336,7 @@ watchEffect(() => {
           axisPointer: { type: 'cross' }
         },
         legend: {
-          data: ['病假', '事假'],
+          data: ['病假', '事假', '公务假', '符合要求的赛事或集训'],
           top: '30',  // 图例下移
           padding: [40, 0, 0, 0]  // 图例内边距
         },
@@ -370,6 +373,22 @@ watchEffect(() => {
             areaStyle: {},
             data: ordinaryLeaves,
             itemStyle: {color: '#409EFF'}
+          },
+          {
+            name: '公务假',
+            type: 'line',
+            stack: 'total',
+            areaStyle: {},
+            data: officialLeaves,
+            itemStyle: {color: '#ffd240'}
+          },
+          {
+            name: '符合要求的赛事或集训',
+            type: 'line',
+            stack: 'total',
+            areaStyle: {},
+            data: competitionLeaves,
+            itemStyle: {color: '#53ff40'}
           }
         ]
       };
@@ -451,13 +470,22 @@ const columns = [
         record.attendance_count.toString().toLowerCase().includes(value.toLowerCase()),
   },
   {
-    title: '旷班次数',
+    title: '缺勤次数',
     dataIndex: ['absence_count'],
     width: '10%',
     customFilterDropdown: true,
     sorter: (a, b) => a.absence_count - b.absence_count,
     onFilter: (value, record) =>
         record.absence_count.toString().toLowerCase().includes(value.toLowerCase()),
+  },
+  {
+    title: '旷班次数',
+    dataIndex: ['absenteeism_status_count'],
+    width: '10%',
+    customFilterDropdown: true,
+    sorter: (a, b) => a.absenteeism_status_count - b.absenteeism_status_count,
+    onFilter: (value, record) =>
+        record.absenteeism_status_count.toString().toLowerCase().includes(value.toLowerCase()),
   },
   {
     title: '迟到次数',
@@ -491,7 +519,7 @@ const columns = [
         record.attendance_rate.toString().toLowerCase().includes(value.toLowerCase()),
   },
   {
-    title: '旷班率',
+    title: '缺勤率',
     dataIndex: ['absence_rate'],
     width: '10%',
     customFilterDropdown: true,
@@ -503,12 +531,34 @@ const columns = [
     onFilter: (value, record) =>
         record.absence_rate.toString().toLowerCase().includes(value.toLowerCase()),
   },
+  {
+    title: '旷班率',
+    dataIndex: ['absenteeism_status_rate'],
+    width: '10%',
+    customFilterDropdown: true,
+    customRender: ({ text }) => {
+      if (text === null || text === undefined) return '-';
+      return (Math.round(text * 1000) / 10).toFixed(3) + '%';
+    },
+    sorter: (a, b) => a.absenteeism_status_rate - b.absenteeism_status_rate,
+    onFilter: (value, record) =>
+        record.absenteeism_status_rate.toString().toLowerCase().includes(value.toLowerCase()),
+  }
 ];
 
 const department_columns = [
   {
     title: '旷班率',
     dataIndex: ['absenteeism_rate'],
+    width: '8%',
+    customRender: ({ text }) => {
+      if (text === null || text === undefined) return '-';
+      return (Math.round(text * 1000) / 10).toFixed(3) + '%';
+    }
+  },
+  {
+    title: '缺勤率',
+    dataIndex: ['absenteeism_status_rate'],
     width: '8%',
     customRender: ({ text }) => {
       if (text === null || text === undefined) return '-';
@@ -536,6 +586,11 @@ const department_columns = [
   {
     title: '部门旷班人次',
     dataIndex: ['total_absenteeism'],
+    width: '8%',
+  },
+  {
+    title: '部门缺勤人次',
+    dataIndex: ['total_absenteeism_status'],
     width: '8%',
   },
   {

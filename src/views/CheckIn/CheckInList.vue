@@ -591,8 +591,8 @@ const getUploadType = async () => {
           <div v-if="filteredCheckInDataEnded.length === 0">
             <Empty description="没有已结束的签到"/>
           </div>
-          <a-space direction="vertical" :size="5">
-            <a-descriptions v-for="item in currentEndedPageData" :title="'签到名称：' + item.check_in.name"
+          <a-card v-for="item in currentEndedPageData">
+            <a-descriptions :title="'签到名称：' + item.check_in.name"
                             style="background-color: #FFFFFF; padding: 16px; box-sizing: border-box;">
               <a-descriptions-item label="签到流水ID">{{ item.id }}</a-descriptions-item>
               <a-descriptions-item label="值班ID">{{ item.schedule.id }}</a-descriptions-item>
@@ -607,9 +607,9 @@ const getUploadType = async () => {
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
               <a-descriptions-item label="状态">{{ item.status }}</a-descriptions-item>
             </a-descriptions>
-            <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentEndedPage" simple pageSize="5"
-                          :total="filteredCheckInDataEnded.length"/>
-          </a-space>
+          </a-card>
+          <a-pagination align="center" style="margin-top: 8px;" v-model:current="currentEndedPage" simple pageSize="5"
+                        :total="filteredCheckInDataEnded.length"/>
         </a-spin>
       </a-tab-pane>
       <a-tab-pane key="asl" tab="请假历史">
