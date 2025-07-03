@@ -7,6 +7,7 @@ import api from "@/api";
 import my_config from "@/my_config";
 
 const isShow = ref(true);
+const upload_url = my_config.upload_baseurl
 
 function handleResize(event) {
   // 页面宽度小于525px时，不显示表格
@@ -153,10 +154,11 @@ const columns = [
 ];
 
 const spinning = ref(false);
+const image_spinning = ref(false);
 
-const listMyInfo = () => {
+const listMyInfo = async () => {
   spinning.value = true;
-  api.get("/user/my").then((res) => {
+  return api.get("/user/my").then((res) => {
     spinning.value = false;
     let {data} = res.data;
     if (data.is_admin === true) {
@@ -256,7 +258,8 @@ const images = ref([]);
 
 const loadImages = async () => {
   images.value = []; // 清空旧图片
-  spinning.value = true;
+  image_spinning.value = true;
+  await listMyInfo();
 
   try {
     const imagePromises = currentASLApplicationData.value.image_url.map(async (imageRef) => {
@@ -306,7 +309,7 @@ const loadImages = async () => {
     console.error('加载图片时出错:', error);
     message.error('加载图片失败');
   } finally {
-    spinning.value = false;
+    image_spinning.value = false;
   }
 };
 
@@ -462,6 +465,7 @@ const checkInUserColumns = [
     dataIndex: ['check_in', 'is_main_check_in'],
     width: '7%',
     customFilterDropdown: true,
+    customRender: ({ text }) => text === true ? '是' : text === false ? '否' : text,
     onFilter: (value, record) => record.check_in.is_main_check_in.toString().toLowerCase().includes(value.toLowerCase())
   },
 ];
@@ -506,8 +510,8 @@ const openNotification = (title, message) => {
 async function uploadFileToWorker(file) {
   const formData = new FormData();
   formData.append("image_url", file);
-
-  const res = await fetch("https://twlife-od.leeskyler.top/upload", {
+  await getUploadType();
+  const res = await fetch(upload_url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${localStorage.access_token}`
@@ -526,8 +530,8 @@ async function uploadFileToWorker(file) {
 
 
 const createASL = async () => {
+  spinning.value = true;
   try {
-    spinning.value = true;
     let imageUrls = [];
     if (uploadType.type === "microsoft") {
 
@@ -694,7 +698,6 @@ const getUploadType = async () => {
         <p>签到开始时间: {{ currentASLApplicationData.check_in_user.check_in.check_in_start_time }}</p>
         <p>签到结束时间: {{ currentASLApplicationData.check_in_user.check_in.check_in_end_time }}</p>
         <p>主签到: {{ currentASLApplicationData.check_in_user.check_in.is_main_check_in ? "是" : "否" }}</p>
-
       </a-card>
       <a-card :title=" currentASLApplicationData.asl_type + '-' + '请假理由'">
         <p>请假人学籍号: {{ currentASLApplicationData.check_in_user.user.studentId }}</p>
@@ -703,7 +706,7 @@ const getUploadType = async () => {
             currentASLApplicationData.asl_reason
           }}</p>
         查看图片：
-        <a-button type="primary" ghost :disabled="images.length === 0" @click="visiblePhotos = true;">查看照片
+        <a-button type="primary" ghost :disabled="images.length === 0" :loading="image_spinning" @click="visiblePhotos = true;">查看照片
         </a-button>
       </a-card>
 
@@ -852,7 +855,7 @@ const getUploadType = async () => {
 
       <template #footer>
         <a-button type="primary" danger @click="visibleASL = false;">取消</a-button>
-        <a-button type="primary" @click="createASL" :spinning="spinning"
+        <a-button type="primary" @click="createASL" :loading="spinning"
                   :disabled="checkInUserForm.check_in_user_ids.length===0 || !newASLForm.asl_type || !newASLForm.asl_reason || !newASLForm.asl_reason">
           变更
         </a-button>

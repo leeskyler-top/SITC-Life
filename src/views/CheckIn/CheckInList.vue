@@ -3,6 +3,10 @@ import {reactive, ref, onMounted, computed, createVNode} from "vue";
 import {ExclamationCircleOutlined, UploadOutlined, HomeOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import {Empty, message, Modal, Spin, Table} from "ant-design-vue";
 import api from "@/api";
+import my_config from "@/my_config";
+
+const upload_url = my_config.upload_baseurl
+
 
 const check_in_data = ref([]);
 
@@ -43,6 +47,7 @@ const filteredCheckInDataEnded = computed(() => {
 });
 
 const spinning = ref(false);
+const image_spinning = ref(false);
 
 // 获取用户签到列表
 const listMyCheckIns = () => {
@@ -130,7 +135,7 @@ async function uploadFileToWorker(file) {
   const formData = new FormData();
   formData.append("image_url", file);
 
-  const res = await fetch("https://twlife-od.leeskyler.top/upload", {
+  const res = await fetch(upload_url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${localStorage.access_token}`
@@ -150,6 +155,7 @@ async function uploadFileToWorker(file) {
 
 const handleASL = async () => {
   spinning.value = true;
+  await getUploadType();
   try {
     let imageUrls = [];
 
@@ -388,7 +394,8 @@ const images = ref([]);
 
 const loadImages = async () => {
   images.value = []; // 清空旧图片
-  spinning.value = true;
+  image_spinning.value = true;
+  await getUploadType();
 
   try {
     const imagePromises = currentASLApplicationData.value.image_url.map(async (imageRef) => {
@@ -438,7 +445,7 @@ const loadImages = async () => {
     console.error('加载图片时出错:', error);
     message.error('加载图片失败');
   } finally {
-    spinning.value = false;
+    image_spinning.value = false;
   }
 };
 
@@ -734,7 +741,7 @@ const getUploadType = async () => {
             currentASLApplicationData.asl_reason
           }}</p>
         查看图片：
-        <a-button type="primary" ghost :disabled="images.length === 0" @click="visiblePhotos = true;">查看照片
+        <a-button type="primary" ghost :disabled="images.length === 0" @click="visiblePhotos = true;" :loading="image_spinning">查看照片
         </a-button>
       </a-card>
 
