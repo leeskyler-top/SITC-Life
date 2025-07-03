@@ -67,7 +67,7 @@ const checkin = (id, ciu_id) => {
     if (index !== -1) {
       check_in_data.value = [
         ...check_in_data.value.slice(0, index),
-        { ...check_in_data.value[index], status: '正常' },
+        {...check_in_data.value[index], status: '正常'},
         ...check_in_data.value.slice(index + 1)
       ]
     }
@@ -81,6 +81,7 @@ const checkin = (id, ciu_id) => {
 };
 
 onMounted(() => {
+  getUploadType();
   handleResize();
   listMyCheckIns();
 });
@@ -124,43 +125,86 @@ const showASL = (id) => {
   visibleASL.value = true;
 }
 
+// 上传文件至你的 Cloudflare Worker 并返回链接
+async function uploadFileToWorker(file) {
+  const formData = new FormData();
+  formData.append("image_url", file);
 
-const handleASL = () => {
-  let formData = new FormData();
-  for (let item of ASLForm.image_url) {
-    formData.append('image_url', item.originFileObj)
-  }
-  formData.append("asl_type", ASLForm.asl_type)
-  formData.append("asl_reason", ASLForm.asl_reason)
-  api.post("/asl/my/" + currentCheckInUserId.value, formData, {
+  const res = await fetch("https://twlife-od.leeskyler.top/upload", {
+    method: "POST",
     headers: {
-      'Content-Type': "multipart/form-data"
+      Authorization: `Bearer ${localStorage.access_token}`
+    },
+    body: formData
+  });
+
+  const result = await res.json();
+
+  if (!res.ok || result.status !== "success") {
+    throw new Error(result.msg || "上传失败");
+  }
+
+  return result.data.url;
+}
+
+
+const handleASL = async () => {
+  spinning.value = true;
+  try {
+    let imageUrls = [];
+
+    if (uploadType.type === "microsoft") {
+
+      for (let item of ASLForm.image_url) {
+        const file = item.originFileObj;
+        const uploadedUrl = await uploadFileToWorker(file);
+        imageUrls.push(uploadedUrl);
+      }
     }
-  }).then(res => {
-    let {msg, data} = res.data;
-    spinning.value = false;
-    // 修复：使用响应式方式更新数组
+
+    const formData = new FormData();
+    formData.append('asl_type', ASLForm.asl_type);
+    formData.append('asl_reason', ASLForm.asl_reason || '');
+
+    if (uploadType.type === 'local') {
+      for (let item of ASLForm.image_url) {
+        formData.append('image_url', item.originFileObj);
+      }
+    } else if (uploadType.type === 'microsoft') {
+      for (let imageurl of imageUrls) {
+        formData.append('image_url', imageurl);
+      }
+    }
+
+    const res = await api.post(`/asl/my/${currentCheckInUserId.value}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    const {msg, data} = res.data;
     const index = check_in_data.value.findIndex(ciu => ciu.id === currentCheckInUserId.value);
     if (index !== -1) {
-      let newAsl = [...check_in_data.value[index].asl, {
-        "id": data.id,
-        "asl_reason": ASLForm.asl_reason,
-        "asl_type": ASLForm.asl_type,
-        "status": "待审核"
+      const newAsl = [...check_in_data.value[index].asl, {
+        id: data.id,
+        asl_reason: ASLForm.asl_reason,
+        asl_type: ASLForm.asl_type,
+        status: '待审核'
       }];
       check_in_data.value[index].asl = newAsl;
     }
+
     ASLForm.asl_type = null;
     ASLForm.asl_reason = null;
     ASLForm.image_url = [];
     visibleASL.value = false;
     message.success(msg);
-  }).catch(err => {
-    let {msg} = err.response.data;
+  } catch (err) {
+    message.error(err.message || '提交失败');
+  } finally {
     spinning.value = false;
-    message.error(msg);
-  });
-}
+  }
+};
 
 // 查看签到确认框
 const showConfirm = (id) => {
@@ -347,11 +391,33 @@ const loadImages = async () => {
   spinning.value = true;
 
   try {
-    // 并行加载所有图片
-    const imagePromises = currentASLApplicationData.value.image_url.map(async (photoName) => {
+    const imagePromises = currentASLApplicationData.value.image_url.map(async (imageRef) => {
+      // 如果是 https 开头，说明是 Graph 上传的外链图片，直接用
+      if (typeof imageRef === 'string' && imageRef.startsWith('https://')) {
+        try {
+          const response = await fetch(imageRef, {
+            headers: {
+              Authorization: `Bearer ${localStorage.access_token}`
+            }
+          });
+          if (!response.ok) throw new Error('无法加载图片');
+
+          const blob = await response.blob();
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+        } catch (error) {
+          console.error(`Graph 图片加载失败:`, error);
+          return null;
+        }
+      }
+
+      // 否则认为是本地文件名，需要从后端获取 Blob
       try {
-        const response = await api.get(`/asl/photo/${currentASLApplicationId.value}/${photoName}`, {
-          responseType: 'blob' // 重要：指定响应类型为 blob
+        const response = await api.get(`/asl/my/photo/${currentASLApplicationId.value}/${imageRef}`, {
+          responseType: 'blob' // 指定响应类型为 blob
         });
 
         return new Promise((resolve) => {
@@ -360,12 +426,11 @@ const loadImages = async () => {
           reader.readAsDataURL(response.data);
         });
       } catch (error) {
-        console.error(`加载图片 ${photoName} 失败:`, error);
+        console.error(`加载图片 ${imageRef} 失败:`, error);
         return null;
       }
     });
 
-    // 等待所有图片加载完成
     const loadedImages = await Promise.all(imagePromises);
     images.value = loadedImages.filter(img => img !== null);
 
@@ -375,7 +440,7 @@ const loadImages = async () => {
   } finally {
     spinning.value = false;
   }
-}
+};
 
 const cancelApplication = (id) => {
   spinning.value = true;
@@ -407,6 +472,24 @@ const disableButton = computed(() => {
   return !ASLForm.asl_reason || ((typeof (ASLForm.image_url)) === 'object' && ASLForm.image_url.length === 0 && ASLForm.asl_type !== '事假') || (!ASLForm.image_url && ASLForm.asl_type !== '事假')
 })
 
+const uploadType = reactive({
+  "type": "local",
+})
+
+// 获取存储类型和初始化token信息
+const getUploadType = async () => {
+  try {
+    const res = await api.get("/security-history/storage-type");
+    const {data} = res.data;
+    uploadType.type = data.type;
+    localStorage.setItem("storage_type", data.type);
+  } catch (error) {
+    message.error("由于驱动器类型不明，请假功能不可用，如需使用联系管理员。")
+    throw error;
+  }
+}
+
+
 </script>
 
 <template>
@@ -437,7 +520,10 @@ const disableButton = computed(() => {
               <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
-              <a-descriptions-item label="要求内网签到">{{ item.check_in.check_internal ? "是" : "否" }}</a-descriptions-item>
+              <a-descriptions-item label="要求内网签到">{{
+                  item.check_in.check_internal ? "是" : "否"
+                }}
+              </a-descriptions-item>
               <a-descriptions-item label="操作" v-if="item.check_in.is_main_check_in">
                 <a-row>
                   <a-button type="primary" @click="showASL(item.id)"
@@ -474,10 +560,14 @@ const disableButton = computed(() => {
               <a-descriptions-item label="值班类型">{{ item.schedule.schedule_type }}</a-descriptions-item>
               <a-descriptions-item label="开始时间">{{ item.check_in.check_in_start_time }}</a-descriptions-item>
               <a-descriptions-item label="结束时间">{{ item.check_in.check_in_end_time }}</a-descriptions-item>
-              <a-descriptions-item label="要求内网签到">{{ item.check_in.check_internal ? "是" : "否" }}</a-descriptions-item>
+              <a-descriptions-item label="要求内网签到">{{
+                  item.check_in.check_internal ? "是" : "否"
+                }}
+              </a-descriptions-item>
               <a-descriptions-item label="操作">
                 <a-row>
-                  <a-button type="primary" @click="checkin(item.check_in_id, item.id)" :disabled="check_in_data.find(ciu => ciu.id === item.id).status !== '未签到'">签到
+                  <a-button type="primary" @click="checkin(item.check_in_id, item.id)"
+                            :disabled="check_in_data.find(ciu => ciu.id === item.id).status !== '未签到'">签到
                   </a-button>
                 </a-row>
               </a-descriptions-item>

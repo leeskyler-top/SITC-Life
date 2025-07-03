@@ -190,6 +190,7 @@ const listASLApplications = () => {
 }
 
 onMounted(() => {
+  getUploadType();
   handleResize();
   listMyInfo();
 });
@@ -258,11 +259,33 @@ const loadImages = async () => {
   spinning.value = true;
 
   try {
-    // 并行加载所有图片
-    const imagePromises = currentASLApplicationData.value.image_url.map(async (photoName) => {
+    const imagePromises = currentASLApplicationData.value.image_url.map(async (imageRef) => {
+      // 如果是 https 开头，说明是 Graph 上传的外链图片，直接用
+      if (typeof imageRef === 'string' && imageRef.startsWith('https://')) {
+        try {
+          const response = await fetch(imageRef, {
+            headers: {
+              Authorization: `Bearer ${localStorage.access_token}`
+            }
+          });
+          if (!response.ok) throw new Error('无法加载图片');
+
+          const blob = await response.blob();
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+        } catch (error) {
+          console.error(`Graph 图片加载失败:`, error);
+          return null;
+        }
+      }
+
+      // 否则认为是本地文件名，需要从后端获取 Blob
       try {
-        const response = await api.get(`/asl/photo/${currentASLApplicationId.value}/${photoName}`, {
-          responseType: 'blob' // 重要：指定响应类型为 blob
+        const response = await api.get(`/asl/photo/${currentASLApplicationId.value}/${imageRef}`, {
+          responseType: 'blob' // 指定响应类型为 blob
         });
 
         return new Promise((resolve) => {
@@ -271,12 +294,11 @@ const loadImages = async () => {
           reader.readAsDataURL(response.data);
         });
       } catch (error) {
-        console.error(`加载图片 ${photoName} 失败:`, error);
+        console.error(`加载图片 ${imageRef} 失败:`, error);
         return null;
       }
     });
 
-    // 等待所有图片加载完成
     const loadedImages = await Promise.all(imagePromises);
     images.value = loadedImages.filter(img => img !== null);
 
@@ -286,7 +308,7 @@ const loadImages = async () => {
   } finally {
     spinning.value = false;
   }
-}
+};
 
 const showCleanPhoto = ref(false);
 
@@ -480,32 +502,69 @@ const openNotification = (title, message) => {
   });
 };
 
+// 上传文件至你的 Cloudflare Worker 并返回链接
+async function uploadFileToWorker(file) {
+  const formData = new FormData();
+  formData.append("image_url", file);
+
+  const res = await fetch("https://twlife-od.leeskyler.top/upload", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${localStorage.access_token}`
+    },
+    body: formData
+  });
+
+  const result = await res.json();
+
+  if (!res.ok || result.status !== "success") {
+    throw new Error(result.msg || "上传失败");
+  }
+
+  return result.data.url;
+}
+
+
 const createASL = async () => {
   try {
-    let ASLPromises
+    spinning.value = true;
+    let imageUrls = [];
+    if (uploadType.type === "microsoft") {
+
+      for (let item of newASLForm.image_url) {
+        const file = item.originFileObj;
+        const uploadedUrl = await uploadFileToWorker(file);
+        imageUrls.push(uploadedUrl);
+      }
+    }
+
+    let ASLPromises;
     if (checkInUserForm.check_in_user_ids.length <= 6) {
       let formData = new FormData();
-      for (let item of newASLForm.image_url) {
-        formData.append('image_url', item.originFileObj)
+      if (uploadType.type === "local") {
+        for (let item of newASLForm.image_url) {
+          formData.append("image_url", item.originFileObj);
+        }
+      } else if (uploadType.type === "microsoft") {
+        for (let url of imageUrls) {
+          formData.append("image_url", url);
+        }
       }
-      formData.append("asl_type", newASLForm.asl_type)
-      formData.append("asl_reason", newASLForm.asl_reason)
+      formData.append("asl_type", newASLForm.asl_type);
+      formData.append("asl_reason", newASLForm.asl_reason);
+
       ASLPromises = checkInUserForm.check_in_user_ids.map(ciu => {
         return api.post("/asl/" + ciu, formData, {
           headers: {
-            'Content-Type': "multipart/form-data"
+            "Content-Type": "multipart/form-data"
           }
         });
       });
     } else {
       ASLPromises = checkInUserForm.check_in_user_ids.map(ciu => {
         return api.post("/asl/" + ciu, {
-          "asl_type": newASLForm.asl_type,
-          "asl_reason": newASLForm.asl_reason
-        }, {
-          headers: {
-            'Content-Type': "multipart/form-data"
-          }
+          asl_type: newASLForm.asl_type,
+          asl_reason: newASLForm.asl_reason
         });
       });
     }
@@ -513,26 +572,43 @@ const createASL = async () => {
     const results = await Promise.all(ASLPromises);
 
     results.forEach((res, index) => {
-
-      // 更新 ciu 只在请求成功时
-      const ASLCIUId = checkInUserForm.check_in_user_ids[index]; // 获取当前删除的排班 ID
-      checkInUserForm.check_in_user_ids = checkInUserForm.check_in_user_ids.filter(ciu => ciu.id !== ASLCIUId);
-
+      const ASLCIUId = checkInUserForm.check_in_user_ids[index];
+      checkInUserForm.check_in_user_ids = checkInUserForm.check_in_user_ids.filter(
+          ciu => ciu.id !== ASLCIUId
+      );
     });
-    message.success("已执行补充请假")
 
-    // 清空选中的ciu ID
+    message.success("已执行补充请假");
+    spinning.value = false;
     visibleASL.value = false;
     listASLApplications();
     checkInUserForm.check_in_user_ids = [];
     checkInUsersData.value = [];
   } catch (err) {
-    console.log(err);
-    const {msg} = err.response.data;
-    openNotification("补充请假失败", msg); // 使用通知组件
+    console.error(err);
+    const { msg } = err.response?.data || { msg: err.message };
+    spinning.value = false;
+    openNotification("补充请假失败", msg);
     checkInUsersData.value = [];
   }
-}
+};
+
+const uploadType = reactive({
+  "type": "local",
+})
+
+const getUploadType = async () => {
+  try {
+    const res = await api.get("/security-history/storage-type");
+    const { data } = res.data;
+    uploadType.type = data.type;
+    localStorage.setItem("storage_type", data.type);
+  } catch (error) {
+    message.error("由于驱动器类型不明，请假功能不可用，如需使用联系管理员。");
+    throw error;
+  }
+};
+
 
 
 </script>
@@ -776,7 +852,7 @@ const createASL = async () => {
 
       <template #footer>
         <a-button type="primary" danger @click="visibleASL = false;">取消</a-button>
-        <a-button type="primary" @click="createASL"
+        <a-button type="primary" @click="createASL" :spinning="spinning"
                   :disabled="checkInUserForm.check_in_user_ids.length===0 || !newASLForm.asl_type || !newASLForm.asl_reason || !newASLForm.asl_reason">
           变更
         </a-button>
