@@ -158,10 +158,10 @@ watchEffect(() => {
         text: '部门考勤情况',
         left: 'center',
         top: '0',  // 标题置顶
-        padding: [10, 0, 0, 0]  // 标题内边距
+        padding: [15, 0, 0, 0]  // 标题内边距
       }, tooltip: {trigger: 'item'},
       legend: {
-        orient: 'vertical', left: 'left', padding: [40, 0, 0, 0]  // 图例内边距
+        orient: 'vertical', left: 'left', padding: [15, 0, 0, 0]  // 图例内边距
       },
       series: [{
         name: '系部数据情况',
@@ -237,7 +237,7 @@ watchEffect(() => {
         text: '部门考勤情况',
         left: 'center',
         top: '0',  // 标题置顶
-        padding: [10, 0, 0, 0]  // 标题内边距
+        padding: [15, 0, 0, 0]  // 标题内边距
       },
       tooltip: {
         trigger: 'axis',
@@ -246,7 +246,7 @@ watchEffect(() => {
       legend: {
         data: ['正常出勤', '迟到', '缺勤', '总值班'],
         top: '30',  // 图例下移
-        padding: [40, 0, 0, 0]  // 图例内边距
+        padding: [15, 0, 0, 0]  // 图例内边距
       },
       grid: {
         top: '80',  // 主内容区域下移
@@ -329,7 +329,7 @@ watchEffect(() => {
           text: '月度请假趋势',
           left: 'center',
           top: '0',  // 标题置顶
-          padding: [10, 0, 0, 0]  // 标题内边距
+          padding: [15, 0, 0, 0]  // 标题内边距
         },
         tooltip: {
           trigger: 'axis',
@@ -338,7 +338,7 @@ watchEffect(() => {
         legend: {
           data: ['病假', '事假', '公务假', '符合要求的赛事或集训'],
           top: '30',  // 图例下移
-          padding: [40, 0, 0, 0]  // 图例内边距
+          padding: [15, 0, 0, 0]  // 图例内边距
         },
         grid: {
           top: '80',  // 主内容区域下移
@@ -364,7 +364,12 @@ watchEffect(() => {
             stack: 'total',
             areaStyle: {},
             data: sickLeaves,
-            itemStyle: {color: '#F56C6C'}
+            itemStyle: {color: '#F56C6C', borderColor: '#F56C6C'},
+            zLevel: sickLeaves.some(v => v > 0) ? 7 : 0, // 关键修改
+            z: sickLeaves.some(v => v > 0) ? 7 : 0,      // 双保险
+            lineStyle: {
+              opacity: sickLeaves.some(v => v > 0) ? 1 : 0
+            },
           },
           {
             name: '事假',
@@ -372,7 +377,12 @@ watchEffect(() => {
             stack: 'total',
             areaStyle: {},
             data: ordinaryLeaves,
-            itemStyle: {color: '#409EFF'}
+            itemStyle: {color: '#409EFF', borderColor: '#409EFF'},
+            zLevel: ordinaryLeaves.some(v => v > 0) ? 8 : 0, // 关键修改
+            z: ordinaryLeaves.some(v => v > 0) ? 8 : 0,      // 双保险
+            lineStyle: {
+              opacity: ordinaryLeaves.some(v => v > 0) ? 1 : 0
+            },
           },
           {
             name: '公务假',
@@ -380,7 +390,12 @@ watchEffect(() => {
             stack: 'total',
             areaStyle: {},
             data: officialLeaves,
-            itemStyle: {color: '#ffd240'}
+            itemStyle: {color: '#ffd240', borderColor: '#ffd240'},
+            zLevel: officialLeaves.some(v => v > 0) ? 9 : 0, // 关键修改
+            z: officialLeaves.some(v => v > 0) ? 9 : 0,      // 双保险
+            lineStyle: {
+              opacity: officialLeaves.some(v => v > 0) ? 1 : 0
+            },
           },
           {
             name: '符合要求的赛事或集训',
@@ -388,7 +403,12 @@ watchEffect(() => {
             stack: 'total',
             areaStyle: {},
             data: competitionLeaves,
-            itemStyle: {color: '#53ff40'}
+            itemStyle: {color: '#53ff40', borderColor: '#53ff40'},
+            zLevel: competitionLeaves.some(v => v > 0) ? 10 : 0, // 关键修改
+            z: competitionLeaves.some(v => v > 0) ? 10 : 0,      // 双保险
+            lineStyle: {
+              opacity: competitionLeaves.some(v => v > 0) ? 1 : 0
+            },
           }
         ]
       };
