@@ -241,7 +241,7 @@ watchEffect(() => {
       },
       tooltip: {
         trigger: 'axis',
-        axisPointer: { type: 'shadow' }
+        axisPointer: {type: 'shadow'}
       },
       legend: {
         data: ['正常出勤', '迟到', '缺勤', '总值班'],
@@ -306,6 +306,10 @@ watchEffect(() => {
           {value: (deptData.total_absenteeism - deptData.total_absenteeism_status) || 0, name: '请假'},
           {value: deptData.total_absenteeism_status || 0, name: '旷班'}
         ],
+        label: {
+          formatter: '{b}: {c}人次 ({d}%)', // 饼图标签显示格式
+          color: '#333'
+        },
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
@@ -324,6 +328,60 @@ watchEffect(() => {
       const officialLeaves = checkInData.value.monthly_leave_stats.map(item => item.official_leaves || 0);
       const competitionLeaves = checkInData.value.monthly_leave_stats.map(item => item.competition_leaves || 0);
 
+      // 在月度请假趋势图配置前添加z-index计算逻辑
+      const seriesData = [
+        {name: '病假', data: sickLeaves, color: '#F56C6C'},
+        {name: '事假', data: ordinaryLeaves, color: '#409EFF'},
+        {name: '公务假', data: officialLeaves, color: '#ffd240'},
+        {name: '符合要求的赛事或集训', data: competitionLeaves, color: '#53ff40'}
+      ];
+
+      // 计算每个系列的总值用于排序
+      const seriesWithTotals = seriesData.map(series => ({
+        ...series,
+        total: series.data.reduce((sum, val) => sum + val, 0)
+      }));
+
+      // 在月度请假趋势图配置中替换原来的z-index计算部分：
+
+      // 按总值升序排序，总值相同则按原始位置升序
+      seriesWithTotals.sort((a, b) => {
+        if (a.total !== b.total) {
+          return a.total - b.total; // 先按总值升序
+        }
+        return seriesData.indexOf(a) - seriesData.indexOf(b); // 总值相同则按原始位置
+      });
+
+      // 分配z-index（值越小层级越高）
+      let currentZ = 4; // 初始最高层级
+      let prevTotal = null;
+      let prevIndex = null;
+      seriesWithTotals.forEach((series, sortedIndex) => {
+        // 如果总值和原始位置都相同，则保持相同z-index
+        if (prevTotal !== null &&
+            series.total === prevTotal &&
+            seriesData.indexOf(series) === prevIndex) {
+          series.z = currentZ;
+        } else {
+          currentZ = 4 - sortedIndex; // 递减z-index
+          series.z = currentZ;
+        }
+        prevTotal = series.total;
+        prevIndex = seriesData.indexOf(series);
+      });
+
+      function hexToRgb(hex) {
+        // 移除 # 号（如果存在）
+        hex = hex.replace(/^#/, '');
+
+        // 解析RGB值
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+
+        return [r, g, b];
+      }
+
       leaveTrendChartOption.value = {
         title: {
           text: '月度请假趋势',
@@ -333,7 +391,7 @@ watchEffect(() => {
         },
         tooltip: {
           trigger: 'axis',
-          axisPointer: { type: 'cross' }
+          axisPointer: {type: 'cross'}
         },
         legend: {
           data: ['病假', '事假', '公务假', '符合要求的赛事或集训'],
@@ -357,60 +415,25 @@ watchEffect(() => {
           data: months
         },
         yAxis: {type: 'value'},
-        series: [
-          {
-            name: '病假',
-            type: 'line',
-            stack: 'total',
-            areaStyle: {},
-            data: sickLeaves,
-            itemStyle: {color: '#F56C6C', borderColor: '#F56C6C'},
-            zLevel: sickLeaves.some(v => v > 0) ? 7 : 0, // 关键修改
-            z: sickLeaves.some(v => v > 0) ? 7 : 0,      // 双保险
-            lineStyle: {
-              opacity: sickLeaves.some(v => v > 0) ? 1 : 0
-            },
+        series: seriesWithTotals.map(series => ({
+          name: series.name,
+          type: 'line',
+          stack: series.name.replace(/[\s\u4e00-\u9fa5]/g, ''), // 移除中文和空格作为stack名
+          areaStyle: {
+            color: `rgba(${hexToRgb(series.color).join(', ')}, 0.6)`
           },
-          {
-            name: '事假',
-            type: 'line',
-            stack: 'total',
-            areaStyle: {},
-            data: ordinaryLeaves,
-            itemStyle: {color: '#409EFF', borderColor: '#409EFF'},
-            zLevel: ordinaryLeaves.some(v => v > 0) ? 8 : 0, // 关键修改
-            z: ordinaryLeaves.some(v => v > 0) ? 8 : 0,      // 双保险
-            lineStyle: {
-              opacity: ordinaryLeaves.some(v => v > 0) ? 1 : 0
-            },
+          data: series.data,
+          itemStyle: {color: series.color},
+          lineStyle: {
+            width: series.data.some(v => v > 0) ? 2 : 0
           },
-          {
-            name: '公务假',
-            type: 'line',
-            stack: 'total',
-            areaStyle: {},
-            data: officialLeaves,
-            itemStyle: {color: '#ffd240', borderColor: '#ffd240'},
-            zLevel: officialLeaves.some(v => v > 0) ? 9 : 0, // 关键修改
-            z: officialLeaves.some(v => v > 0) ? 9 : 0,      // 双保险
-            lineStyle: {
-              opacity: officialLeaves.some(v => v > 0) ? 1 : 0
-            },
+          symbol: series.data.some(v => v > 0) ? 'circle' : 'none',
+          emphasis: {
+            lineStyle: {width: 3},
+            areaStyle: {opacity: 0.9}
           },
-          {
-            name: '符合要求的赛事或集训',
-            type: 'line',
-            stack: 'total',
-            areaStyle: {},
-            data: competitionLeaves,
-            itemStyle: {color: '#53ff40', borderColor: '#53ff40'},
-            zLevel: competitionLeaves.some(v => v > 0) ? 10 : 0, // 关键修改
-            z: competitionLeaves.some(v => v > 0) ? 10 : 0,      // 双保险
-            lineStyle: {
-              opacity: competitionLeaves.some(v => v > 0) ? 1 : 0
-            },
-          }
-        ]
+          z: series.z // 动态分配的z-index
+        }))
       };
     }
   }
@@ -530,7 +553,7 @@ const columns = [
     dataIndex: ['attendance_rate'],
     width: '10%',
     customFilterDropdown: true,
-    customRender: ({ text }) => {
+    customRender: ({text}) => {
       if (text === null || text === undefined) return '-';
       return Math.round(text * 100, 3) + '%';
     },
@@ -543,7 +566,7 @@ const columns = [
     dataIndex: ['absence_rate'],
     width: '10%',
     customFilterDropdown: true,
-    customRender: ({ text }) => {
+    customRender: ({text}) => {
       if (text === null || text === undefined) return '-';
       return (Math.round(text * 1000) / 10).toFixed(3) + '%';
     },
@@ -556,31 +579,44 @@ const columns = [
     dataIndex: ['absenteeism_status_rate'],
     width: '10%',
     customFilterDropdown: true,
-    customRender: ({ text }) => {
+    customRender: ({text}) => {
       if (text === null || text === undefined) return '-';
       return (Math.round(text * 1000) / 10).toFixed(3) + '%';
     },
     sorter: (a, b) => a.absenteeism_status_rate - b.absenteeism_status_rate,
     onFilter: (value, record) =>
         record.absenteeism_status_rate.toString().toLowerCase().includes(value.toLowerCase()),
+  },
+  {
+    title: '迟到率',
+    dataIndex: ['late_rate'],
+    width: '10%',
+    customFilterDropdown: true,
+    customRender: ({text}) => {
+      if (text === null || text === undefined) return '-';
+      return (Math.round(text * 1000) / 10).toFixed(3) + '%';
+    },
+    sorter: (a, b) => a.late_rate - b.late_rate,
+    onFilter: (value, record) =>
+        record.late_rate.toString().toLowerCase().includes(value.toLowerCase()),
   }
 ];
 
 const department_columns = [
   {
-    title: '旷班率',
+    title: '缺勤率',
     dataIndex: ['absenteeism_rate'],
     width: '8%',
-    customRender: ({ text }) => {
+    customRender: ({text}) => {
       if (text === null || text === undefined) return '-';
       return (Math.round(text * 1000) / 10).toFixed(3) + '%';
     }
   },
   {
-    title: '缺勤率',
+    title: '旷班率',
     dataIndex: ['absenteeism_status_rate'],
     width: '8%',
-    customRender: ({ text }) => {
+    customRender: ({text}) => {
       if (text === null || text === undefined) return '-';
       return (Math.round(text * 1000) / 10).toFixed(3) + '%';
     }
@@ -589,7 +625,7 @@ const department_columns = [
     title: '出勤率',
     dataIndex: ['attendance_rate'],
     width: '8%',
-    customRender: ({ text }) => {
+    customRender: ({text}) => {
       if (text === null || text === undefined) return '-';
       return (Math.round(text * 1000) / 10).toFixed(3) + '%';
     }
@@ -598,18 +634,18 @@ const department_columns = [
     title: '迟到率',
     dataIndex: ['late_rate'],
     width: '8%',
-    customRender: ({ text }) => {
+    customRender: ({text}) => {
       if (text === null || text === undefined) return '-';
       return (Math.round(text * 1000) / 10).toFixed(3) + '%';
     }
   },
   {
-    title: '部门旷班人次',
+    title: '部门缺勤人次',
     dataIndex: ['total_absenteeism'],
     width: '8%',
   },
   {
-    title: '部门缺勤人次',
+    title: '部门旷班人次',
     dataIndex: ['total_absenteeism_status'],
     width: '8%',
   },

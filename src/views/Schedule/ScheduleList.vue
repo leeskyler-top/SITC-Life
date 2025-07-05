@@ -1312,7 +1312,7 @@ const disableCreateCheckInButton = computed(() => {
       </template>
     </a-modal>
 
-    <a-modal title="用户列表" v-model:open="visiblePeople" :z-index="7000">
+    <a-modal title="用户列表" v-model:open="visiblePeople" :z-index="3000">
       <a-card>
         <p style="font-size: 18px;">⚠ 警告：全选按钮只会选择当前页的内容！</p>
         <p style="font-size: 18px;">如需全选请使用下拉框内的“Select all data”功能。</p>
