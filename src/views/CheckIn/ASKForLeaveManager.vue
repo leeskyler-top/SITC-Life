@@ -508,26 +508,90 @@ const openNotification = (title, message) => {
 
 // 上传文件至你的 Cloudflare Worker 并返回链接
 async function uploadFileToWorker(file) {
-  const formData = new FormData();
-  formData.append("image_url", file);
-  await getUploadType();
-  const res = await fetch(upload_url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${localStorage.access_token}`
-    },
-    body: formData
-  });
+  const accessToken = localStorage.access_token?.trim();
 
-  const result = await res.json();
-
-  if (!res.ok || result.status !== "success") {
-    throw new Error(result.msg || "上传失败");
+  if (!file || !upload_url || !accessToken) {
+    throw new Error("❌ 参数缺失：文件、base_url 或 access_token");
   }
 
-  return result.data.url;
-}
+  const isSmall = file.size <= 35 * 1024 * 1024;
 
+  if (isSmall) {
+    // ✅ 小文件直接上传
+    const formData = new FormData();
+    formData.append("image_url", file);
+
+    const res = await fetch(`${upload_url}/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      },
+      body: formData
+    });
+
+    const result = await res.json();
+    if (!res.ok || result.status !== "success") {
+      throw new Error(result.msg || "上传失败");
+    }
+    return result.data.url;
+  } else {
+    // 📦 大文件走分片逻辑
+    // 1. 创建上传会话
+    const sessionRes = await fetch(`${upload_url}/upload-session`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        file_name: file.name,
+        file_size: file.size
+      })
+    });
+
+    const sessionData = await sessionRes.json();
+    if (sessionData.status !== 'success') {
+      throw new Error('创建上传会话失败: ' + sessionData.msg);
+    }
+
+    const { uploadId, guid } = sessionData.data;
+
+    // 2. 开始分片上传
+    const chunkSize = 80 * 1024 * 1024; // 80MB
+    let uploaded = 0;
+    while (uploaded < file.size) {
+      const end = Math.min(uploaded + chunkSize, file.size);
+      const chunk = file.slice(uploaded, end);
+      const contentRange = `bytes ${uploaded}-${end - 1}/${file.size}`;
+
+      const res = await fetch(`${upload_url}/upload-chunk`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'X-Upload-Id': uploadId,
+          'X-Upload-Guid': guid,
+          'X-Content-Range': contentRange,
+          'Content-Length': chunk.size
+        },
+        body: chunk
+      });
+
+      const json = await res.json();
+      if (json.status !== 'success') {
+        throw new Error(`上传失败 (${contentRange}): ${json.msg}`);
+      }
+
+      // 分片上传完成后可能带有最终地址
+      if (json.data?.url) {
+        return json.data.url;
+      }
+
+      uploaded = end;
+    }
+
+    throw new Error("上传完成但未获取到最终地址");
+  }
+}
 
 const createASL = async () => {
   spinning.value = true;
