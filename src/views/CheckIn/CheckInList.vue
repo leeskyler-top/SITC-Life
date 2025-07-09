@@ -5,9 +5,6 @@ import {Empty, message, Modal, Spin, Table} from "ant-design-vue";
 import api from "@/api";
 import my_config from "@/my_config";
 
-const upload_url = my_config.upload_baseurl
-
-
 const check_in_data = ref([]);
 
 const activeKey = ref('started');
@@ -133,6 +130,7 @@ const showASL = (id) => {
 // 上传文件至你的 Cloudflare Worker 并返回链接
 async function uploadFileToWorker(file) {
   const accessToken = localStorage.access_token?.trim();
+  const upload_url = localStorage.upload_baseurl?.trim();
 
   if (!file || !upload_url || !accessToken) {
     throw new Error("❌ 参数缺失：文件、base_url 或 access_token");
@@ -555,7 +553,9 @@ const getUploadType = async () => {
     const res = await api.get("/security-history/storage-type");
     const {data} = res.data;
     uploadType.type = data.type;
+    uploadType.upload_baseurl = data.upload_baseurl
     localStorage.setItem("storage_type", data.type);
+    localStorage.setItem("upload_baseurl", data.upload_baseurl);
   } catch (error) {
     message.error("由于驱动器类型不明，请假功能不可用，如需使用联系管理员。")
     throw error;
