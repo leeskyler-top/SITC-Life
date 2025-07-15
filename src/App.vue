@@ -18,6 +18,105 @@ import api from './api.js';
 import router from "@/router";
 import {jwtDecode} from 'jwt-decode';
 
+import forge from 'node-forge';
+import * as aesjs from 'aes-js';
+
+const aesKey = ref(localStorage.aes_key ? base64ToBytes(localStorage.aes_key) : null);
+
+function updateAESKeyFromLocalStorage() {
+  const key = localStorage.aes_key;
+  aesKey.value = key ? base64ToBytes(key) : null;
+}
+
+function formatPEM(pem) {
+  // 去除多余空格与行首尾
+  pem = pem.trim();
+  // 如果是一整行，把它分块
+  if (!pem.includes('\n')) {
+    const lines = [];
+    lines.push("-----BEGIN PUBLIC KEY-----");
+    for (let i = 0; i < pem.length; i += 64) {
+      lines.push(pem.slice(i, i + 64));
+    }
+    lines.push("-----END PUBLIC KEY-----");
+    return lines.join('\n');
+  }
+
+  return pem;
+}
+
+// 登录后生成 AES 密钥，并使用 RSA 公钥加密
+function generateAndStoreAESKey(publicKeyPem) {
+  // 1. 生成原始 AES 密钥（Uint8Array）
+  const aesKeyBytes = window.crypto.getRandomValues(new Uint8Array(32));
+
+  // 2. 保存为原始字节的 Base64（仅供前端 AES 解密用，不给后端）
+  localStorage.aes_key = btoa(String.fromCharCode(...aesKeyBytes));
+
+  // 3. 将 Uint8Array 转为 binary string（node-forge 要求）
+  const aesKeyBinaryString = String.fromCharCode(...aesKeyBytes);
+
+  // 4. 加载公钥（确保格式正确）
+  const publicKey = forge.pki.publicKeyFromPem(formatPEM(publicKeyPem));
+
+  // 5. 使用 RSA-OAEP 加密原始 AES 密钥（不要转 Base64）
+  const encrypted = publicKey.encrypt(aesKeyBinaryString, 'RSA-OAEP', {
+    md: forge.md.sha256.create(),
+    mgf1: forge.mgf1.create()
+  });
+
+  // 6. 返回 Base64 编码（传给后端）
+  const encryptedBase64 = forge.util.encode64(encrypted);
+  localStorage.encrypted_aes_key = encryptedBase64;
+
+  return encryptedBase64;
+}
+
+function bytesToBase64(bytes) {
+  return btoa(String.fromCharCode(...bytes));
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64);
+  return Uint8Array.from(binary, c => c.charCodeAt(0));
+}
+
+async function decryptResponseData(encrypted) {
+  if (!aesKey.value) {
+    throw new Error("AES key not available for decryption");
+  }
+  const keyBytes = aesKey.value;
+  const iv = base64ToBytes(encrypted.iv);
+  const ciphertext = base64ToBytes(encrypted.ciphertext);
+  const tag = base64ToBytes(encrypted.tag);
+
+  // GCM 模式下，tag 应拼接在 ciphertext 后面
+  const fullCiphertext = new Uint8Array(ciphertext.length + tag.length);
+  fullCiphertext.set(ciphertext);
+  fullCiphertext.set(tag, ciphertext.length);
+
+  // 导入原始 AES key
+  const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      keyBytes,
+      { name: "AES-GCM" },
+      false,
+      ["decrypt"]
+  );
+
+  // 解密
+  const decrypted = await crypto.subtle.decrypt(
+      {
+        name: "AES-GCM",
+        iv: iv,
+        tagLength: 128 // AES-GCM 默认 tag 是 16 字节（128 bit）
+      },
+      cryptoKey,
+      fullCiphertext
+  );
+
+  return JSON.parse(new TextDecoder().decode(decrypted));
+}
 
 const isShow = ref(true);
 
@@ -125,28 +224,93 @@ const checkTokenExpiration = async () => {
 
 // 请求拦截器
 api.interceptors.request.use(async (config) => {
-  if (config.url.includes("/auth/login") || config.url.includes("/auth/refresh")) {
-    return config;
-  }
+  if (!config.url.includes("/auth/login") && !config.url.includes("/auth/refresh")) {
+    await checkTokenExpiration();
 
-  try {
-    await checkTokenExpiration(); // 主动检查 Token 过期
+    // 使用登录时生成的加密 AES 密钥
+    const encryptedKey = localStorage.encrypted_aes_key;
+    const aesKeyBase64 = localStorage.aes_key;
+
+    if (encryptedKey) {
+      config.headers["X-AES-Key"] = encryptedKey; // ✅ 只有一次 base64，直接传
+    }
+
+    if (
+        aesKeyBase64 &&
+        encryptedKey &&
+        config.headers['Content-Type'] === 'application/json' &&
+        config.data &&
+        typeof config.data === 'object' &&
+        !config.url.includes('/auth/login') &&
+        !config.url.includes('/auth/refresh')
+    ) {
+      try {
+        const keyBytes = base64ToBytes(aesKeyBase64);
+
+        const iv = crypto.getRandomValues(new Uint8Array(12)); // GCM 推荐 96-bit IV
+        const plaintext = new TextEncoder().encode(JSON.stringify(config.data));
+
+        const cryptoKey = await crypto.subtle.importKey(
+            "raw",
+            keyBytes,
+            { name: "AES-GCM" },
+            false,
+            ["encrypt"]
+        );
+
+        const encrypted = await crypto.subtle.encrypt(
+            {
+              name: "AES-GCM",
+              iv: iv,
+              tagLength: 128
+            },
+            cryptoKey,
+            plaintext
+        );
+
+        // 拆分 ciphertext 和 tag（GCM 加密结果中最后 16 字节是 tag）
+        const encryptedBytes = new Uint8Array(encrypted);
+        const ciphertext = encryptedBytes.slice(0, -16);
+        const tag = encryptedBytes.slice(-16);
+
+        config.data = {
+          iv: bytesToBase64(iv),
+          ciphertext: bytesToBase64(ciphertext),
+          tag: bytesToBase64(tag)
+        };
+
+      } catch (err) {
+        console.error("请求加密失败", err);
+        throw new Error("请求加密失败");
+      }
+    }
+
     config.headers.Authorization = `Bearer ${latestToken}`;
-  } catch (error) {
-    return Promise.reject(error);
   }
   return config;
 });
 
 // 响应拦截器（精简错误处理）
 api.interceptors.response.use(
-    (response) => response,
+    async (response) => {
+      if (response?.data?.data?.iv) {
+        try {
+          const decryptedData = await decryptResponseData(response.data.data);
+          response.data.data = decryptedData;
+        } catch (e) {
+          message.error("响应数据解密失败");
+        }
+      }
+      return response;
+    },
     async (error) => {
       const originalRequest = error.config;
-      const {response} = error;
+      const res = error.response;  // 正确地拿到 response 对象
 
-      // 仅处理 401 错误，其他错误逻辑保持不变
-      if (response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes("/auth/refresh") && !originalRequest.url.includes("/auth/login")) {
+      // 尝试处理 Token 刷新逻辑
+      if (res?.status === 401 && !originalRequest._retry &&
+          !originalRequest.url.includes("/auth/refresh") &&
+          !originalRequest.url.includes("/auth/login")) {
         originalRequest._retry = true;
         try {
           const newToken = await refreshToken();
@@ -157,33 +321,37 @@ api.interceptors.response.use(
           return Promise.reject(err);
         }
       }
-      switch (response.status) {
-        case 413:
-          message.error("上传数据不得大于10M");
-          break;
-        case 429:
-          message.error("请求过于频繁");
-          break;
-        case 500:
-          message.error("服务器内部出错");
-          break;
-        case 502:
-          message.error("网关出错");
-          break;
-        case 503:
-          message.error("服务器离线，请刷新页面，如果问题仍然存在请联系管理员");
-          break;
-        case 520:
-          message.error("响应超时，请刷新页面");
-          break;
-        default:
-          break;
+
+      // 错误提示处理（注意这里的 res 替代原来的 response）
+      if (res) {
+        switch (res.status) {
+          case 413:
+            message.error("上传数据不得大于10M");
+            break;
+          case 429:
+            message.error("请求过于频繁");
+            break;
+          case 500:
+            message.error("服务器内部出错");
+            break;
+          case 502:
+            message.error("网关出错");
+            break;
+          case 503:
+            message.error("服务器离线，请刷新页面，如果问题仍然存在请联系管理员");
+            break;
+          case 520:
+            message.error("响应超时，请刷新页面");
+            break;
+          default:
+            break;
+        }
+      } else {
+        message.error("网络错误，请检查网络连接");
       }
 
-      // 其他错误处理...
       return Promise.reject(error);
-    }
-);
+    });
 
 watch(access_token, (newToken) => {
   // 直接在 request 中使用最新的 token
@@ -210,6 +378,9 @@ const login = () => {
     localStorage.name = data.user.name;
     localStorage.is_admin = data.user.is_admin;
     localStorage.user_position = data.user.position;
+    // AESKey 生成并保存，同时 RSA 加密传输给后端
+    localStorage.encrypted_aes_key = generateAndStoreAESKey(formatPEM(data.public_key));
+    updateAESKeyFromLocalStorage();
     message.success(msg);
   }).catch((err) => {
     let msg = err?.response?.data?.msg;
@@ -226,6 +397,7 @@ const logout = () => {
   localStorage.clear();
   refresh_token.value = null;
   access_token.value = null;
+  aesKey.value = null;
   name.value = null;
   is_admin.value = null;
   user_position.value = null;

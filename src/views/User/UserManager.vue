@@ -293,16 +293,16 @@ const downloadUser = () => {
     responseType: 'blob'  // 设置响应类型为 blob
   })
       .then(response => {
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-
-        // 创建一个 <a> 标签以触发下载
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'current_user_info.csv';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+        const disposition = response.headers["content-disposition"];
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        const filename = match ? decodeURIComponent(match[1]) : "user_export.zip";
+        const blob = new Blob([response.data], {type: "application/zip"});
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       })
       .catch(error => {
         console.error('下载 CSV 失败: ', error);
@@ -356,7 +356,7 @@ const resetPwd = id => {
 }
 
 const copyLink = (text, msg) => {
-  const { copy, copied } = useClipboard({ source: text });
+  const {copy, copied} = useClipboard({source: text});
   copy();
   if (copied) {
     message.success("复制" + msg + "成功")
@@ -439,7 +439,9 @@ const disableChangeButton = computed(() => {
             <a-button type="primary" style="margin: 8px; " ghost v-if="is_admin">添加用户</a-button>
           </router-link>
           <a-button type="primary" style="margin: 8px; " @click="downloadUser" ghost v-if="is_admin">下载用户</a-button>
-          <a-button type="primary" style="margin: 8px; " @click="showDeletedUsers" danger ghost v-if="is_admin">恢复用户</a-button>
+          <a-button type="primary" style="margin: 8px; " @click="showDeletedUsers" danger ghost v-if="is_admin">
+            恢复用户
+          </a-button>
         </a-row>
 
         <a-table :columns="columns" :data-source="dataSource" :scroll="scroll" bordered>
@@ -487,7 +489,7 @@ const disableChangeButton = computed(() => {
                           <a @click="showConfirm(record.id)">重置密码</a>
                       </span>
                 <span>
-                        <a-popconfirm title="确定删除此用户？" @confirm="deleteUser(record.id)" ><a
+                        <a-popconfirm title="确定删除此用户？" @confirm="deleteUser(record.id)"><a
                             style="color: red">删除</a></a-popconfirm>
                       </span>
               </div>
@@ -612,10 +614,13 @@ const disableChangeButton = computed(() => {
       <a-card>
         <p>密码已重置，请查看：</p>
         <a-input-group>
-          <a-input-password v-model:value="new_password" style="width: 110px;" @click="copyLink(new_password, '新用户密码')" :readonly="true" />
+          <a-input-password v-model:value="new_password" style="width: 110px;"
+                            @click="copyLink(new_password, '新用户密码')" :readonly="true"/>
           <a-tooltip title="复制新用户密码" @click="copyLink(new_password, '新用户密码')">
             <a-button>
-              <template #icon><CopyOutlined /></template>
+              <template #icon>
+                <CopyOutlined/>
+              </template>
             </a-button>
           </a-tooltip>
         </a-input-group>

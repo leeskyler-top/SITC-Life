@@ -34,17 +34,26 @@ onMounted(() => {
 
 window.addEventListener('resize', handleResize);
 
-const getMyMsg = () => {
-  spinning.value = true;
-  api.get("/message").then(res => {
+const getMyMsg = async () => {
+  try {
+    spinning.value = true;
+    const res = await api.get("/message");
     spinning.value = false;
-    let {data} = res.data
-    messages.value = data;
-  }).catch(err => {
-    let {msg} = err.response.data;
+
+    const { data } = res.data;
+
+    // ❗确保 data 已解密完毕再赋值
+    if (Array.isArray(data)) {
+      messages.value = data;
+    } else {
+      message.error("响应数据格式异常");
+    }
+
+  } catch (err) {
     spinning.value = false;
+    const msg = err?.response?.data?.msg || "获取消息失败";
     message.error(msg);
-  })
+  }
 }
 
 const readAllMsg = () => {
@@ -79,8 +88,8 @@ const currentMsgPageData = computed(() => {
   const endIdx = startIdx + 10;
   return messages.value.slice(startIdx, endIdx);
 });
-onMounted(() => {
-  getMyMsg()
+onMounted(async () => {
+  await getMyMsg();
 })
 </script>
 
