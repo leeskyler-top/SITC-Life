@@ -379,6 +379,15 @@ const signin = ref(false);
 const captchaImage = ref(null);
 const captchaType = ref('image');
 const showTips = ref(false);
+
+const speakWord = (word) => {
+  speechSynthesis.cancel();
+  const msg = new SpeechSynthesisUtterance(word);
+  msg.lang = 'en-US'; // 美式英语
+  msg.rate = 0.8;      // 语速略慢一点更清晰
+  window.speechSynthesis.speak(msg);
+}
+
 const handleCancelTips = () => {
   showTips.value = false;
   formState.captcha_answer = null;
@@ -590,9 +599,11 @@ const getCurrentYear = () => {
           </div>
 
         </a-form>
-        <a-modal v-model:open="showTips">
+        <a-modal title="语音验证码完成指引" v-model:open="showTips">
           <a-col>
-            请注意一个验证码只有三分钟有效期。
+            <p>请注意一个验证码只有三分钟有效期。</p>
+            <p>对照表内的读音部分可以单击收听范例。</p>
+            <p>指引最下方可以进行验证码收听和答案填写。</p>
           </a-col>
           <a-descriptions
               title="NATO 音标对照表"
@@ -604,7 +615,7 @@ const getCurrentYear = () => {
                 :key="char"
                 :label="char"
             >
-              {{ word }}
+              <span @click="speakWord(word)">{{ word }}</span>
             </a-descriptions-item>
           </a-descriptions>
           <a-col style="margin-top: 8px;">
