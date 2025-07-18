@@ -13,7 +13,7 @@ import {
   PieChartOutlined
 } from '@ant-design/icons-vue';
 import {theme, message, legacyLogicalPropertiesTransformer} from "ant-design-vue";
-import {ref, computed, reactive, watch, onMounted} from 'vue';
+import {ref, computed, reactive, watch, onMounted, onUnmounted} from 'vue';
 import api from './api.js';
 import router from "@/router";
 import {jwtDecode} from 'jwt-decode';
@@ -133,7 +133,9 @@ window.addEventListener('resize', handleResize);
 
 const formState = reactive({
   studentId: null,
-  password: null
+  password: null,
+  captcha_uuid: null,
+  captcha_answer: null,
 });
 
 const disabled = computed(() => {
@@ -151,6 +153,7 @@ const user_position = ref(localStorage.user_position);
 onMounted(() => {
   handleResize();
   getCurrentYear();
+  startCaptchaRefresh();
 })
 
 let isRefreshing = false; // 标记是否正在刷新 Token
@@ -180,7 +183,6 @@ const checkTokenExpiration = async () => {
   if (!refresh_token.value) {
     message.error("Token 不存在，请重新登录");
     logout();
-    throw new Error("Token 不存在");
   }
 
   try {
@@ -190,7 +192,16 @@ const checkTokenExpiration = async () => {
     if (Date.now() > refreshExp) {
       message.warn("refresh_token 已过期，请重新登录");
       logout();
-      throw new Error("refresh_token expired");
+      // 构造 axios 错误格式
+      throw {
+        isAxiosError: true,
+        response: {
+          status: 401,
+          data: {
+            msg: "refresh_token 已过期",
+          },
+        },
+      };
     }
 
     // 检查 access_token 是否即将过期（提前 5 分钟刷新）
@@ -224,7 +235,7 @@ const checkTokenExpiration = async () => {
 
 // 请求拦截器
 api.interceptors.request.use(async (config) => {
-  if (!config.url.includes("/auth/login") && !config.url.includes("/auth/refresh")) {
+  if (!config.url.includes("/auth/login") && !config.url.includes("/auth/refresh") && !config.url.includes("/auth/captcha")) {
     await checkTokenExpiration();
 
     // 使用登录时生成的加密 AES 密钥
@@ -294,12 +305,14 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
     async (response) => {
       if (response?.data?.data?.iv) {
-        try {
-          const decryptedData = await decryptResponseData(response.data.data);
-          response.data.data = decryptedData;
-        } catch (e) {
-          message.error("响应数据解密失败");
-        }
+        const decryptedData = await decryptResponseData(response.data.data);
+        response.data.data = decryptedData;
+        // try {
+        //   const decryptedData = await decryptResponseData(response.data.data);
+        //   response.data.data = decryptedData;
+        // } catch (e) {
+        //   message.error("响应数据解密失败");
+        // }
       }
       return response;
     },
@@ -310,7 +323,8 @@ api.interceptors.response.use(
       // 尝试处理 Token 刷新逻辑
       if (res?.status === 401 && !originalRequest._retry &&
           !originalRequest.url.includes("/auth/refresh") &&
-          !originalRequest.url.includes("/auth/login")) {
+          !originalRequest.url.includes("/auth/login") &&
+          !originalRequest.url.includes("/auth/captcha")) {
         originalRequest._retry = true;
         try {
           const newToken = await refreshToken();
@@ -361,12 +375,93 @@ watch(access_token, (newToken) => {
 const name = ref(localStorage.name);
 
 const signin = ref(false);
+
+const captchaImage = ref(null);
+const captchaType = ref('image');
+const showTips = ref(false);
+const handleCancelTips = () => {
+  showTips.value = false;
+  formState.captcha_answer = null;
+}
+const natoPhonetic = {
+  'A': 'Alpha', 'B': 'Bravo', 'C': 'Charlie', 'D': 'Delta', 'E': 'Echo',
+  'F': 'Foxtrot', 'G': 'Golf', 'H': 'Hotel', 'I': 'India', 'J': 'Juliett',
+  'K': 'Kilo', 'L': 'Lima', 'M': 'Mike', 'N': 'November', 'O': 'Oscar',
+  'P': 'Papa', 'Q': 'Quebec', 'R': 'Romeo', 'S': 'Sierra', 'T': 'Tango',
+  'U': 'Uniform', 'V': 'Victor', 'W': 'Whiskey', 'X': 'X-ray', 'Y': 'Yankee', 'Z': 'Zulu',
+  '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
+  '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine',
+}
+const captchaTimer = ref(null);
+
+// 是否未登录（响应式判断）
+const isNotLoggedIn = computed(() => {
+  return !access_token.value && !refresh_token.value;
+});
+
+// 开启自动刷新验证码定时器
+function startCaptchaRefresh() {
+  if (captchaTimer.value) return; // 已经开启
+
+  getCaptcha(); // 初始化加载一次
+  captchaTimer.value = setInterval(() => {
+    if (!access_token.value && !refresh_token.value) {
+      getCaptcha();
+    }
+  }, 160 * 1000); // 每 160 秒
+}
+
+// 停止自动刷新验证码
+function stopCaptchaRefresh() {
+  if (captchaTimer.value) {
+    clearInterval(captchaTimer.value);
+    captchaTimer.value = null;
+  }
+}
+
+// 页面卸载时清理定时器
+onUnmounted(() => {
+  stopCaptchaRefresh();
+});
+
+const disableAudio = computed(() => {
+  return !captchaImage.value
+})
+
+const playAudio = () => {
+  const audio = document.getElementById('captcha_audio');
+  if (audio.src) {
+    audio.play();
+  }
+}
+
+const getCaptcha = (type=null) => {
+  if (type) {
+    captchaType.value = type;
+  }
+  logoLoading.value = true;
+  if (captchaType.value === 'audio') {
+    captchaImage.value = null;
+  }
+  api.get("/auth/captcha?type=" + captchaType.value).then(res => {
+    let {data} = res.data;
+    logoLoading.value = false;
+    formState.captcha_uuid = data.uuid;
+    captchaImage.value = data.image_data;
+  }).catch(err => {
+    console.log("验证码获取失败");
+    getCaptcha();
+  })
+}
+
 const login = () => {
   signin.value = true;
   api.post("/auth/login", formState).then((res) => {
     signin.value = false;
     formState.studentId = null;
     formState.password = null;
+    formState.captcha_uuid = null;
+    formState.captcha_answer = null;
     let {data, msg} = res.data;
     access_token.value = data.access_token;
     refresh_token.value = data.refresh_token;
@@ -388,6 +483,7 @@ const login = () => {
       message.error("服务器离线，请刷新页面，如果问题仍然存在请联系管理员")
     }
     signin.value = false;
+    getCaptcha();
     message.error(msg);
   });
 }
@@ -402,6 +498,7 @@ const logout = () => {
   is_admin.value = null;
   user_position.value = null;
   message.success("注销完成");
+  getCaptcha();
 }
 
 const logoLoading = ref('none')
@@ -457,15 +554,72 @@ const getCurrentYear = () => {
           >
             <a-input-password v-model:value="formState.password"/>
           </a-form-item>
+          <a-form-item
+              label="验证码"
+              name="captcha_answer"
+              :rules="[{ required: true, message: '请输入验证码' }]"
+          >
+            <a-row>
+              <a-input-password :style="{ width: captchaType === 'audio' ? '100%' : '35%' }"
+                                v-model:value="formState.captcha_answer"/>
+              <a-col :flex="1" style="padding-top: 2px; padding-left: 4px;" v-if="captchaType==='image'">
+                <img :src="captchaImage" @load="stopLoadingLogo" :style="{ display: logoLoading }" @click="getCaptcha('image')"/>
+                <a-spin :spinning="logoLoading === 'none'"></a-spin>
+              </a-col>
+              <a-col :flex="1" style="padding-top: 2px; padding-left: 4px;" v-if="captchaType==='audio'">
+                <audio id="captcha_audio" :src="captchaImage" />
+                <a-spin :spinning="logoLoading === 'none'"></a-spin>
+              </a-col>
+            </a-row>
+            <a-row v-if="captchaType==='audio'">
+              <a-button @click="playAudio()" :disabled="disableAudio">▶</a-button>
+              <a-button @click="getCaptcha()">🔁</a-button>
+              <a-button @click="showTips=true;">提示</a-button>
+            </a-row>
+            <a-row>
+              <a v-if="captchaType === 'image'" @click="getCaptcha('audio')">语音验证码</a>
+              <a v-else @click="getCaptcha('image')">文字验证码</a>
+            </a-row>
+          </a-form-item>
           <div style="display: flex; align-items: center; justify-content: center; margin-top: 16px;">
             <a-form-item>
               <a-button type="primary" html-type="submit" :loading="signin"
-                        :disabled="!formState.studentId || !formState.password">登录
+                        :disabled="!formState.studentId || !formState.password || !formState.captcha_uuid || !formState.captcha_answer">登录
               </a-button>
             </a-form-item>
           </div>
 
         </a-form>
+        <a-modal v-model:open="showTips">
+          <a-col>
+            请注意一个验证码只有三分钟有效期。
+          </a-col>
+          <a-descriptions
+              title="NATO 音标对照表"
+              bordered
+              :column="{ xs: 1, sm: 2, md: 3, lg: 3 }"
+          >
+            <a-descriptions-item
+                v-for="(word, char) in natoPhonetic"
+                :key="char"
+                :label="char"
+            >
+              {{ word }}
+            </a-descriptions-item>
+          </a-descriptions>
+          <a-col style="margin-top: 8px;">
+            请根据读音对应字母或数字，填写验证码
+            <a-input v-model:value="formState.captcha_answer"></a-input>
+          </a-col>
+          <a-row v-if="captchaType==='audio'">
+            <a-button @click="playAudio()" :disabled="disableAudio">▶ 播放</a-button>
+            <a-button @click="getCaptcha()">🔁 刷新</a-button>
+          </a-row>
+          <template #footer>
+            <a-button type="primary" danger @click="handleCancelTips">放弃输入</a-button>
+            <a-button type="primary" @click="showTips=false;">保存</a-button>
+          </template>
+        </a-modal>
         <footer id="login-footer">
           <div>
             <a href="https://beian.miit.gov.cn"
